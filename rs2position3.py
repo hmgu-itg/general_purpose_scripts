@@ -17,7 +17,7 @@ def getResponse(request_string,headers,data,max_attempts=-1):
     attempt=1
     r = requests.post(request_string,headers=headers,data=data)
     while not r.ok:
-        #print("attempt "+str(attempt),file=sys.stderr)
+        print("attempt "+str(attempt),file=sys.stderr)
         attempt+=1
         if max_attempts!=-1 and attempt==max_attempts:
             return None
@@ -47,14 +47,18 @@ def getChrName(string):
     else:
         return "NA"
 
-
 def parseSPDI(string):
-    m=re.search("^NC_0+([1-9]\d*)\.\d*:(\d+):([ACGTacgt]+):([ACGTacgt]+)",string)
+    L=string.rsplit(":")
+    c="NA"
+    m=re.search("NC_0+(\d+)\.\d+",L[0])
     if m:
-        return {"chr":m.group(1),"pos":int(m.group(2))+1,"ref":m.group(3),"alt":m.group(4)}
-    else:
-        return {"chr":"NA","pos":"NA","ref":"NA","alt":"NA"}
-
+        c=m.group(1)
+    pos=int(L[1])
+    ref=L[2]
+    alt=L[3]
+    if len(ref)==1 and len(alt)==1:
+        pos=pos+1
+    return {"chr":m.group(1),"pos":pos,"ref":ref,"alt":alt}
 
 def printHash(H):
     for k,r in H.items():
