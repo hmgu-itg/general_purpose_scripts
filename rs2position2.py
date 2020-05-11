@@ -10,14 +10,20 @@ import datetime
 
 headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
 
-def getResponse2(server,ext,rs,headers,timeout=None):
+def getResponse2(server,ext,rs,headers,timeout=None,max_attempts=-1):
+    attempt=1
     try:
         r = requests.get(server+ext+rs+"?",headers=headers,timeout=timeout)
         while not r.ok:
             print(str(datetime.datetime.now())+" : "+str(r.status_code)+" occured. Trying again",file=sys.stderr)
             sys.stderr.flush()
+            attempt+=1
+            if max_attempts!=-1 and attempt==max_attempts:
+                return None
+            
             time.sleep(10)
             r = requests.get(server+ext+rs+"?",headers=headers,timeout=timeout)
+        
         return r.json()
     except Timeout as ex:
         print(str(datetime.datetime.now())+" : Timeout event occured", file=sys.stderr)
@@ -64,35 +70,42 @@ if build=="grch38":
 
 #---------------------------------------------------------------------------------------------------------------------------
 
+timeout=60
+max_attempts=5
 
-r=getResponse2(server,ext,rsID,headers)
+r=getResponse2(server,ext,rsID,headers,timeout,max_attempts)
 H={}
-if len(r)>1:
-    print("WARNING: More than 1 hash for "+rsID,file=sys.stderr,flush=True)
-else:
+
+if r:
+    if len(r)>1:
+        print("WARNING: More than 1 hash for "+rsID,file=sys.stderr,flush=True)
+        
     x=r[0]
     r1=x["id"][0]
-    inp=x["input"]
-    if r1!=inp:
-        print("WARNING: INPUT ID=",x["input"],"RETRIEVED ID=",r1,file=sys.stderr,flush=True)
-    else:
-        H[inp]=[]
-        spdi=x["spdi"]
-        #print(spdi)
-        for z in spdi:
-            m=re.search("^NC_0+",z)
-            if m:
-                p=parseSPDI(z)
-                H[inp].append(p)
+    if r1!=rsID:
+        print("WARNING: RSIDUT ID=",rsID,"RETRIEVED ID=",r1,file=sys.stderr,flush=True)
 
-r=H[rsID]
-positions=set(x["chr"]+":"+str(x["pos"]) for x in r)
-if len(positions)>1:
-    print("ERROR: more than one position for ",rsID,file=sys.stderr,flush=True)
-elif len(positions)<1:
-    print("ERROR: no position for ",rsID,file=sys.stderr,flush=True)
+    H[rsID]=[]
+    spdi=x["spdi"]
+    #print(spdi)
+    for z in spdi:
+        m=re.search("^NC_0+",z)
+        if m:
+            p=parseSPDI(z)
+            H[rsID].append(p)
+
+    s=H[rsID]
+    positions=set(x["chr"]+":"+str(x["pos"]) for x in s)
+    if len(positions)>1:
+        print("ERROR: more than one position for ",rsID,file=sys.stderr,flush=True)
+    elif len(positions)<1:
+        print("ERROR: no position for ",rsID,file=sys.stderr,flush=True)
+    else:
+        L=positions.pop().rsplit(":")
+        print(rsID,L[0],L[1],file=sys.stdout,flush=True)
 else:
-    L=positions.pop().rsplit(":")
-    print(rsID,L[0],L[1],file=sys.stdout,flush=True)
-    
+    print("ERROR: getResponse2 returned None for "+rsID,file=sys.stderr,flush=True)    
+    print(rsID,"NA","NA")
+
+
 #    print(k,",".join(list(sorted(set(x["chr"] for x in r)))),",".join(list(sorted(set(str(x["pos"]) for x in r)))),",".join(list(sorted(set(x["ref"] for x in r)))),",".join(list(sorted(set(x["alt"] for x in r)))),sep="\t")

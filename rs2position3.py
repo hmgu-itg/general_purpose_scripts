@@ -21,31 +21,29 @@ def getResponse(request_string,headers,data,max_attempts=-1):
         attempt+=1
         if max_attempts!=-1 and attempt==max_attempts:
             return None
-        time.sleep(15)
+        time.sleep(10)
         r = requests.post(request_string,headers=headers,data=data)
     return r.json()
 
-def getResponse2(request_string,headers,data,timeout=None):
+def getResponse2(request_string,headers,data,timeout=None,max_attempts=-1):
+    attempt=1
     try:
         r = requests.post(request_string,headers=headers,data=data,timeout=timeout)
+        #print(data)
         while not r.ok:
             time.sleep(10)
-            print(str(datetime.datetime.now())+" : "+str(r.status_code)+" occured. Trying again",file=sys.stderr)
+            print(str(datetime.datetime.now())+" : Error "+str(r.status_code)+" occured. Trying again",file=sys.stderr)
             sys.stderr.flush()
+            attempt+=1
+            if max_attempts!=-1 and attempt==max_attempts:
+                return None
+
             r = requests.post(request_string,headers=headers,data=data)
         return r.json()
     except Timeout as ex:
         print(str(datetime.datetime.now())+" : Timeout event occured", file=sys.stderr)
         sys.stderr.flush()
         return None
-
-
-def getChrName(string):
-    m=re.search("^NC_0+([^\.0]+)\.*",string)
-    if m:
-        return m.group(1)
-    else:
-        return "NA"
 
 def parseSPDI(string):
     L=string.rsplit(":")
@@ -81,9 +79,9 @@ if args.size!=None:
     batchsize=int(args.size)
 
 ext = "/variant_recoder/homo_sapiens"
-server = "http://"+build+".rest.ensembl.org"
+server = "https://"+build+".rest.ensembl.org"
 if build=="grch38":
-    server = "http://rest.ensembl.org"
+    server = "https://rest.ensembl.org"
 
 #print("Current build: "+build,file=sys.stderr)
 
@@ -99,7 +97,7 @@ while cur_line<total_lines:
     L=[]
     for i in range(cur_line,min(cur_line+batchsize,total_lines)):
         L.append("\""+IDs[i].rstrip(os.linesep)+"\"")    
-    r=getResponse2(server+ext,headers,list2string(L))
+    r=getResponse2(server+ext,headers,list2string(L),max_attempts=5)
     if r:
         for snprec in r:
             H={}
@@ -113,4 +111,8 @@ while cur_line<total_lines:
                     p=parseSPDI(z)
                     H[id1].append(p)
             printHash(H)
+    else:
+        for i in range(cur_line,min(cur_line+batchsize,total_lines)):
+            print(IDs[i].rstrip(os.linesep),"NA","NA","NA",file=sys.stdout,flush=True)    
+                    
     cur_line+=batchsize
