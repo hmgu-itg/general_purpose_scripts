@@ -30,7 +30,7 @@ def parseSPDI(string):
     #print(len(L))
     #print(len(L[3]))
     c="NA"
-    m=re.search("NC_0+([^\.0]+)\.\d+",L[0])
+    m=re.search("NC_0+(\d+)\.\d+",L[0])
     if m:
         c=m.group(1)
     pos=int(L[1])
@@ -68,22 +68,31 @@ if build=="grch38":
 r=getResponse2(server,ext,rsID,headers)
 H={}
 if len(r)>1:
-    print("More than 1 hash for "+rsID,file=sys.stderr,flush=True)
+    print("WARNING: More than 1 hash for "+rsID,file=sys.stderr,flush=True)
 else:
     x=r[0]
     r1=x["id"][0]
     inp=x["input"]
     if r1!=inp:
-        print("WARNING: INPUT=",x["input"],"ID=",r1,file=sys.stderr,flush=True)
+        print("WARNING: INPUT ID=",x["input"],"RETRIEVED ID=",r1,file=sys.stderr,flush=True)
     else:
-        H[r1]=[]
+        H[inp]=[]
         spdi=x["spdi"]
-        print(spdi)
+        #print(spdi)
         for z in spdi:
             m=re.search("^NC_0+",z)
             if m:
                 p=parseSPDI(z)
-                H[r1].append(p)
+                H[inp].append(p)
 
-for k,r in H.items():
-    print(k,",".join(list(sorted(set(x["chr"] for x in r)))),",".join(list(sorted(set(str(x["pos"]) for x in r)))),",".join(list(sorted(set(x["ref"] for x in r)))),",".join(list(sorted(set(x["alt"] for x in r)))),sep="\t")
+r=H[rsID]
+positions=set(x["chr"]+":"+str(x["pos"]) for x in r)
+if len(positions)>1:
+    print("ERROR: more than one position for ",rsID,file=sys.stderr,flush=True)
+elif len(positions)<1:
+    print("ERROR: no position for ",rsID,file=sys.stderr,flush=True)
+else:
+    L=positions.pop().rsplit(":")
+    print(rsID,L[0],L[1],file=sys.stdout,flush=True)
+    
+#    print(k,",".join(list(sorted(set(x["chr"] for x in r)))),",".join(list(sorted(set(str(x["pos"]) for x in r)))),",".join(list(sorted(set(x["ref"] for x in r)))),",".join(list(sorted(set(x["alt"] for x in r)))),sep="\t")
