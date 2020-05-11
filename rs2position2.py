@@ -26,11 +26,19 @@ def getResponse2(server,ext,rs,headers,timeout=None):
 
 
 def parseSPDI(string):
-    m=re.search("^NC_0+([^\.0]+)\.\d*:(\d+):([ACGTacgt]+):([ACGTacgt]+)",string)
+    L=string.rsplit(":")
+    #print(len(L))
+    #print(len(L[3]))
+    c="NA"
+    m=re.search("NC_0+([^\.0]+)\.\d+",L[0])
     if m:
-        return {"chr":m.group(1),"pos":int(m.group(2))+1,"ref":m.group(3),"alt":m.group(4)}
-    else:
-        return {"chr":"NA","pos":"NA","ref":"NA","alt":"NA"}
+        c=m.group(1)
+    pos=int(L[1])
+    ref=L[2]
+    alt=L[3]
+    if len(ref)==1 and len(alt)==1:
+        pos=pos+1
+    return {"chr":m.group(1),"pos":pos,"ref":ref,"alt":alt}
 
 #----------------------------------------------------------------------------------------------------------------------------------
 
@@ -70,7 +78,7 @@ else:
     else:
         H[r1]=[]
         spdi=x["spdi"]
-        #print(spdi)
+        print(spdi)
         for z in spdi:
             m=re.search("^NC_0+",z)
             if m:
