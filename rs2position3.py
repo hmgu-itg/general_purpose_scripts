@@ -105,6 +105,6 @@ while cur_line<total_lines:
                 print(id0,L[0],L[1],sep='\t',file=sys.stdout,flush=True)
     else:
         for i in range(cur_line,min(cur_line+batchsize,total_lines)):
-            print(IDs[i].rstrip(os.linesep),"NA","NA","NA",sep='\t',file=sys.stdout,flush=True)    
+            print(IDs[i].rstrip(os.linesep),"NA","NA",sep='\t',file=sys.stdout,flush=True)    
                     
     cur_line+=batchsize
