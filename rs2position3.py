@@ -46,10 +46,6 @@ def parseSPDI(string):
         pos=pos+1
     return {"chr":c,"pos":pos,"ref":ref,"alt":alt}
 
-def printHash(H):
-    for k,r in H.items():
-        print(k,",".join(list(sorted(set(x["chr"] for x in r)))),",".join(list(sorted(set(str(x["pos"]) for x in r)))),",".join(list(sorted(set(x["ref"] for x in r)))),",".join(list(sorted(set(x["alt"] for x in r)))),sep="\t",flush=True)
-
 #----------------------------------------------------------------------------------------------------------------------------------
 
 build="grch38"
@@ -71,13 +67,9 @@ server = "https://"+build+".rest.ensembl.org"
 if build=="grch38":
     server = "https://rest.ensembl.org"
 
-#print("Current build: "+build,file=sys.stderr)
-
 #---------------------------------------------------------------------------------------------------------------------------
 
 IDs=sys.stdin.readlines()
-#print("Read "+str(len(IDs))+" IDs",file=sys.stderr)
-
 total_lines=len(IDs)
 
 cur_line=0
@@ -89,17 +81,30 @@ while cur_line<total_lines:
     if r:
         for snprec in r:
             H={}
+            id0=snprec["input"][0] # original ID
             id1=snprec["id"][0]
-            H[id1]=[]
+            if id1!=id0:
+                print("WARNING: INPUT ID="+id0,"RETRIEVED ID="+id1,file=sys.stderr,flush=True)
+
+            H[id0]=[]
             spdi=snprec["spdi"]
             for z in spdi:
                 m=re.search("^NC_0+",z)
                 if m:
                     p=parseSPDI(z)
-                    H[id1].append(p)
-            printHash(H)
+                    H[id0].append(p)
+
+            s=H[id0]
+            positions=set(x["chr"]+":"+str(x["pos"]) for x in s)
+            if len(positions)>1:
+                print("ERROR: more than one position for "+rsID,file=sys.stderr,flush=True)
+            elif len(positions)<1:
+                print("ERROR: no position for "+rsID,file=sys.stderr,flush=True)
+            else:
+                L=positions.pop().rsplit(":")
+                print(rsID,L[0],L[1],sep='\t',file=sys.stdout,flush=True)
     else:
         for i in range(cur_line,min(cur_line+batchsize,total_lines)):
-            print(IDs[i].rstrip(os.linesep),"NA","NA","NA",file=sys.stdout,flush=True)    
+            print(IDs[i].rstrip(os.linesep),"NA","NA","NA",sep='\t',file=sys.stdout,flush=True)    
                     
     cur_line+=batchsize

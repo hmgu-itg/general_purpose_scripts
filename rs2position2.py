@@ -77,17 +77,18 @@ r=getResponse2(server,ext,rsID,headers,timeout,max_attempts)
 H={}
 
 if r:
+    #print(repr(r))
     if len(r)>1:
         print("WARNING: More than 1 hash for "+rsID,file=sys.stderr,flush=True)
         
     x=r[0]
     r1=x["id"][0]
     if r1!=rsID:
-        print("WARNING: RSIDUT ID=",rsID,"RETRIEVED ID=",r1,file=sys.stderr,flush=True)
+        print("WARNING: INPUT ID="+rsID,"RETRIEVED ID="+r1,file=sys.stderr,flush=True)
 
     H[rsID]=[]
     spdi=x["spdi"]
-    #print(spdi)
+
     for z in spdi:
         m=re.search("^NC_0+",z)
         if m:
@@ -97,15 +98,15 @@ if r:
     s=H[rsID]
     positions=set(x["chr"]+":"+str(x["pos"]) for x in s)
     if len(positions)>1:
-        print("ERROR: more than one position for ",rsID,file=sys.stderr,flush=True)
+        print("ERROR: more than one position for "+rsID,file=sys.stderr,flush=True)
     elif len(positions)<1:
-        print("ERROR: no position for ",rsID,file=sys.stderr,flush=True)
+        print("ERROR: no position for "+rsID,file=sys.stderr,flush=True)
     else:
         L=positions.pop().rsplit(":")
-        print(rsID,L[0],L[1],file=sys.stdout,flush=True)
+        print(rsID,L[0],L[1],sep='\t',file=sys.stdout,flush=True)
 else:
     print("ERROR: getResponse2 returned None for "+rsID,file=sys.stderr,flush=True)    
-    print(rsID,"NA","NA")
+    print(rsID,"NA","NA",sep='\t')
 
 
 #    print(k,",".join(list(sorted(set(x["chr"] for x in r)))),",".join(list(sorted(set(str(x["pos"]) for x in r)))),",".join(list(sorted(set(x["ref"] for x in r)))),",".join(list(sorted(set(x["alt"] for x in r)))),sep="\t")
