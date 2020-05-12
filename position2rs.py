@@ -8,12 +8,12 @@ import time
 from requests.exceptions import Timeout
 import datetime
 
-headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
+headers={ "Content-Type" : "application/json"}
 
-def getResponse2(server,ext,rs,headers,timeout=None,max_attempts=-1):
+def getResponse2(server,ext,headers,timeout=None,max_attempts=-1):
     attempt=1
     try:
-        r = requests.get(server+ext+rs+"?",headers=headers,timeout=timeout)
+        r = requests.get(server+ext,headers=headers,timeout=timeout)
         while not r.ok:
             print(str(datetime.datetime.now())+" : "+str(r.status_code)+" occured. Trying again",file=sys.stderr)
             sys.stderr.flush()
@@ -22,7 +22,7 @@ def getResponse2(server,ext,rs,headers,timeout=None,max_attempts=-1):
                 return None
             
             time.sleep(10)
-            r = requests.get(server+ext+rs+"?",headers=headers,timeout=timeout)
+            r = requests.get(server+ext,headers=headers,timeout=timeout)
         
         return r.json()
     except Timeout as ex:
@@ -30,37 +30,31 @@ def getResponse2(server,ext,rs,headers,timeout=None,max_attempts=-1):
         sys.stderr.flush()
         return None
 
-
-def parseSPDI(string):
-    L=string.rsplit(":")
-    #print(len(L))
-    #print(len(L[3]))
-    c=L[0]
-    m=re.search("NC_0+(\d+)\.\d+",L[0])
-    if m:
-        c=m.group(1)
-    pos=int(L[1])
-    ref=L[2]
-    alt=L[3]
-    if len(ref)==1 and len(alt)==1:
-        pos=pos+1
-    return {"chr":c,"pos":pos,"ref":ref,"alt":alt}
-
 #----------------------------------------------------------------------------------------------------------------------------------
 
 build="grch38"
+a1=None
+a2=None
 
-parser = argparse.ArgumentParser(description="Get chromosome, position and alleles for given rsID")
+parser = argparse.ArgumentParser(description="Get rs ID(s) for given chromosome, position and (optionally) alleles")
 parser.add_argument('--build','-b', action="store",help="Genome build: default: grch38", default="grch38")
-parser.add_argument('--rs','-r', action="store",help="rsID")
+parser.add_argument('--chrom','-c', action="store",help="chromosome")
+parser.add_argument('--pos','-p', action="store",help="position")
+parser.add_argument('--a1','-a1', action="store",help="allele 1")
+parser.add_argument('--a2','-a2', action="store",help="allele 2")
 args=parser.parse_args()
 
 if args.build!=None:
     build=args.build
 
-rsID=args.rs
+chrom=args.chrom
+pos=int(args.pos)
+if args.a1!=None:
+    a1=args.a1
+if args.a2!=None:
+    a2=args.a2
     
-ext = "/variant_recoder/homo_sapiens/"
+ext = "/overlap/region/human/"+chrom+":"+str(pos-1)+"-"+str(pos+1)+"?feature=variation"
 server = "http://"+build+".rest.ensembl.org"
 if build=="grch38":
     server = "http://rest.ensembl.org"
@@ -73,40 +67,48 @@ if build=="grch38":
 timeout=60
 max_attempts=5
 
-r=getResponse2(server,ext,rsID,headers,timeout,max_attempts)
+r=getResponse2(server,ext,headers,timeout,max_attempts)
 H={}
 
 if r:
     #print(repr(r))
-    if len(r)>1:
-        print("WARNING: More than 1 hash for "+rsID,file=sys.stderr,flush=True)
+
+    for x in r:
+        alleles=x["alleles"]
+        c=x["seq_region_name"]
+        strand=x["strand"]
+        rsID=x["id"]
+        start=int(x["start"])
+        end=int(x["end"])
+        #if start==pos+1:
+        print(rsID,c,str(start),str(end),alleles,sep="\t")
         
-    x=r[0]
-    r1=x["id"][0]
-    if r1!=rsID:
-        print("WARNING: INPUT ID="+rsID,"RETRIEVED ID="+r1,file=sys.stderr,flush=True)
 
-    H[rsID]=[]
-    spdi=x["spdi"]
+#     r1=x["id"][0]
+#     if r1!=rsID:
+#         print("WARNING: INPUT ID="+rsID,"RETRIEVED ID="+r1,file=sys.stderr,flush=True)
 
-    for z in spdi:
-        m=re.search("^NC_0+",z)
-        if m:
-            p=parseSPDI(z)
-            H[rsID].append(p)
+#     H[rsID]=[]
+#     spdi=x["spdi"]
 
-    s=H[rsID]
-    positions=set(x["chr"]+":"+str(x["pos"]) for x in s)
-    if len(positions)>1:
-        print("ERROR: more than one position for "+rsID,file=sys.stderr,flush=True)
-    elif len(positions)<1:
-        print("ERROR: no position for "+rsID,file=sys.stderr,flush=True)
-    else:
-        L=positions.pop().rsplit(":")
-        print(rsID,L[0],L[1],sep='\t',file=sys.stdout,flush=True)
-else:
-    print("ERROR: getResponse2 returned None for "+rsID,file=sys.stderr,flush=True)    
-    print(rsID,"NA","NA",sep='\t')
+#     for z in spdi:
+#         m=re.search("^NC_0+",z)
+#         if m:
+#             p=parseSPDI(z)
+#             H[rsID].append(p)
+
+#     s=H[rsID]
+#     positions=set(x["chr"]+":"+str(x["pos"]) for x in s)
+#     if len(positions)>1:
+#         print("ERROR: more than one position for "+rsID,file=sys.stderr,flush=True)
+#     elif len(positions)<1:
+#         print("ERROR: no position for "+rsID,file=sys.stderr,flush=True)
+#     else:
+#         L=positions.pop().rsplit(":")
+#         print(rsID,L[0],L[1],sep='\t',file=sys.stdout,flush=True)
+# else:
+#     print("ERROR: getResponse2 returned None for "+rsID,file=sys.stderr,flush=True)    
+#     print(rsID,"NA","NA",sep='\t')
 
 
 #    print(k,",".join(list(sorted(set(x["chr"] for x in r)))),",".join(list(sorted(set(str(x["pos"]) for x in r)))),",".join(list(sorted(set(x["ref"] for x in r)))),",".join(list(sorted(set(x["alt"] for x in r)))),sep="\t")
