@@ -47,7 +47,7 @@ def getResponse2(request_string,headers,data,timeout=None,max_attempts=-1):
 
 def parseSPDI(string):
     L=string.rsplit(":")
-    c="NA"
+    c=L[0]
     m=re.search("NC_0+(\d+)\.\d+",L[0])
     if m:
         c=m.group(1)
@@ -105,11 +105,8 @@ while cur_line<total_lines:
             H[id1]=[]
             spdi=snprec["spdi"]
             for z in spdi:
-                m=re.search("^NC_0+",z)
-                if m:
-                    #print(z)
-                    p=parseSPDI(z)
-                    H[id1].append(p)
+                p=parseSPDI(z)
+                H[id1].append(p)
             printHash(H)
     else:
         for i in range(cur_line,min(cur_line+batchsize,total_lines)):
