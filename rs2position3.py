@@ -13,18 +13,6 @@ headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
 def list2string(snps):
     return "{\"ids\":["+",".join(snps)+"]}"
 
-def getResponse(request_string,headers,data,max_attempts=-1):
-    attempt=1
-    r = requests.post(request_string,headers=headers,data=data)
-    while not r.ok:
-        print("attempt "+str(attempt),file=sys.stderr)
-        attempt+=1
-        if max_attempts!=-1 and attempt==max_attempts:
-            return None
-        time.sleep(10)
-        r = requests.post(request_string,headers=headers,data=data)
-    return r.json()
-
 def getResponse2(request_string,headers,data,timeout=None,max_attempts=-1):
     attempt=1
     try:
@@ -105,8 +93,10 @@ while cur_line<total_lines:
             H[id1]=[]
             spdi=snprec["spdi"]
             for z in spdi:
-                p=parseSPDI(z)
-                H[id1].append(p)
+                m=re.search("^NC_0+",z)
+                if m:
+                    p=parseSPDI(z)
+                    H[id1].append(p)
             printHash(H)
     else:
         for i in range(cur_line,min(cur_line+batchsize,total_lines)):
