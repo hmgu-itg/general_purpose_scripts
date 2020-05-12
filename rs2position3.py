@@ -56,7 +56,7 @@ def parseSPDI(string):
     alt=L[3]
     if len(ref)==1 and len(alt)==1:
         pos=pos+1
-    return {"chr":m.group(1),"pos":pos,"ref":ref,"alt":alt}
+    return {"chr":c,"pos":pos,"ref":ref,"alt":alt}
 
 def printHash(H):
     for k,r in H.items():

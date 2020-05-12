@@ -35,7 +35,7 @@ def parseSPDI(string):
     L=string.rsplit(":")
     #print(len(L))
     #print(len(L[3]))
-    c="NA"
+    c=L[0]
     m=re.search("NC_0+(\d+)\.\d+",L[0])
     if m:
         c=m.group(1)
@@ -44,7 +44,7 @@ def parseSPDI(string):
     alt=L[3]
     if len(ref)==1 and len(alt)==1:
         pos=pos+1
-    return {"chr":m.group(1),"pos":pos,"ref":ref,"alt":alt}
+    return {"chr":c,"pos":pos,"ref":ref,"alt":alt}
 
 #----------------------------------------------------------------------------------------------------------------------------------
 
