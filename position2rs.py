@@ -54,7 +54,7 @@ if args.a1!=None:
 if args.a2!=None:
     a2=args.a2
     
-ext = "/overlap/region/human/"+chrom+":"+str(pos-1)+"-"+str(pos+1)+"?feature=variation"
+ext = "/overlap/region/human/"+chrom+":"+str(pos)+"-"+str(pos)+"?feature=variation"
 server = "http://"+build+".rest.ensembl.org"
 if build=="grch38":
     server = "http://rest.ensembl.org"
@@ -67,7 +67,11 @@ if build=="grch38":
 timeout=60
 max_attempts=5
 
+if a1 and a2 and (len(a1)!=1 or len(a2)!=1):
+    ext = "/overlap/region/human/"+chrom+":"+str(pos-1)+"-"+str(pos+1)+"?feature=variation"
+
 r=getResponse2(server,ext,headers,timeout,max_attempts)
+
 H={}
 
 if r:
