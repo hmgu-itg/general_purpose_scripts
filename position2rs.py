@@ -18,7 +18,7 @@ def getResponse2(server,ext,headers,timeout=None,max_attempts=-1):
             print(str(datetime.datetime.now())+" : "+str(r.status_code)+" occured. Trying again",file=sys.stderr)
             sys.stderr.flush()
             attempt+=1
-            if max_attempts!=-1 and attempt==max_attempts:
+            if max_attempts!=-1 and attempt>max_attempts:
                 return None
             
             time.sleep(10)
@@ -49,11 +49,24 @@ if args.build!=None:
 
 chrom=args.chrom
 pos=int(args.pos)
+alleles0=[]
 if args.a1!=None:
     a1=args.a1
+    alleles0.append(a1)
+else:
+    alleles0.append("NA")
+
 if args.a2!=None:
     a2=args.a2
-    
+    alleles0.append(a2)
+else:
+    alleles0.append("NA")
+
+alleles0.sort()
+
+#print(*alleles0,sep="\t");
+
+# default: exact position (for SNPs)    
 ext = "/overlap/region/human/"+chrom+":"+str(pos)+"-"+str(pos)+"?feature=variation"
 server = "http://"+build+".rest.ensembl.org"
 if build=="grch38":
@@ -67,8 +80,10 @@ if build=="grch38":
 timeout=60
 max_attempts=5
 
+# TODO: fix
 if a1 and a2 and (len(a1)!=1 or len(a2)!=1):
-    ext = "/overlap/region/human/"+chrom+":"+str(pos-1)+"-"+str(pos+1)+"?feature=variation"
+    ext = "/overlap/region/human/"+chrom+":"+str(pos-200)+"-"+str(pos+200)+"?feature=variation"
+#
 
 r=getResponse2(server,ext,headers,timeout,max_attempts)
 
@@ -85,7 +100,8 @@ if r:
         start=int(x["start"])
         end=int(x["end"])
         #if start==pos+1:
-        print(rsID,c,str(start),str(end),alleles,sep="\t")
+        alleles.sort()
+        print(rsID,c,str(start),str(end),",".join(alleles),chrom,str(pos),",".join(alleles0),sep="\t")
         
 
 #     r1=x["id"][0]

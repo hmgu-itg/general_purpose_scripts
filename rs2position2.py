@@ -77,7 +77,7 @@ r=getResponse2(server,ext,rsID,headers,timeout,max_attempts)
 H={}
 
 if r:
-    print(repr(r))
+    #print(repr(r))
     if len(r)>1:
         print("WARNING: More than 1 hash for "+rsID,file=sys.stderr,flush=True)
         
