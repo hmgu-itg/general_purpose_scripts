@@ -23,13 +23,15 @@ def getResponse2(server,ext,rs,headers,timeout=None,max_attempts=-1):
                 return None
 
             r = requests.get(server+ext+rs+"?",headers=headers,timeout=timeout)
-            try:
-                ret=r.json()
-                return ret
-            except ValueError:
-                print(str(datetime.datetime.now())+" : JSON decoding error", file=sys.stderr)
-                sys.stderr.flush()
-                return None
+
+        try:
+            ret=r.json()
+            return ret
+        except ValueError:
+            print(str(datetime.datetime.now())+" : JSON decoding error", file=sys.stderr)
+            sys.stderr.flush()
+            return None
+
     except Timeout as ex:
         print(str(datetime.datetime.now())+" : Timeout exception occured", file=sys.stderr)
         sys.stderr.flush()
@@ -65,7 +67,10 @@ build="grch38"
 parser = argparse.ArgumentParser(description="Get chromosome, position and alleles for given rsID")
 parser.add_argument('--build','-b', action="store",help="Genome build: default: grch38", default="grch38")
 parser.add_argument('--rs','-r', action="store",help="rsID")
+parser.add_argument('--verbose','-v',default=False,action="store_true",help="verbose output")
 args=parser.parse_args()
+
+verbose=args.verbose
 
 if args.build!=None:
     build=args.build
@@ -89,7 +94,9 @@ r=getResponse2(server,ext,rsID,headers,timeout,max_attempts)
 H={}
 
 if r:
-    print(repr(r))
+    if verbose:
+        print("INFO: "+repr(r))
+
     if len(r)>1:
         print("WARNING: More than 1 hash for "+rsID,file=sys.stderr,flush=True)
         
@@ -99,13 +106,13 @@ if r:
         print("WARNING: INPUT ID="+rsID,"RETRIEVED ID="+r1,file=sys.stderr,flush=True)
 
     H[rsID]=[]
-    spdi=x["spdi"]
-
-    for z in spdi:
-        m=re.search("^NC_0+",z)
-        if m:
-            p=parseSPDI(z)
-            H[rsID].append(p)
+    if "spdi" in x:
+        spdi=x["spdi"]
+        for z in spdi:
+            m=re.search("^NC_0+",z)
+            if m:
+                p=parseSPDI(z)
+                H[rsID].append(p)
 
     s=H[rsID]
     positions=set(x["chr"]+":"+str(x["pos"]) for x in s)
