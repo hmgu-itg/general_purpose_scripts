@@ -11,7 +11,7 @@ import datetime
 headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
 
 def list2string(snps):
-    return "{\"ids\":["+",".join(snps)+"]}"
+    return "{\"ids\":["+",".join(list(map(lambda x:"\""+x+"\"",snps)))+"]}"
 
 def getResponse2(request_string,headers,data,timeout=None,max_attempts=-1):
     attempt=1
@@ -76,7 +76,7 @@ cur_line=0
 while cur_line<total_lines:
     L=[]
     for i in range(cur_line,min(cur_line+batchsize,total_lines)):
-        L.append("\""+IDs[i].rstrip(os.linesep)+"\"")    
+        L.append(IDs[i].rstrip(os.linesep))    
     r=getResponse2(server+ext,headers,list2string(L),max_attempts=5)
     if r:
         for snprec in r:
