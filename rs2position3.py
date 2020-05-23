@@ -96,12 +96,13 @@ while cur_line<total_lines:
                 print("WARNING: INPUT ID="+id0,"RETRIEVED ID="+id1,file=sys.stderr,flush=True)
 
             H[id0]=[]
-            spdi=snprec["spdi"]
-            for z in spdi:
-                m=re.search("^NC_0+",z)
-                if m:
-                    p=parseSPDI(z)
-                    H[id0].append(p)
+            if "spdi" in snprec:
+                spdi=snprec["spdi"]
+                for z in spdi:
+                    m=re.search("^NC_0+",z)
+                    if m:
+                        p=parseSPDI(z)
+                        H[id0].append(p)
 
             s=H[id0]
             positions=set(x["chr"]+":"+str(x["pos"]) for x in s)
@@ -109,6 +110,7 @@ while cur_line<total_lines:
                 print("ERROR: more than one position for "+id0,file=sys.stderr,flush=True)
             elif len(positions)==0:
                 print("ERROR: no position for "+id0,file=sys.stderr,flush=True)
+                print(id0,"NA","NA",sep='\t',file=sys.stdout,flush=True)    
             else:
                 L1=positions.pop().rsplit(":")
                 print(id0,L1[0],L1[1],sep='\t',file=sys.stdout,flush=True)
