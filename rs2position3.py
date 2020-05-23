@@ -90,6 +90,7 @@ while cur_line<total_lines:
         for snprec in r:
             H={}
             id0=snprec["input"] # original ID
+            L.remove(id0)
             id1=snprec["id"][0]
             if id1!=id0:
                 print("WARNING: INPUT ID="+id0,"RETRIEVED ID="+id1,file=sys.stderr,flush=True)
@@ -106,13 +107,13 @@ while cur_line<total_lines:
             positions=set(x["chr"]+":"+str(x["pos"]) for x in s)
             if len(positions)>1:
                 print("ERROR: more than one position for "+id0,file=sys.stderr,flush=True)
-            elif len(positions)<1:
+            elif len(positions)==0:
                 print("ERROR: no position for "+id0,file=sys.stderr,flush=True)
             else:
-                L=positions.pop().rsplit(":")
-                print(id0,L[0],L[1],sep='\t',file=sys.stdout,flush=True)
-    else:
-        for i in range(cur_line,min(cur_line+batchsize,total_lines)):
-            print(IDs[i].rstrip(os.linesep),"NA","NA",sep='\t',file=sys.stdout,flush=True)    
+                L1=positions.pop().rsplit(":")
+                print(id0,L1[0],L1[1],sep='\t',file=sys.stdout,flush=True)
+
+    for x in L:
+        print(x,"NA","NA",sep='\t',file=sys.stdout,flush=True)    
                     
     cur_line+=batchsize
