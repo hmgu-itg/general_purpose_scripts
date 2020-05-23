@@ -5,7 +5,7 @@ import os
 import argparse
 import re
 import time
-from requests.exceptions import Timeout
+from requests.exceptions import Timeout,TooManyRedirects,RequestException
 import datetime
 
 headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
@@ -27,11 +27,26 @@ def getResponse2(request_string,headers,data,timeout=None,max_attempts=-1):
                 return None
 
             r = requests.post(request_string,headers=headers,data=data)
-        return r.json()
+            try:
+                ret=r.json()
+                return ret
+            except ValueError:
+                print(str(datetime.datetime.now())+" : JSON decoding error", file=sys.stderr)
+                sys.stderr.flush()
+                return None
     except Timeout as ex:
-        print(str(datetime.datetime.now())+" : Timeout event occured", file=sys.stderr)
+        print(str(datetime.datetime.now())+" : Timeout exception occured", file=sys.stderr)
         sys.stderr.flush()
         return None
+    except requests.exceptions.TooManyRedirects:
+        print(str(datetime.datetime.now())+" : TooManyRedirects exception occured", file=sys.stderr)
+        sys.stderr.flush()
+        return None
+    except requests.exceptions.RequestException as e:
+        print(str(datetime.datetime.now())+" : RequestException occured", file=sys.stderr)
+        sys.stderr.flush()
+        return None
+
 
 def parseSPDI(string):
     L=string.rsplit(":")
@@ -101,8 +116,7 @@ while cur_line<total_lines:
                 for z in spdi:
                     m=re.search("^NC_0+",z)
                     if m:
-                        p=parseSPDI(z)
-                        H[id0].append(p)
+                        H[id0].append(parseSPDI(z))
 
             s=H[id0]
             positions=set(x["chr"]+":"+str(x["pos"]) for x in s)
