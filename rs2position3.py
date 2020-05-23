@@ -4,7 +4,6 @@ import requests, sys, time
 import os
 import argparse
 import re
-import time
 from requests.exceptions import Timeout,TooManyRedirects,RequestException
 import datetime
 
