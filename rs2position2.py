@@ -15,21 +15,33 @@ def getResponse2(server,ext,rs,headers,timeout=None,max_attempts=-1):
     try:
         r = requests.get(server+ext+rs+"?",headers=headers,timeout=timeout)
         while not r.ok:
-            print(str(datetime.datetime.now())+" : "+str(r.status_code)+" occured. Trying again",file=sys.stderr)
+            time.sleep(10)
+            print(str(datetime.datetime.now())+" : Error "+str(r.status_code)+" occured. Trying again",file=sys.stderr)
             sys.stderr.flush()
             attempt+=1
             if max_attempts!=-1 and attempt==max_attempts:
                 return None
-            
-            time.sleep(10)
+
             r = requests.get(server+ext+rs+"?",headers=headers,timeout=timeout)
-        
-        return r.json()
+            try:
+                ret=r.json()
+                return ret
+            except ValueError:
+                print(str(datetime.datetime.now())+" : JSON decoding error", file=sys.stderr)
+                sys.stderr.flush()
+                return None
     except Timeout as ex:
-        print(str(datetime.datetime.now())+" : Timeout event occured", file=sys.stderr)
+        print(str(datetime.datetime.now())+" : Timeout exception occured", file=sys.stderr)
         sys.stderr.flush()
         return None
-
+    except TooManyRedirects as ex:
+        print(str(datetime.datetime.now())+" : TooManyRedirects exception occured", file=sys.stderr)
+        sys.stderr.flush()
+        return None
+    except RequestException as ex:
+        print(str(datetime.datetime.now())+" : RequestException occured", file=sys.stderr)
+        sys.stderr.flush()
+        return None
 
 def parseSPDI(string):
     L=string.rsplit(":")
