@@ -67,7 +67,16 @@ parser = argparse.ArgumentParser(description="Get chromosome, position and allel
 parser.add_argument('--build','-b', action="store",help="Genome build: default: grch38", default="grch38")
 parser.add_argument('--rs','-r', action="store",help="rsID")
 parser.add_argument('--verbose','-v',default=False,action="store_true",help="verbose output")
-args=parser.parse_args()
+
+if len(sys.argv[1:])==0:
+    parser.print_help()
+    sys.exit(0)
+
+try:
+    args=parser.parse_args()
+except:
+    parser.print_help()
+    sys.exit(0)
 
 verbose=args.verbose
 

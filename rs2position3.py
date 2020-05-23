@@ -66,8 +66,12 @@ build="grch38"
 batchsize=200
 
 parser = argparse.ArgumentParser(description="Get chromosome, position, REF and ALT alleles for a list of rsIDs\nINPUT: STDIN\nOUTPUT: STDOUT\n./rs2position3.py <INFILE >OUTFILE")
-parser.add_argument('--build','-b', action="store",help="Genome build: default: grch38", default="grch38")
-parser.add_argument('--size','-s', action="store",help="Batch size: default: 200", default=200)
+parser.add_argument('--build','-b', action="store",help="Genome build: default: grch38", default=build)
+parser.add_argument('--size','-s', action="store",help="Batch size: default: 200", default=batchsize)
+
+if len(sys.argv[1:])==0:
+    parser.print_help()
+    sys.exit(0)
 
 try:
     args=parser.parse_args()
