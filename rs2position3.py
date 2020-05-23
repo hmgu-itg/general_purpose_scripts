@@ -25,28 +25,28 @@ def getResponse2(request_string,headers,data,timeout=None,max_attempts=-1):
             attempt+=1
             if max_attempts!=-1 and attempt==max_attempts:
                 return None
-
             r = requests.post(request_string,headers=headers,data=data)
-            try:
-                ret=r.json()
-                return ret
-            except ValueError:
-                print(str(datetime.datetime.now())+" : JSON decoding error", file=sys.stderr)
-                sys.stderr.flush()
-                return None
+
+        try:
+            ret=r.json()
+            return ret
+        except ValueError:
+            print(str(datetime.datetime.now())+" : JSON decoding error", file=sys.stderr)
+            sys.stderr.flush()
+            return None
+
     except Timeout as ex:
         print(str(datetime.datetime.now())+" : Timeout exception occured", file=sys.stderr)
         sys.stderr.flush()
         return None
-    except requests.exceptions.TooManyRedirects:
+    except TooManyRedirects as ex:
         print(str(datetime.datetime.now())+" : TooManyRedirects exception occured", file=sys.stderr)
         sys.stderr.flush()
         return None
-    except requests.exceptions.RequestException as e:
+    except RequestException as ex:
         print(str(datetime.datetime.now())+" : RequestException occured", file=sys.stderr)
         sys.stderr.flush()
         return None
-
 
 def parseSPDI(string):
     L=string.rsplit(":")
