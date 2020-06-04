@@ -79,8 +79,7 @@ fi
 cojofile="$out"/"$suffix"."ma"
 echo "$id $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' > "$cojofile"
 cat "$outKnown"| tr ':' ' '|while read c p;do
-    x=$(tabix "$ma_path/$panel/$prot/$panel.$prot.metal.bgz" $c:$p-$p| cut -f 3-5,9-11,17)
-    echo "$c:$p $x" | tr ' ' '\t' >> "$cojofile"
+    tabix "$ma_path/$panel/$prot/$panel.$prot.metal.bgz" $c:$p-$p| cut -f 1-5,9-11,17| awk -v c=$c -v p=$p 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print $1":"$2,$3,$4,$5,$6,$7,$8,$9;}'  >> "$cojofile"
 done
 
 #gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$outKnown" --out "$out"/"$suffix"."out"
