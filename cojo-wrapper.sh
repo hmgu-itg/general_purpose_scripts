@@ -44,7 +44,7 @@ outKnown="$out"/"$suffix"."known.txt"
 
 start=$((pos-window))
 end=$((pos+window))
-intersectBed -a <(echo "\"$chr $start $end\""| tr ' ' '\t') -b "$known" | cut -f 1,3| tr '\t' ':' > "$outKnown"
+intersectBed -wb -a <(echo "\"$chr $start $end\""| tr ' ' '\t') -b "$known" | awk -v x="$uniprot" 'BEGIN{FS="\t";OFS="\t";}$8==x{print $0;}' | cut -f 1,3| tr '\t' ':' > "$outKnown"
 
 # if there are no known signals in the bp window
 nKnown=$(cat "$outKnown"| wc -l)
