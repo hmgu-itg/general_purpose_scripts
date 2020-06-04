@@ -44,7 +44,7 @@ echo "known signals : $known" >> "$logfile"
 echo "input table   : $input" >> "$logfile"
 echo "output dir    : $out" >> "$logfile"
 
-
+# reading the input table
 cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| while read panel prot uniprot chr pos a1 a1 f1 b se p nMiss; do
 prefix="$panel"."$prot"
 id="$chr:$pos"
@@ -52,7 +52,7 @@ suffix="$chr"_"$pos"
 N=$((totalN-nMiss))
 
 echo "=========================================" >> "$logfile"
-echo "$prefix $id" >> "$logfile"
+echo "Variant: $prefix $id" >> "$logfile"
 
 outKnown="$out"/"$suffix"."known.txt"
 
@@ -79,7 +79,9 @@ fi
 
 # extract variants
 plinkout="$out"/"$suffix"
+echo -n "Extracting $id and known signals ... " >> "$logfile"
 plink --make-bed --bfile "$bfile" --out "$plinkout" --extract <(echo "$id"|cat - "$outKnown") --allow-no-sex
+echo "Done " >> "$logfile"
 
 # if there are enough variants
 c=$(cat "$plinkout".bim | wc -l)
@@ -95,7 +97,7 @@ if [[ "$c" -eq 0 ]];then
     continue
 fi
 
-# known signals not in the bfile
+# known signals which are not in the bfile
 echo -n "$id: known signals not in the bfile: " >> "$logfile"
 cut -f 2 "$plinkout"."bim" | cat - "$outKnown" | sort|uniq -u  >> "$logfile"
 
@@ -106,8 +108,10 @@ cat "$outKnown"| tr ':' ' '|while read cr ps;do
     tabix "$ma_path/$panel/$prot/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11,17| awk -v c=$cr -v p=$ps 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print $1":"$2,$3,$4,$5,$6,$7,$8,$9;}'  >> "$cojofile"
 done
 
-# call gcta64
+# calling GCTA
+echo -n "Calling GCTA ... " >> "$logfile"
 gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$outKnown" --out "$out"/"$suffix"."out"
+echo "Done " >> "$logfile"
 
 done
 
