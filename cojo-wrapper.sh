@@ -35,7 +35,7 @@ mkdir -p "$out"
 
 logfile="$out"/"cojo-wrapper.log"
 
-cat "$input"| cut -f 5,6,8,10-12,16-18,24| while read uniprot chr pos a1 a1 f1 b se p nMiss; do
+cut -f 5,6,8,10-12,16-18,24 "$input"| while read uniprot chr pos a1 a1 f1 b se p nMiss; do
 id="$chr:$pos"
 suffix="$chr"_"$pos"
 N=$((totalN-nMiss))
@@ -72,7 +72,7 @@ fi
 cojofile="$out"/"$suffix"."ma"
 echo "$id $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' > "$cojofile"
 cat "$outKnown"| while read x;do
-    echo "$id NA NA NA NA NA NA NA" | tr ' ' '\t' >> "$cojofile"
+    echo "$x NA NA NA NA NA NA NA" | tr ' ' '\t' >> "$cojofile"
 done
 
 gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$outKnown" --out "$out"/"$suffix"."out"
