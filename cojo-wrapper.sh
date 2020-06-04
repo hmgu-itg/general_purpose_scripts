@@ -35,15 +35,16 @@ mkdir -p "$out"
 
 logfile="$out"/"cojo-wrapper.log"
 
-cat "$input"| cut -f 5,6,8,10-12,16-18| while read uniprot chr pos a1 a1 f1 b se p; do
+cat "$input"| cut -f 5,6,8,10-12,16-18,24| while read uniprot chr pos a1 a1 f1 b se p nMiss; do
 id="$chr:$pos"
 suffix="$chr"_"$pos"
+N=$((totalN-nMiss))
 
 outKnown="$out"/"$suffix"."known.txt"
 
 start=$((pos-window))
 end=$((pos+window))
-intersectBed -a <(echo "\"$chr $start $end\""| tr ' ' '\t') -b "$known" | | cut -f 1,3| tr '\t' ':' > "$outKnown"
+intersectBed -a <(echo "\"$chr $start $end\""| tr ' ' '\t') -b "$known" | cut -f 1,3| tr '\t' ':' > "$outKnown"
 
 # if there are no known signals in the bp window
 nKnown=$(cat "$outKnown"| wc -l)
@@ -69,9 +70,9 @@ fi
 
 # make cojo file
 cojofile="$out"/"$suffix"."ma"
-echo "$id $a1 $a2 $f1 $b $se $p" | tr ' ' '\t' > "$cojofile"
+echo "$id $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' > "$cojofile"
 cat "$outKnown"| while read x;do
-    echo "$id NA NA NA NA NA NA" | tr ' ' '\t' >> "$cojofile"
+    echo "$id NA NA NA NA NA NA NA" | tr ' ' '\t' >> "$cojofile"
 done
 
 gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$outKnown" --out "$out"/"$suffix"."out"
