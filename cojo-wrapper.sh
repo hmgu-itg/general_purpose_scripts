@@ -35,7 +35,11 @@ mkdir -p "$out"
 
 logfile="$out"/"cojo-wrapper.log"
 
-cut -f 5,6,8,10-12,16-18,24 "$input"| while read uniprot chr pos a1 a1 f1 b se p nMiss; do
+# hardcoded path to meta-analysis results
+ma_path="/storage/hmgu/projects/helic/OLINK/meta_analysis"
+
+cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| while read panel prot uniprot chr pos a1 a1 f1 b se p nMiss; do
+prefix="$panel"."$prot"
 id="$chr:$pos"
 suffix="$chr"_"$pos"
 N=$((totalN-nMiss))
@@ -74,8 +78,9 @@ fi
 # make cojo file
 cojofile="$out"/"$suffix"."ma"
 echo "$id $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' > "$cojofile"
-cat "$outKnown"| while read x;do
-    echo "$x NA NA NA NA NA NA NA" | tr ' ' '\t' >> "$cojofile"
+cat "$outKnown"| tr ':' ' '|while read c p;do
+    x=$(tabix "$ma_path/$panel/$prot/$panel.$prot.metal.bgz" $c:$p-$p| cut -f 3-5,9-11,17)
+    echo "$c:$p $x" | tr ' ' '\t' >> "$cojofile"
 done
 
 #gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$outKnown" --out "$out"/"$suffix"."out"
