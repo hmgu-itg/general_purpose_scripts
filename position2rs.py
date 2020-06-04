@@ -82,7 +82,7 @@ max_attempts=5
 
 # TODO: fix
 if a1 and a2 and (len(a1)!=1 or len(a2)!=1):
-    ext = "/overlap/region/human/"+chrom+":"+str(pos-200)+"-"+str(pos+200)+"?feature=variation"
+    ext = "/overlap/region/human/"+chrom+":"+str(pos-10)+"-"+str(pos+10)+"?feature=variation"
 #
 
 r=getResponse2(server,ext,headers,timeout,max_attempts)
