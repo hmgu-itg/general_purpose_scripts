@@ -75,7 +75,7 @@ cat "$outKnown"| while read x;do
     echo "$x NA NA NA NA NA NA NA" | tr ' ' '\t' >> "$cojofile"
 done
 
-gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$outKnown" --out "$out"/"$suffix"."out"
+#gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$outKnown" --out "$out"/"$suffix"."out"
 
 done
 
