@@ -42,6 +42,9 @@ N=$((totalN-nMiss))
 
 outKnown="$out"/"$suffix"."known.txt"
 
+# sort if there are more than one IDs in the uniprot string
+uniprot=$(echo "$uniprot"| perl -lne '@a=split(/,/);print join(",",sort @a);')
+
 start=$((pos-window))
 end=$((pos+window))
 intersectBed -wb -a <(echo "\"$chr $start $end\""| tr ' ' '\t') -b "$known" | awk -v x="$uniprot" 'BEGIN{FS="\t";OFS="\t";}$8==x{print $0;}' | cut -f 1,3| tr '\t' ':' > "$outKnown"
