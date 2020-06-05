@@ -2,26 +2,94 @@
 
 function usage {
     echo ""
-    echo "Usage: $0 -f <PLINK file prefix>"
-    echo "          -o <output prefix>"
-    echo "          -s <SNP to extract>"
-    echo "          -c <file with conditioning SNPs>"
-    echo "          -m <file with meta-analysis results>"
+    echo "Usage: $0 -i <input table>"
+    echo "          -o <output table>"
+    echo "          -k <known signals>"
+    echo "          -w <bp window>"
     exit 0
 }
 
+# default
+window=1000000
 
 OPTIND=1
-while getopts "f:o:s:c:m:" optname; do
+while getopts "i:o:k:w:" optname; do
     case "$optname" in
-        "f" ) bfile="${OPTARG}";;
-        "o" ) out="${OPTARG}";;
-        "s" ) snp="${OPTARG}";;
-        "c" ) cond="${OPTARG}";;
-        "m" ) meta="${OPTARG}";;
+        "i" ) input="${OPTARG}";;
+        "o" ) output="${OPTARG}";;
+        "l" ) known="${OPTARG}";;
+        "w" ) window="${OPTARG}";;
         "?" ) usage ;;
         *) usage ;;
     esac;
 done
 
-gcta64 --bfile "$bfile" --out "$out" --extract-snp "$snp" --cojo-file "$meta" --cojo-cond "$cond"
+logfile="$PWD"/"cojo-prepare.log"
+
+# path to meta-analysis results
+ma_path="/storage/hmgu/projects/helic/OLINK/meta_analysis"
+
+# PLINK files
+ha_plink="/storage/sanger/projects/helic/t144_helic_15x/analysis/HA/single_point/input/whole_genome/autosomal.correctsnames"
+hp_plink="/storage/sanger/projects/helic/t144_helic_15x/analysis/HP/missingness/gw/merged.shortnames"
+
+# pheno files prefixes
+ha_pheno="/storage/sanger/projects/helic/t144_helic_15x/analysis/HA/phenotypes/OLINK/MANOLIS"
+hp_pheno="/storage/hmgu/projects/helic/OLINK/HP/phenotypes"
+
+echo "window        : $window" >> "$logfile"
+echo "known signals : $known" >> "$logfile"
+echo "input table   : $input" >> "$logfile"
+echo "output table  : $output" >> "$logfile"
+
+tmpfile=$(mktemp "$PWD"/tmp_cojo.XXXX)
+
+# reading the input table
+cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| while read panel prot uniprot chr pos a1 a1 f1 b se p nMiss; do
+prefix="$panel"."$prot"
+id="$chr:$pos"
+suffix="$chr"_"$pos"
+
+#------------------- determine total number of samples ------------------------------
+ha_N=$(cat <(cut -f 1 "$ha_pheno"."$prefix"."txt") <(cut -f 2 -d ' ' "$ha_plink"."fam") | sort|uniq -d|wc -l)
+hp_N=$(cat <(cut -f 1 "$hp_pheno"/"$panel"/"POMAK"."$panel"."$prot"."txt") <(cut -f 2 -d ' ' "$hp_plink"."fam") | sort|uniq -d|wc -l)
+N=$((ha_N+hp_N-nMiss))
+#------------------------------------------------------------------------------------
+
+echo "=========================================" >> "$logfile"
+echo "Variant: $prefix $id" >> "$logfile"
+
+# sort if there are more than one ID in the uniprot string
+uniprot=$(echo "$uniprot"| perl -lne '@a=split(/,/);print join(",",sort @a);')
+
+start=$((pos-window))
+end=$((pos+window))
+intersectBed -wb -a <(echo "\"$chr $start $end\""| tr ' ' '\t') -b "$known" | awk -v x="$uniprot" 'BEGIN{FS="\t";OFS="\t";}$8==x{print $0;}' | cut -f 1,3| tr '' '' > "$tmpfile"
+
+awk -v c=$chr -v p=$pos 'BEGIN{FS="\t";OFS="\t";}$1!=c || $2!=p{print $0;}'|while read cr ps;do tabix "$ma_path/$panel/$prot/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11,17| awk -v c=$cr -v p=$ps 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print $1":"$2,$3,$4,$5,$6,$7,$8,$9;}' 
+
+# if there are no known signals in the bp window
+nKnown=$(cat "$tmpfile"| wc -l)
+if [[ "nKnown" -eq 0 ]];then
+    echo "$id : no known signals" >> "$logfile"
+    continue
+fi
+
+# if the tested variant is known
+c=$(grep -c "$id" "$tmpfile")
+if [[ "$c" -ne 0 ]];then
+    echo "$id : is known" >> "$logfile"
+    continue
+fi
+
+# output details of the current variant
+echo "$id $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' > "$output"
+
+# extract m/a results for known signals and output them
+cat "$tmpfile"| tr ':' ' '|while read cr ps;do
+    tabix "$ma_path/$panel/$prot/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$id-v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,$3,$4,$5,$6,$7,$8,n;}'  >> "$output"
+done
+
+done
+
+rm "$tmpfile"
