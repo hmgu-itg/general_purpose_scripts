@@ -50,6 +50,7 @@ cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| while read panel prot uniprot chr pos 
 prefix="$panel"."$prot"
 id="$chr:$pos"
 suffix="$chr"_"$pos"
+varid="$panel":"$prot":"$d"
 
 #------------------- determine total number of samples ------------------------------
 ha_N=$(cat <(cut -f 1 "$ha_pheno"."$prefix"."txt") <(cut -f 2 -d ' ' "$ha_plink"."fam") | sort|uniq -d|wc -l)
@@ -71,7 +72,7 @@ awk -v c=$chr -v p=$pos 'BEGIN{FS="\t";OFS="\t";}$1!=c || $2!=p{print $0;}'|whil
 
 # if there are no known signals in the bp window
 nKnown=$(cat "$tmpfile"| wc -l)
-if [[ "nKnown" -eq 0 ]];then
+if [[ "$nKnown" -eq 0 ]];then
     echo "$id : no known signals" >> "$logfile"
     continue
 fi
@@ -83,13 +84,20 @@ if [[ "$c" -ne 0 ]];then
     continue
 fi
 
-# output details of the current variant
-echo "$id $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' > "$output"
-
 # extract m/a results for known signals and output them
 cat "$tmpfile"| tr ':' ' '|while read cr ps;do
-    tabix "$ma_path/$panel/$prot/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$id-v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,$3,$4,$5,$6,$7,$8,n;}'  >> "$output"
+    tabix "$ma_path/$panel/$prot/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$varid-v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,$3,$4,$5,$6,$7,$8,n;}'  >> "$output"
 done
+
+# check if we have anything in the output
+c=$(cat "$output"| wc -l)
+if [[ "$c" -eq 0 ]];then
+    echo "$id : no m/a results for known signals" >> "$logfile"
+    continue
+fi
+
+# output details of the current variant
+echo "$varid $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' > "$output"
 
 done
 

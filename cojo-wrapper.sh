@@ -8,8 +8,6 @@ function usage {
     exit 0
 }
 
-# default
-window=1000000
 
 OPTIND=1
 while getopts "f:o:i:" optname; do
@@ -22,33 +20,23 @@ while getopts "f:o:i:" optname; do
     esac;
 done
 
-# total samples
-totalN=$(cat "$bfile"."fam"| wc -l)
-
 out=${out/%/}
 
 mkdir -p "$out"
 
 logfile="$out"/"cojo-wrapper.log"
 
-# hardcoded path to meta-analysis results
-ma_path="/storage/hmgu/projects/helic/OLINK/meta_analysis"
-
 echo "bfile         : $bfile" >> "$logfile"
-echo "window        : $window" >> "$logfile"
-echo "known signals : $known" >> "$logfile"
 echo "input table   : $input" >> "$logfile"
 echo "output dir    : $out" >> "$logfile"
 
 # reading the input table
-cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| while read panel prot uniprot chr pos a1 a1 f1 b se p nMiss; do
-prefix="$panel"."$prot"
-id="$chr:$pos"
-suffix="$chr"_"$pos"
-N=$((totalN-nMiss))
+cut -f 1 "$input"|sort|uniq| while read snp; do
 
 echo "=========================================" >> "$logfile"
-echo "Variant: $prefix $id" >> "$logfile"
+echo "Variant: $snp" >> "$logfile"
+
+grep "^$snp" "$input"|while read id chr pos a1 a2 f1 b se p N
 
 outKnown="$out"/"$suffix"."known.txt"
 
