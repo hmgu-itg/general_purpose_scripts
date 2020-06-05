@@ -50,7 +50,7 @@ cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| while read panel prot uniprot chr pos 
 prefix="$panel"."$prot"
 id="$chr:$pos"
 suffix="$chr"_"$pos"
-varid="$panel":"$prot":"$d"
+varid="$panel"_"$prot"_"$suffix"
 
 #------------------- determine total number of samples ------------------------------
 ha_N=$(cat <(cut -f 1 "$ha_pheno"."$prefix"."txt") <(cut -f 2 -d ' ' "$ha_plink"."fam") | sort|uniq -d|wc -l)
