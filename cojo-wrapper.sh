@@ -41,7 +41,7 @@ id=$(echo $varid | cut -f 3- -d '_'| tr '_' ':')
 # extract variants
 plinkout="$out"/"$varid"
 echo -n "Extracting $id and known signals ... " >> "$logfile"
-plink --make-bed --bfile "$bfile" --out "$plinkout" --extract <(fgrep -w "^$varid" "$input"|cut -f 2,3| tr '\t' ':') --allow-no-sex
+plink --make-bed --bfile "$bfile" --out "$plinkout" --extract <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') --allow-no-sex
 echo "Done " >> "$logfile"
 
 # if there are enough variants
@@ -59,13 +59,12 @@ if [[ "$c" -eq 0 ]];then
 fi
 
 # known signals which are not in the bfile
-echo -n "$id: known signals not in the bfile: " >> "$logfile"
-cut -f 2 "$plinkout"."bim" | cat - "$outKnown" | sort|uniq -u  >> "$logfile"
-
+echo "$id: known signals not in the bfile: " >> "$logfile"
+cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u  >> "$logfile"
 
 # calling GCTA
 echo -n "Calling GCTA ... " >> "$logfile"
-gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$outKnown" --out "$out"/"$suffix"."out"
+gcta64 --bfile "$plinkout" --cojo-file <(fgrep -w "$varid" "$input"|cut -f 2-|sed 's/\t/:/'| grep -v -f <(cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u)) --cojo-cond <(fgrep -v -w "$id" "$plinkout"."bim") --out "$out"/"$varid"."out"
 echo "Done " >> "$logfile"
 
 done
