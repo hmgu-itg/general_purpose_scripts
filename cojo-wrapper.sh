@@ -8,7 +8,6 @@ function usage {
     exit 0
 }
 
-
 OPTIND=1
 while getopts "f:o:i:" optname; do
     case "$optname" in
@@ -43,11 +42,13 @@ plinkout="$out"/"$varid"
 echo -n "Extracting $id and known signals ... " >> "$logfile"
 plink --make-bed --bfile "$bfile" --out "$plinkout" --extract <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') --allow-no-sex
 echo "Done " >> "$logfile"
+echo >> "$logfile"
 
 # if there are enough variants
 c=$(cat "$plinkout".bim | wc -l)
 if [[ "$c" -lt 2 ]];then
     echo "$varid : not enough variants" >> "$logfile"
+    echo >> "$logfile"
     continue
 fi
 
@@ -55,17 +56,20 @@ fi
 c=$(cat "$plinkout".bim | grep "$id" | wc -l)
 if [[ "$c" -eq 0 ]];then
     echo "$id : ERROR : not in bfile" >> "$logfile"
+    echo >> "$logfile"
     continue
 fi
 
 # known signals which are not in the bfile
 echo "$id: known signals not in the bfile: " >> "$logfile"
 cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u  >> "$logfile"
+echo >> "$logfile"
 
 # calling GCTA
 echo -n "Calling GCTA ... " >> "$logfile"
 gcta64 --bfile "$plinkout" --cojo-file <(fgrep -w "$varid" "$input"|cut -f 2-|sed 's/\t/:/'| grep -v -f <(cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u)) --cojo-cond <(fgrep -v -w "$id" "$plinkout"."bim") --out "$out"/"$varid"."out"
 echo "Done " >> "$logfile"
+echo >> "$logfile"
 
 done
 
