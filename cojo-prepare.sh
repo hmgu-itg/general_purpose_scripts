@@ -52,7 +52,7 @@ id="$chr:$pos"
 suffix="$chr"_"$pos"
 varid="$panel"_"$prot"_"$suffix"
 
-#------------------- determine total number of samples ------------------------------
+#------------------- total number of samples ------------------------------
 ha_N=$(cat <(cut -f 1 "$ha_pheno"."$prefix"."txt") <(cut -f 2 -d ' ' "$ha_plink"."fam") | sort|uniq -d|wc -l)
 hp_N=$(cat <(cut -f 1 "$hp_pheno"/"$panel"/"POMAK"."$panel"."$prot"."txt") <(cut -f 2 -d ' ' "$hp_plink"."fam") | sort|uniq -d|wc -l)
 N=$((ha_N+hp_N-nMiss))
@@ -67,8 +67,6 @@ uniprot=$(echo "$uniprot"| perl -lne '@a=split(/,/);print join(",",sort @a);')
 start=$((pos-window))
 end=$((pos+window))
 intersectBed -wb -a <(echo "\"$chr $start $end\""| tr ' ' '\t') -b "$known" | awk -v x="$uniprot" 'BEGIN{FS="\t";OFS="\t";}$8==x{print $0;}' | cut -f 1,3| tr '' '' > "$tmpfile"
-
-awk -v c=$chr -v p=$pos 'BEGIN{FS="\t";OFS="\t";}$1!=c || $2!=p{print $0;}'|while read cr ps;do tabix "$ma_path/$panel/$prot/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11,17| awk -v c=$cr -v p=$ps 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print $1":"$2,$3,$4,$5,$6,$7,$8,$9;}' 
 
 # if there are no known signals in the bp window
 nKnown=$(cat "$tmpfile"| wc -l)
@@ -97,7 +95,7 @@ if [[ "$c" -eq 0 ]];then
 fi
 
 # output details of the current variant
-echo "$varid $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' > "$output"
+echo "$varid $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' >> "$output"
 
 done
 
