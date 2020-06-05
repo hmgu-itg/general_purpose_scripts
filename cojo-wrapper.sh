@@ -19,12 +19,19 @@ while getopts "f:o:i:" optname; do
     esac;
 done
 
+# required fields in the input table (tab separated)
+# variant/protein association ID: panel_prot_chr_pos; chr and pos correspond to the variant being tested
+#
+# chr, pos, a1, a2, freq1, beta, SE, p, N: fields correspond to either the variant being tested, 
+# or to conditioning variants, they have the same meaning as fields in a cojo file
+
 out=${out/%/}
 
 mkdir -p "$out"
 
 logfile="$out"/"cojo-wrapper.log"
 
+date >> "$logfile"
 echo "bfile         : $bfile" >> "$logfile"
 echo "input table   : $input" >> "$logfile"
 echo "output dir    : $out" >> "$logfile"
@@ -44,7 +51,7 @@ plink --make-bed --bfile "$bfile" --out "$plinkout" --extract <(fgrep -w "$varid
 echo "Done " >> "$logfile"
 echo >> "$logfile"
 
-# if there are enough variants
+# check if there are enough variants
 c=$(cat "$plinkout".bim | wc -l)
 if [[ "$c" -lt 2 ]];then
     echo "$varid : not enough variants" >> "$logfile"
@@ -72,4 +79,5 @@ echo "Done " >> "$logfile"
 echo >> "$logfile"
 
 done
+date >> "$logfile"
 
