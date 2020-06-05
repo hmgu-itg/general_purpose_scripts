@@ -24,8 +24,6 @@ while getopts "i:o:k:w:" optname; do
     esac;
 done
 
-logfile="$PWD"/"cojo-prepare.log"
-
 # path to meta-analysis results
 ma_path="/storage/hmgu/projects/helic/OLINK/meta_analysis"
 
@@ -43,6 +41,9 @@ echo "input table   : $input" >> "$logfile"
 echo "output table  : $output" >> "$logfile"
 
 tmpfile=$(mktemp "$PWD"/tmp_cojo.XXXX)
+
+winstr=$(echo $window|perl -lne 'print sprintf("0.2fMb",$_/1000000);')
+logfile="$PWD"/"cojo-prepare_$winstr"."log"
 
 # reading the input table
 cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| while read panel prot uniprot chr pos a1 a1 f1 b se p nMiss; do

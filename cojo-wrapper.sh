@@ -5,8 +5,6 @@ function usage {
     echo "Usage: $0 -f <PLINK file prefix>"
     echo "          -o <output dir>"
     echo "          -i <input table>"
-    echo "          -w <bp window; default: 1000000>"
-    echo "          -k <BED file with known signals>"
     exit 0
 }
 
@@ -14,13 +12,11 @@ function usage {
 window=1000000
 
 OPTIND=1
-while getopts "f:o:i:w:k:" optname; do
+while getopts "f:o:i:" optname; do
     case "$optname" in
         "f" ) bfile="${OPTARG}";;
         "o" ) out="${OPTARG}";;
         "i" ) input="${OPTARG}";;
-        "w" ) window="${OPTARG}";;
-        "k" ) known="${OPTARG}";;
         "?" ) usage ;;
         *) usage ;;
     esac;
