@@ -57,10 +57,6 @@ parser = argparse.ArgumentParser(description="Get chromosome, position, REF and 
 parser.add_argument('--build','-b', action="store",help="Genome build: default: 38", default=build)
 parser.add_argument('--size','-s', action="store",help="Batch size: default: 200", default=batchsize)
 
-if len(sys.argv[1:])==0:
-    parser.print_help()
-    sys.exit(0)
-
 try:
     args=parser.parse_args()
 except:
