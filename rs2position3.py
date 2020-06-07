@@ -55,6 +55,7 @@ batchsize=200
 
 parser = argparse.ArgumentParser(description="Get chromosome, position, REF and ALT alleles for a list of rsIDs\nINPUT: STDIN\nOUTPUT: STDOUT\n./rs2position3.py <INFILE >OUTFILE")
 parser.add_argument('--build','-b', action="store",help="Genome build: default: 38", default=build)
+parser.add_argument('--verbose','-v',default=False,action="store_true",help="verbose output")
 parser.add_argument('--size','-s', action="store",help="Batch size: default: 200", default=batchsize)
 
 try:
@@ -65,6 +66,8 @@ except:
 
 if args.build!=None:
     build=args.build
+
+verbose=args.verbose
 
 if args.size!=None:
     batchsize=int(args.size)
@@ -90,6 +93,9 @@ while cur_line<total_lines:
     r=getResponse2(server+ext,headers,list2string(L),max_attempts=5)
     if r:
         for snprec in r:
+            if verbose:
+                print("INFO: "+repr(snprec),file=sys.stderr,flush=True)
+
             H={}
             id0=snprec["input"] # original ID
             L.remove(id0)
