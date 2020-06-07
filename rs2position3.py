@@ -6,6 +6,7 @@ import argparse
 import re
 from requests.exceptions import Timeout,TooManyRedirects,RequestException
 import datetime
+import functions
 
 headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
 
@@ -47,26 +48,13 @@ def getResponse2(request_string,headers,data,timeout=None,max_attempts=-1):
         sys.stderr.flush()
         return None
 
-def parseSPDI(string):
-    L=string.rsplit(":")
-    c=L[0]
-    m=re.search("NC_0+(\d+)\.\d+",L[0])
-    if m:
-        c=m.group(1)
-    pos=int(L[1])
-    ref=L[2]
-    alt=L[3]
-    if len(ref)==1 and len(alt)==1:
-        pos=pos+1
-    return {"chr":c,"pos":pos,"ref":ref,"alt":alt}
-
 #----------------------------------------------------------------------------------------------------------------------------------
 
-build="grch38"
+build="38"
 batchsize=200
 
 parser = argparse.ArgumentParser(description="Get chromosome, position, REF and ALT alleles for a list of rsIDs\nINPUT: STDIN\nOUTPUT: STDOUT\n./rs2position3.py <INFILE >OUTFILE")
-parser.add_argument('--build','-b', action="store",help="Genome build: default: grch38", default=build)
+parser.add_argument('--build','-b', action="store",help="Genome build: default: 38", default=build)
 parser.add_argument('--size','-s', action="store",help="Batch size: default: 200", default=batchsize)
 
 if len(sys.argv[1:])==0:
@@ -86,8 +74,8 @@ if args.size!=None:
     batchsize=int(args.size)
 
 ext = "/variant_recoder/homo_sapiens"
-server = "https://"+build+".rest.ensembl.org"
-if build=="grch38":
+server = "https://grch"+build+".rest.ensembl.org"
+if build=="38":
     server = "https://rest.ensembl.org"
 
 #---------------------------------------------------------------------------------------------------------------------------
@@ -119,7 +107,7 @@ while cur_line<total_lines:
                 for z in spdi:
                     m=re.search("^NC_0+",z)
                     if m:
-                        H[id0].append(parseSPDI(z))
+                        H[id0].append(functions.parseSPDI(z))
 
             s=H[id0]
             positions=set(x["chr"]+":"+str(x["pos"]) for x in s)

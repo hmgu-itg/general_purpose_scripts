@@ -6,6 +6,7 @@ import argparse
 import re
 from requests.exceptions import Timeout,TooManyRedirects,RequestException
 import datetime
+import functions
 
 headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
 
@@ -44,27 +45,12 @@ def getResponse2(server,ext,rs,headers,timeout=None,max_attempts=-1):
         sys.stderr.flush()
         return None
 
-def parseSPDI(string):
-    L=string.rsplit(":")
-    #print(len(L))
-    #print(len(L[3]))
-    c=L[0]
-    m=re.search("NC_0+(\d+)\.\d+",L[0])
-    if m:
-        c=m.group(1)
-    pos=int(L[1])
-    ref=L[2]
-    alt=L[3]
-    if len(ref)==1 and len(alt)==1:
-        pos=pos+1
-    return {"chr":c,"pos":pos,"ref":ref,"alt":alt}
-
 #----------------------------------------------------------------------------------------------------------------------------------
 
-build="grch38"
+build="38"
 
 parser = argparse.ArgumentParser(description="Get chromosome, position and alleles for given rsID")
-parser.add_argument('--build','-b', action="store",help="Genome build: default: grch38", default="grch38")
+parser.add_argument('--build','-b', action="store",help="Genome build: default: 38", default="38")
 parser.add_argument('--verbose','-v',default=False,action="store_true",help="verbose output")
 requiredArgs=parser.add_argument_group('required arguments')
 requiredArgs.add_argument('--rs','-r', action="store",help="rsID",required=True)
@@ -87,8 +73,8 @@ if args.build!=None:
 rsID=args.rs
     
 ext = "/variant_recoder/homo_sapiens/"
-server = "http://"+build+".rest.ensembl.org"
-if build=="grch38":
+server = "http://grch"+build+".rest.ensembl.org"
+if build=="38":
     server = "http://rest.ensembl.org"
 
 
@@ -120,7 +106,7 @@ if r:
         for z in spdi:
             m=re.search("^NC_0+",z)
             if m:
-                p=parseSPDI(z)
+                p=functions.parseSPDI(z)
                 H[rsID].append(p)
 
     s=H[rsID]
