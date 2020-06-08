@@ -44,7 +44,7 @@ echo "input table   : $input" >> "$logfile"
 echo "output dir    : $out" >> "$logfile"
 
 # reading the input table
-cut -f 1 "$input"|sort|uniq| while read varid; do
+cut -f 1,11 "$input"|sort|uniq| while read varid samples; do
 
 echo "=========================================" >> "$logfile"
 echo "$varid" | tr '_' ' ' >> "$logfile"
@@ -54,7 +54,7 @@ id=$(echo $varid | cut -f 3- -d '_'| tr '_' ':')
 # extract variants
 plinkout="$out"/"$varid"
 echo -n "Extracting $id and known signals ... " >> "$logfile"
-plink --make-bed --bfile "$bfile" --out "$plinkout" --extract <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') --allow-no-sex
+plink --make-bed --bfile "$bfile" --out "$plinkout" --extract <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') --keep <(echo "$samples" | tr ',' '\n') --allow-no-sex
 echo "Done " >> "$logfile"
 echo >> "$logfile"
 
