@@ -74,14 +74,14 @@ if [[ ! -f "$phenofile" ]];then
     echo "ERROR: $phenofile doesn't exist" >> "logfile"
     continue
 fi
-ha_N=$(cat <(cut -f 1 "$ha_pheno"."$prefix"."txt") <(cut -f 2 -d ' ' "$ha_plink"."fam") | sort|uniq -d|wc -l)
+ha_N=$(cat <(cut -f 1 "$phenofile") <(cut -f 2 -d ' ' "$ha_plink"."fam") | sort|uniq -d|wc -l)
 
 phenofile="$hp_pheno"/"$panel"/"POMAK"."$panel"."$prot"."txt"
 if [[ ! -f "$phenofile" ]];then
     echo "ERROR: $phenofile doesn't exist" >> "logfile"
     continue
 fi
-hp_N=$(cat <(cut -f 1 "$hp_pheno"/"$panel"/"POMAK"."$panel"."$prot"."txt") <(cut -f 2 -d ' ' "$hp_plink"."fam") | sort|uniq -d|wc -l)
+hp_N=$(cat <(cut -f 1 "$phenofile") <(cut -f 2 -d ' ' "$hp_plink"."fam") | sort|uniq -d|wc -l)
 N=$((ha_N+hp_N-nMiss))
 #------------------------------------------------------------------------------------
 
