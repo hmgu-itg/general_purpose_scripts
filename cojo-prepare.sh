@@ -90,6 +90,7 @@ if [[ "$nKnown" -eq 0 ]];then
 fi
 
 echo "$nKnown known signals found" >> "$logfile"
+echo >> "$logfile"
 
 # if the tested variant is known
 c=$(grep -c "$id" "$tmpfile")
@@ -99,9 +100,12 @@ if [[ "$c" -ne 0 ]];then
 fi
 
 # extract m/a results for known signals and output them
+echo -n "Extracting m/a stats for known signals" >> "$logfile"
 cat "$tmpfile"| tr ':' ' '|while read cr ps;do
     tabix "$ma_path/$panel/METAL/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$varid -v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,$3,$4,$5,$6,$7,$8,n;}'  >> "$output"
 done
+echo "Done" >> "$logfile"
+echo >> "$logfile"
 
 # check if we have anything in the output
 c=$(cat "$output"| wc -l)
