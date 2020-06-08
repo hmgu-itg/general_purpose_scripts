@@ -49,6 +49,8 @@ echo "input table   : $input" >> "$logfile"
 echo "output table  : $output" >> "$logfile"
 echo >> "$logfile"
 
+> "$output"
+
 tmpfile=$(mktemp "$PWD"/tmp_cojo.XXXX)
 echo "Temp file: $tmpfile" >> "$logfile"
 echo >> "$logfile"
