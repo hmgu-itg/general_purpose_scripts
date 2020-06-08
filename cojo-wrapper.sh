@@ -55,7 +55,7 @@ id=$(echo $varid | cut -f 3- -d '_'| tr '_' ':')
 plinkout="$out"/"$varid"
 echo -n "Extracting $id and known signals ... " >> "$logfile"
 tokeep="$out"/"keep"
-echo "$samples" | tr ',' '\n'| awk '{print $1,$1;}' > "$tokeep"
+echo -n "$samples" | tr ',' '\n'| awk '{print $1,$1;}' > "$tokeep"
 plink --make-bed --bfile "$bfile" --out "$plinkout" --extract <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') --keep "$tokeep" --allow-no-sex
 echo "Done " >> "$logfile"
 echo >> "$logfile"
