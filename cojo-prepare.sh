@@ -52,7 +52,9 @@ echo >> "$logfile"
 > "$output"
 
 tmpfile=$(mktemp "$PWD"/tmp_cojo.XXXX)
-echo "Temp file: $tmpfile" >> "$logfile"
+tmpfile2=$(mktemp "$PWD"/tmp_cojo2.XXXX)
+echo "Temp file   : $tmpfile" >> "$logfile"
+echo "Temp file 2 : $tmpfile2" >> "$logfile"
 echo >> "$logfile"
 
 # reading the input table
@@ -83,7 +85,7 @@ if [[ "$start" -lt 0 ]];then
 fi
 end=$((pos+window))
 echo "intersectBed using chr=$chr start=$start end=$end" >> "$logfile"
-intersectBed -wb -a <(echo "$chr $start $end"| tr ' ' '\t') -b "$known" | awk -v x="$uniprot" 'BEGIN{FS="\t";OFS="\t";}$8==x{print $0;}' | cut -f 1,3| tr '\t' ':' > "$tmpfile"
+intersectBed -wb -a <(echo "$chr $start $end"| tr ' ' '\t') -b "$known" | awk -v x="$uniprot" 'BEGIN{FS="\t";OFS="\t";}$8==x{print $0;}' | cut -f 1,3| tr '\t' ':' > "$tmpfile" 2>>"$logfile"
 echo >> "$logfile"
 
 # if there are no known signals in the bp window
@@ -105,21 +107,21 @@ fi
 
 # extract m/a results for known signals and output them
 echo -n "Extracting m/a stats for known signals ... " >> "$logfile"
-> "$tmpfile"
+> "$tmpfile2"
 cat "$tmpfile"| tr ':' ' '|while read cr ps;do
-    tabix "$ma_path/$panel/METAL/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$varid -v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,$3,$4,$5,$6,$7,$8,n;}'  >> "$tmpfile"
+    tabix "$ma_path/$panel/METAL/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$varid -v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,$3,$4,$5,$6,$7,$8,n;}'  >> "$tmpfile2"
 done
 echo "Done" >> "$logfile"
 echo >> "$logfile"
 
 # check if we have anything in the output
-c=$(cat "$tmpfile"| wc -l)
+c=$(cat "$tmpfile2"| wc -l)
 if [[ "$c" -eq 0 ]];then
     echo "$id : no m/a results for known signals" >> "$logfile"
     continue
 fi
 
-cat "$tmpfile" >> "$output"
+cat "$tmpfile2" >> "$output"
 
 # output details of the current variant
 echo "$varid $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' >> "$output"
@@ -129,4 +131,5 @@ exit 0
 
 done
 
-#rm "$tmpfile"
+rm "$tmpfile"
+rm "$tmpfile2"
