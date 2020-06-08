@@ -19,6 +19,11 @@ while getopts "f:o:i:" optname; do
     esac;
 done
 
+if [[ $# -eq 0 ]];then
+    usage
+    exit 0
+fi
+
 # required fields in the input table (tab separated)
 # variant/protein association ID: panel_prot_chr_pos; chr and pos correspond to the variant being tested
 #

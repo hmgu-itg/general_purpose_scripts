@@ -24,6 +24,11 @@ while getopts "i:o:k:w:" optname; do
     esac;
 done
 
+if [[ $# -eq 0 ]];then
+    usage
+    exit 0
+fi
+
 # path to meta-analysis results
 ma_path="/storage/hmgu/projects/helic/OLINK/meta_analysis"
 
