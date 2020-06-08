@@ -69,14 +69,14 @@ echo "Variant: $prefix $id" >> "$logfile"
 echo >> "$logfile"
 
 #------------------- total number of samples ------------------------------
-$phenofile="$ha_pheno"."$prefix"."txt"
+phenofile="$ha_pheno"."$prefix"."txt"
 if [[ ! -f "$phenofile" ]];then
     echo "ERROR: $phenofile doesn't exist" >> "logfile"
     continue
 fi
 ha_N=$(cat <(cut -f 1 "$ha_pheno"."$prefix"."txt") <(cut -f 2 -d ' ' "$ha_plink"."fam") | sort|uniq -d|wc -l)
 
-$phenofile="$hp_pheno"/"$panel"/"POMAK"."$panel"."$prot"."txt"
+phenofile="$hp_pheno"/"$panel"/"POMAK"."$panel"."$prot"."txt"
 if [[ ! -f "$phenofile" ]];then
     echo "ERROR: $phenofile doesn't exist" >> "logfile"
     continue
