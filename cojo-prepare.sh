@@ -111,6 +111,8 @@ echo >> "$logfile"
 
 # check if we have anything in the output
 c=$(cat "$tmpfile"| wc -l)
+echo $c
+cat "$tmpfile"
 if [[ "$c" -eq 0 ]];then
     echo "$id : no m/a results for known signals" >> "$logfile"
     continue
