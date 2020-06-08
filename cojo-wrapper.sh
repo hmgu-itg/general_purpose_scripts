@@ -87,7 +87,7 @@ fgrep -v -w "$id" "$plinkout"."bim"| cut -f 2 > "$condfile"
 
 # calling GCTA
 echo -n "Calling GCTA ... " >> "$logfile"
-gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-actual-geno --cojo-cond "$condfile" --out "$plinkout"."out" 1>> "$logfile" 2>> "$logfile"
+gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$condfile" --out "$plinkout"."out" 1>> "$logfile" 2>> "$logfile"
 echo "Done " >> "$logfile"
 echo >> "$logfile"
 
