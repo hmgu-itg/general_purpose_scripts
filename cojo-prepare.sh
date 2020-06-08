@@ -53,7 +53,6 @@ tmpfile=$(mktemp "$PWD"/tmp_cojo.XXXX)
 echo "Temp file: $tmpfile" >> "$logfile"
 echo >> "$logfile"
 
-
 # reading the input table
 cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| tail -n +2|while read panel prot uniprot chr pos a1 a2 f1 b se p nMiss; do
 prefix="$panel"."$prot"
@@ -100,19 +99,22 @@ if [[ "$c" -ne 0 ]];then
 fi
 
 # extract m/a results for known signals and output them
-echo -n "Extracting m/a stats for known signals" >> "$logfile"
+echo -n "Extracting m/a stats for known signals ... " >> "$logfile"
+echo "" > "$tmpfile"
 cat "$tmpfile"| tr ':' ' '|while read cr ps;do
-    tabix "$ma_path/$panel/METAL/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$varid -v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,$3,$4,$5,$6,$7,$8,n;}'  >> "$output"
+    tabix "$ma_path/$panel/METAL/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$varid -v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,$3,$4,$5,$6,$7,$8,n;}'  >> "$tmpfile"
 done
 echo "Done" >> "$logfile"
 echo >> "$logfile"
 
 # check if we have anything in the output
-c=$(cat "$output"| wc -l)
+c=$(cat "$tmpfile"| wc -l)
 if [[ "$c" -eq 0 ]];then
     echo "$id : no m/a results for known signals" >> "$logfile"
     continue
 fi
+
+cat "$tmpfile" >> "$output"
 
 # output details of the current variant
 echo "$varid $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' >> "$output"
