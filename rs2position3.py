@@ -50,24 +50,26 @@ def getResponse2(request_string,headers,data,timeout=None,max_attempts=-1):
 
 #----------------------------------------------------------------------------------------------------------------------------------
 
+# default
 build="38"
 batchsize=200
 
-parser = argparse.ArgumentParser(description="Get chromosome, position, REF and ALT alleles for a list of rsIDs\nINPUT: STDIN\nOUTPUT: STDOUT\n./rs2position3.py <INFILE >OUTFILE")
+parser = argparse.ArgumentParser(description="Get chromosome, position, for one rsID or a list of rsIDs",usage="\n\nrs2position.py <INFILE >OUTFILE -b build -s batchsize\nOR\nrs2position.py -r rsID -b build")
 parser.add_argument('--build','-b', action="store",help="Genome build: default: 38", default=build)
 parser.add_argument('--verbose','-v',default=False,action="store_true",help="verbose output")
 parser.add_argument('--size','-s', action="store",help="Batch size: default: 200", default=batchsize)
+parser.add_argument('--rs','-r', action="store",help="rsID",required=False)
 
 try:
     args=parser.parse_args()
 except:
-    parser.print_help()
     sys.exit(0)
 
 if args.build!=None:
     build=args.build
 
 verbose=args.verbose
+rsID=args.rs
 
 if args.size!=None:
     batchsize=int(args.size)
@@ -77,9 +79,20 @@ server = "https://grch"+build+".rest.ensembl.org"
 if build=="38":
     server = "https://rest.ensembl.org"
 
+if sys.stdin.isatty() and not rsID:
+    print("No input provided; exit")
+    parser.print_help()
+    sys.exit(0)
+
 #---------------------------------------------------------------------------------------------------------------------------
 
-IDs=sys.stdin.readlines()
+IDs=[]
+
+if rsID:
+    IDs.append(rsID)
+else:
+    IDs=sys.stdin.readlines()
+
 total_lines=len(IDs)
 
 cur_line=0
