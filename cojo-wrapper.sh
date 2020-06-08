@@ -79,6 +79,7 @@ echo "$id: known signals not in the bfile: " >> "$logfile"
 cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u  >> "$logfile"
 echo >> "$logfile"
 
+# GCTA input files
 cojofile="$plinkout"."ma"
 condfile="$plinkout"."cond"
 fgrep -w "$varid" "$input"|cut -f 2-10|sed 's/\t/:/'| grep -v -f <(cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u) > "$cojofile"
