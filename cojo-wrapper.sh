@@ -82,7 +82,7 @@ cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '
 echo >> "$logfile"
 
 cojofile="$plinkout"."ma"
-cojofile="$plinkout"."cond"
+condfile="$plinkout"."cond"
 fgrep -w "$varid" "$input"|cut -f 2-|sed 's/\t/:/'| grep -v -f <(cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u) > "$cojofile"
 fgrep -v -w "$id" "$plinkout"."bim"| cut -f 2 > "$condfile"
 
