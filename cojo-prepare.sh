@@ -88,6 +88,8 @@ if [[ "$nKnown" -eq 0 ]];then
     continue
 fi
 
+echo "$nKnown known signals found" >> "$logfile"
+
 # if the tested variant is known
 c=$(grep -c "$id" "$tmpfile")
 if [[ "$c" -ne 0 ]];then
