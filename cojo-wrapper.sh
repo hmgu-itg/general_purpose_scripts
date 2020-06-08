@@ -82,7 +82,8 @@ echo >> "$logfile"
 # GCTA input files
 cojofile="$plinkout"."ma"
 condfile="$plinkout"."cond"
-fgrep -w "$varid" "$input"|cut -f 2-10|sed 's/\t/:/'| grep -v -f <(cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u) > "$cojofile"
+echo "SNP A1 A2 freq b se p N" | tr ' ' '\t' > "$cojofile"
+fgrep -w "$varid" "$input"|cut -f 2-10|sed 's/\t/:/'| grep -v -f <(cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u) >> "$cojofile"
 fgrep -v -w "$id" "$plinkout"."bim"| cut -f 2 > "$condfile"
 
 # calling GCTA
