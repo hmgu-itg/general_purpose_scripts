@@ -139,7 +139,7 @@ cat "$tmpfile2" >> "$output"
 echo "$varid $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' >> "$output"
 echo >> "$logfile"
 
-exit 0
+#exit 0
 
 done
 
