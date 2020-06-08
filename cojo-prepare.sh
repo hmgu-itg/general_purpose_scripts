@@ -116,6 +116,7 @@ fi
 
 # output details of the current variant
 echo "$varid $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' >> "$output"
+echo >> "$logfile"
 
 done
 
