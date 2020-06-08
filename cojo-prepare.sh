@@ -98,7 +98,7 @@ fi
 end=$((pos+window))
 > "$tmpfile"
 echo "intersectBed using chr=$chr start=$start end=$end" >> "$logfile"
-intersectBed -wb -a <(echo "$chr $start $end"| tr ' ' '\t') -b "$known" | awk -v x="$uniprot" 'BEGIN{FS="\t";OFS="\t";}$8==x{print $0;}' | cut -f 1,3| tr '\t' ':' > "$tmpfile" 2>>"$logfile"
+intersectBed -wb -a <(echo "$chr $start $end"| tr ' ' '\t') -b "$known" | awk -v x="$uniprot" 'BEGIN{FS="\t";OFS="\t";}$8==x{print $0;}' | cut -f 1,3| tr '\t' ':' | sort | uniq > "$tmpfile" 2>>"$logfile"
 echo >> "$logfile"
 
 # if there are no known signals in the bp window
