@@ -74,6 +74,7 @@ if [[ ! -f "$phenofile" ]];then
     echo "ERROR: $phenofile doesn't exist" >> "$logfile"
     continue
 fi
+ha_samples=$(cat <(cut -f 1 "$phenofile") <(cut -f 2 -d ' ' "$ha_plink"."fam") | sort|uniq -d| tr '\n' ',')
 ha_N=$(cat <(cut -f 1 "$phenofile") <(cut -f 2 -d ' ' "$ha_plink"."fam") | sort|uniq -d|wc -l)
 
 phenofile="$hp_pheno"/"$panel"/"POMAK"."$panel"."$prot"."txt"
@@ -81,7 +82,9 @@ if [[ ! -f "$phenofile" ]];then
     echo "ERROR: $phenofile doesn't exist" >> "$logfile"
     continue
 fi
+hp_samples=$(cat <(cut -f 1 "$phenofile") <(cut -f 2 -d ' ' "$hp_plink"."fam") | sort|uniq -d| tr '\n' ',')
 hp_N=$(cat <(cut -f 1 "$phenofile") <(cut -f 2 -d ' ' "$hp_plink"."fam") | sort|uniq -d|wc -l)
+all_samples="$ha_samples""$hp_samples"
 N=$((ha_N+hp_N-nMiss))
 #--------------------------------------------------------------------------
 
@@ -122,7 +125,7 @@ fi
 echo -n "Extracting m/a stats for known signals ... " >> "$logfile"
 > "$tmpfile2"
 cat "$tmpfile"| tr ':' ' '|while read cr ps;do
-    tabix "$ma_path/$panel/METAL/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$varid -v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,toupper($3),toupper($4),$5,$6,$7,$8,n;}'  >> "$tmpfile2"
+    tabix "$ma_path/$panel/METAL/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$varid -v s=$all_samples -v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,toupper($3),toupper($4),$5,$6,$7,$8,n,s;}'  >> "$tmpfile2"
 done
 echo "Done" >> "$logfile"
 echo >> "$logfile"
@@ -138,7 +141,7 @@ echo "$id: output m/a results for $c known signals" >> "$logfile"
 cat "$tmpfile2" >> "$output"
 
 # output details of the current variant
-echo "$varid $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' >> "$output"
+echo "$varid $chr $pos $a1 $a2 $f1 $b $se $p $N $all_samples" | tr ' ' '\t' >> "$output"
 echo >> "$logfile"
 
 done
