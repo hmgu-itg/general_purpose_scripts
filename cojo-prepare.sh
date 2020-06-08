@@ -53,7 +53,7 @@ winstr=$(echo $window|perl -lne 'print sprintf("0.2fMb",$_/1000000);')
 logfile="$PWD"/"cojo-prepare_$winstr"."log"
 
 # reading the input table
-cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| while read panel prot uniprot chr pos a1 a1 f1 b se p nMiss; do
+cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| tail -n +2|while read panel prot uniprot chr pos a1 a1 f1 b se p nMiss; do
 prefix="$panel"."$prot"
 id="$chr:$pos"
 suffix="$chr"_"$pos"
