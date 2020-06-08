@@ -17,7 +17,7 @@ while getopts "i:o:k:w:" optname; do
     case "$optname" in
         "i" ) input="${OPTARG}";;
         "o" ) output="${OPTARG}";;
-        "l" ) known="${OPTARG}";;
+        "k" ) known="${OPTARG}";;
         "w" ) window="${OPTARG}";;
         "?" ) usage ;;
         *) usage ;;
