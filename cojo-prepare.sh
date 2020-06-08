@@ -134,14 +134,12 @@ if [[ "$c" -eq 0 ]];then
     continue
 fi
 
-echo "Output m/a results for $c known signals" >> "$logfile"
+echo "$id: output m/a results for $c known signals" >> "$logfile"
 cat "$tmpfile2" >> "$output"
 
 # output details of the current variant
 echo "$varid $chr $pos $a1 $a2 $f1 $b $se $p $N" | tr ' ' '\t' >> "$output"
 echo >> "$logfile"
-
-#exit 0
 
 done
 
