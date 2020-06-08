@@ -80,7 +80,7 @@ echo >> "$logfile"
 # calling GCTA
 echo -n "Calling GCTA ... " >> "$logfile"
 
-echo "COJO file: " >> "$logfile"
+echo "\nCOJO file: " >> "$logfile"
 fgrep -w "$varid" "$input"|cut -f 2-|sed 's/\t/:/'| grep -v -f <(cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u) >> "$logfile"
 echo "COND file" >> "$logfile"
 fgrep -v -w "$id" "$plinkout"."bim" >> "$logfile"
