@@ -29,6 +29,8 @@ if [[ $# -eq 0 ]];then
     exit 0
 fi
 
+logfile="cojo-prepare.log"
+
 # path to meta-analysis results
 ma_path="/storage/hmgu/projects/helic/OLINK/meta_analysis"
 
