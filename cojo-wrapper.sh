@@ -36,6 +36,8 @@ mkdir -p "$out"
 
 logfile="$out"/"cojo-wrapper.log"
 
+> "$logfile"
+
 date >> "$logfile"
 echo "bfile         : $bfile" >> "$logfile"
 echo "input table   : $input" >> "$logfile"
