@@ -85,7 +85,7 @@ fgrep -w "$varid" "$input"|cut -f 2-|sed 's/\t/:/'| grep -v -f <(cut -f 2 "$plin
 echo "COND file" >> "$logfile"
 fgrep -v -w "$id" "$plinkout"."bim" >> "$logfile"
 
-gcta64 --bfile "$plinkout" --cojo-file <(fgrep -w "$varid" "$input"|cut -f 2-|sed 's/\t/:/'| grep -v -f <(cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u)) --cojo-cond <(fgrep -v -w "$id" "$plinkout"."bim") --out "$out"/"$varid"."out"
+gcta64 --bfile "$plinkout" --cojo-file <(fgrep -w "$varid" "$input"|cut -f 2-|sed 's/\t/:/'| grep -v -f <(cut -f 2 "$plinkout"."bim" | cat - <(fgrep -w "$varid" "$input"|cut -f 2,3| tr '\t' ':') | sort|uniq -u)) --cojo-cond <(fgrep -v -w "$id" "$plinkout"."bim") --out "$out"/"$varid"."out" 2>> "$logfile"
 echo "Done " >> "$logfile"
 echo >> "$logfile"
 
