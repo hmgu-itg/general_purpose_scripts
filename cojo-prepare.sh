@@ -134,6 +134,7 @@ if [[ "$c" -eq 0 ]];then
     continue
 fi
 
+echo "Output m/a results for $c known signals" >> "$logfile"
 cat "$tmpfile2" >> "$output"
 
 # output details of the current variant
