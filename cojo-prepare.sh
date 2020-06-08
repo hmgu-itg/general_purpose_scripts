@@ -29,7 +29,7 @@ if [[ $# -eq 0 ]];then
     exit 0
 fi
 
-winstr=$(echo $window|perl -lne 'print sprintf("0.2fMb",$_/1000000);')
+winstr=$(echo $window|perl -lne 'print sprintf("%0.2fMb",$_/1000000);')
 logfile="$PWD"/"cojo-prepare_$winstr"."log"
 
 # path to meta-analysis results
