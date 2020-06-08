@@ -50,6 +50,9 @@ echo "output table  : $output" >> "$logfile"
 echo >> "$logfile"
 
 tmpfile=$(mktemp "$PWD"/tmp_cojo.XXXX)
+echo "Temp file: $tempfile" >> "$logfile"
+echo >> "$logfile"
+
 
 # reading the input table
 cut -f 1,2,5,6,8,10-12,16-18,24 "$input"| tail -n +2|while read panel prot uniprot chr pos a1 a1 f1 b se p nMiss; do
