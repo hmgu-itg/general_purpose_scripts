@@ -122,7 +122,7 @@ fi
 echo -n "Extracting m/a stats for known signals ... " >> "$logfile"
 > "$tmpfile2"
 cat "$tmpfile"| tr ':' ' '|while read cr ps;do
-    tabix "$ma_path/$panel/METAL/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$varid -v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,$3,$4,$5,$6,$7,$8,n;}'  >> "$tmpfile2"
+    tabix "$ma_path/$panel/METAL/$panel.$prot.metal.bgz" $cr:$ps-$ps| cut -f 1-5,9-11| awk -v id=$varid -v c=$cr -v p=$ps -v n=$N 'BEGIN{FS="\t";OFS="\t";}$1==c && $2==p{print id,c,p,toupper($3),toupper($4),$5,$6,$7,$8,n;}'  >> "$tmpfile2"
 done
 echo "Done" >> "$logfile"
 echo >> "$logfile"
