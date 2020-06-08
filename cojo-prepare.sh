@@ -64,6 +64,8 @@ varid="$panel"_"$prot"_"$suffix"
 ha_N=$(cat <(cut -f 1 "$ha_pheno"."$prefix"."txt") <(cut -f 2 -d ' ' "$ha_plink"."fam") | sort|uniq -d|wc -l)
 hp_N=$(cat <(cut -f 1 "$hp_pheno"/"$panel"/"POMAK"."$panel"."$prot"."txt") <(cut -f 2 -d ' ' "$hp_plink"."fam") | sort|uniq -d|wc -l)
 N=$((ha_N+hp_N-nMiss))
+echo "Total samples: $N" >> "$logfile"
+echo >> "$logfile"
 #------------------------------------------------------------------------------------
 
 echo "=========================================" >> "$logfile"
