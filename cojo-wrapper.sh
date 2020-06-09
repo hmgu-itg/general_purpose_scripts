@@ -35,10 +35,10 @@ out=${out/%/}
 mkdir -p "$out"
 
 logfile="$out"/"cojo-wrapper.log"
+errfile="$out"/"cojo-wrapper.err"
 
-> "$logfile"
-
-date >> "$logfile"
+date > "$logfile"
+echo "working dir   : $PWD" >> "$logfile"
 echo "bfile         : $bfile" >> "$logfile"
 echo "input table   : $input" >> "$logfile"
 echo "output dir    : $out" >> "$logfile"
@@ -46,8 +46,7 @@ echo "output dir    : $out" >> "$logfile"
 # reading the input table
 cut -f 1,11 "$input"|sort|uniq| while read varid samples; do
 
-echo "=========================================" >> "$logfile"
-echo "$varid" | tr '_' ' ' >> "$logfile"
+echo "================== $varid =========================" | tr '_' ' ' >> "$logfile"
 
 id=$(echo $varid | cut -f 3- -d '_'| tr '_' ':')
 
@@ -94,4 +93,7 @@ echo >> "$logfile"
 
 done
 date >> "$logfile"
+
+# report signals for which GCTA failed
+cat "$logfile" | perl -lne 'BEGIN{$cur=undef;$err=undef;%H={}}{if (/^=+\s+(\w.*\w)\s+=+$/){if (!defined($cur)){$cur=$1;}else{if (defined($err)){$H{$cur}=$err;} $cur=$1;$err=undef;}} if (/^Error:\s+(\S.*)$/){$err=$1;} }END{foreach $x (keys %H){print $x."\t".$H{$x};}}' > "$errfile"
 
