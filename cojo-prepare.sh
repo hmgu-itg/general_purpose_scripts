@@ -5,7 +5,7 @@ function usage {
     echo "Usage: $0 -i <input table>"
     echo "          -o <output table>"
     echo "          -k <known signals>"
-    echo "          -w <bp window>"
+    echo "          -w <bp window; default: 1000000>"
     exit 0
 }
 
