@@ -38,3 +38,9 @@ containing information about known signals in a specified bp window around hits.
     + 3: position of the known signal
     + 5: UniProt ID of the associated protein
 + optional bp window restricting conditioning known signals (default: 1Mbp)
+
+______________________________________________________________________________________________________________________
+
+# cojo-wrapper.sh
+
+
