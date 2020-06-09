@@ -43,7 +43,7 @@ ________________________________________________________________________________
 
 # cojo-wrapper.sh
 
-Given an output table from the `cojo-prepare.sh` step, perform GCTA `cojo-cond` testing of the independent hits conditioned on  known signals
+Given an output table from the `cojo-prepare.sh` step, perform GCTA `cojo-cond` testing of the independent hits conditioned on  known signals.
 
 `$ cojo-wrapper.sh -f <PLINK bfile prefix> -o <output directory> -i <input m/a table>`
 
@@ -55,7 +55,7 @@ ________________________________________________________________________________
 
 # cojo-slct.sh
 
-A simple wrapper for GCTA `cojo-slct` analysis, intended to be used when `cojo-wrapper.sh` fails because of collinearity between conditioning variants
+A simple wrapper for GCTA `cojo-slct` analysis, intended to be used when `cojo-wrapper.sh` fails because of collinearity between conditioning variants.
 
 `$ cojo-slct.sh -i <signal ID> -n <number of samples> -f <PLINK bfile prefix>`
 
@@ -65,3 +65,6 @@ A simple wrapper for GCTA `cojo-slct` analysis, intended to be used when `cojo-w
 
 ________________________________________________________________________________________________________________________
 
+# rs2position.sh
+
+Given an (list of) rsID(s), retreive (a list of) corresponding genomic positions.
