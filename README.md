@@ -10,7 +10,7 @@ containing in addition known signals in a specified bp window around hits.
 + input table: a tab separated table containing meta-analysis results for independent hits; should contain following columns:
     +  column 1: panel
     +  column 2: protein
-    +  column 5: uniprot ID of the protein
+    +  column 5: UniProt ID of the protein
     +  column 6: chromosome of the hit
     +  column 8: position of the hit
     +  column 10: effect allele
@@ -32,5 +32,9 @@ containing in addition known signals in a specified bp window around hits.
     + p-value
     + N
     + comma-separated list of samples used in the meta-analysis
-+ known signals: a BED file containing information about known associations
++ known signals: a BED file containing information about known associations; should at least contain the following fields:
+    + 1: chromosome of the known signal
+    + 2: pos-1, where pos is the position of the known signal
+    + 3: position of the known signal
+    + 5: UniProt ID of the associated protein
 + optional bp window restricting conditioning known signals (default: 1Mbp)
