@@ -67,4 +67,4 @@ ________________________________________________________________________________
 
 # rs2position.sh
 
-Given an (list of) rsID(s), retreive (a list of) corresponding genomic positions.
+Given a (list of) rsID(s), retreive (list of) corresponding genomic position(s).
