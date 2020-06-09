@@ -29,6 +29,10 @@ fi
 # m/a results
 ma_results="/storage/hmgu/projects/helic/OLINK/meta_analysis"
 
+echo "ID    : $id"
+echo "N     : $N"
+echo "bfile : $bfile"
+
 read -r panel prot chr pos <<<$(echo $id|tr '_' ' ')
 
 gcta64 --bfile "$bfile" --cojo-slct --out "$id".slct --cojo-file <(zcat "$ma_results"/"$panel"/METAL/"$panel"."$prot".metal.bgz| cut -f 1-5,9-11| awk -v n=$N 'BEGIN{FS="\t";OFS="\t";}{if (NR==1){print "SNP","A1","A2","freq","b","se","p","N";}else{ print $1":"$2,$3,$4,$5,$6,$7,$8,n;}}') --extract "$id".cond
