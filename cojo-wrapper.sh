@@ -95,5 +95,5 @@ done
 date >> "$logfile"
 
 # report signals for which GCTA failed
-cat "$logfile" | perl -lne 'BEGIN{$cur=undef;$err=undef;%H={}}{if (/^=+\s+(\w.*\w)\s+=+$/){if (!defined($cur)){$cur=$1;}else{if (defined($err)){$H{$cur}=$err;} $cur=$1;$err=undef;}} if (/^Error:\s+(\S.*)$/){$err=$1;} }END{foreach $x (keys %H){print $x."\t".$H{$x};}}' > "$errfile"
+cat "$logfile" | perl -lne 'BEGIN{$cur=undef;$err=undef;%H={}}{if (/^=+\s+(\w.*\w)\s+=+$/){if (!defined($cur)){$cur=$1;}else{if (defined($err)){$H{$cur}=$err;} $cur=$1;$err=undef;}} if (/^Error:\s+(\S.*)$/){$err=$1;} }END{foreach $x (keys %H){print $x."\t".$H{$x};}}'  > "$errfile"
 
