@@ -32,5 +32,5 @@ $ cojo-prepare.sh -i <input table> -o <output table> -k <known signals> -w <bp w
     + p-value
     + N
     + comma-separated list of samples used in the meta-analysis
-+ known signals: a tab separated table 
++ known signals: a BED file containing information about known associations
 + optional bp window restricting conditioning known signals (default: 1Mbp)
