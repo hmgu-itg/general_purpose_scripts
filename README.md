@@ -5,7 +5,7 @@ General purpose scripts
 Given a table with meta-analysis results for independent hits, create an extended table 
 containing in addition known signals in a specified bp window around hits.
 
-$ cojo-prepare.sh -i <input table> -o <output table> -k <known signals> -w <bp window: optional, default: 1000000>
+>$ cojo-prepare.sh -i <input table> -o <output table> -k <known signals> -w <bp window: optional, default: 1000000>
   
 + input table: a tab separated table containing meta-analysis results for independent hits; should contain following columns:
     +  column 1: panel
