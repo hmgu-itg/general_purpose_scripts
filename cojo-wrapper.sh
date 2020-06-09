@@ -46,7 +46,7 @@ echo "output dir    : $out" >> "$logfile"
 # reading the input table
 cut -f 1,11 "$input"|sort|uniq| while read varid samples; do
 
-echo "================== $varid =========================" | tr '_' ' ' >> "$logfile"
+echo "================== $varid =========================" >> "$logfile"
 
 id=$(echo $varid | cut -f 3- -d '_'| tr '_' ':')
 
@@ -95,5 +95,5 @@ done
 date >> "$logfile"
 
 # report signals for which GCTA failed
-cat "$logfile" | perl -lne 'BEGIN{$cur=undef;$err=undef;%H={}}{if (/^=+\s+(\w.*\w)\s+=+$/){if (!defined($cur)){$cur=$1;}else{if (defined($err)){$H{$cur}=$err;} $cur=$1;$err=undef;}} if (/^Error:\s+(\S.*)$/){$err=$1;} }END{foreach $x (keys %H){print $x."\t".$H{$x};}}'  > "$errfile"
+cat "$logfile" | perl -lne 'BEGIN{$cur=undef;$err=undef;%H=();}{if (/^=+\s+(\w.*\w)\s+=+$/){if (!defined($cur)){$cur=$1;}else{if (defined($err)){$H{$cur}=$err;} $cur=$1;$err=undef;}} if (/^Error:\s+(\S.*)$/){$err=$1;} }END{if (defined($cur) && defined($err)){$H{$cur}=$err;}foreach $x (keys %H){print $x."\t".$H{$x};}}' > "$errfile"
 
