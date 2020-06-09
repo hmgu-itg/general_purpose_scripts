@@ -47,4 +47,10 @@ Given an output table from the `cojo-prepare.sh` step, perform GCTA `cojo-cond` 
 
 `$ cojo-wrapper.sh -f <PLINK bfile prefix> -o <output directory> -i <input m/a table>`
 
++ PLINK bfile prefix: bed/bim/fam PLINK files
++ output directory: directory with the intermediate PLINK files and result GCTA files, also contains `cojo-wrapper.log` and `cojo-wrapper.err` log files. `cojo-wrapper.err` contains information about failed GCTA runs
++ input m/a table: output table from the `cojo-prepare.sh` run
+
+_______________________________________________________________________________________________________________________
+
 
