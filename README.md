@@ -43,4 +43,8 @@ ________________________________________________________________________________
 
 # cojo-wrapper.sh
 
+Given an output table from the `cojo-prepare.sh` step, perform GCTA `cojo-cond` testing of the independent hits conditioned on  known signals
+
+`$ cojo-wrapper.sh -f <PLINK bfile prefix> -o <output directory> -i <input m/a table>`
+
 
