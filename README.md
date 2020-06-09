@@ -53,4 +53,15 @@ Given an output table from the `cojo-prepare.sh` step, perform GCTA `cojo-cond` 
 
 _______________________________________________________________________________________________________________________
 
+# cojo-slct.sh
+
+A simple wrapper for GCTA `cojo-slct` analysis, intended to be used when `cojo-wrapper.sh` fails because of collinearity between conditioning variants
+
+`$ cojo-slct.sh -i <signal ID> -n <number of samples> -f <PLINK bfile prefix>`
+
++ signal ID: ID of the failed signal of the form PANEL_PROTEIN_CHR_POS (these IDs form the first column of `cojo-wrapper.err` error file of the previous `cojo-wrapper.sh` run)
++ number of samples: number of samples used in the m/a analysis
++ PLINK bfile prefix: prefix filename of bed/bim/fam PLINK files
+
+________________________________________________________________________________________________________________________
 
