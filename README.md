@@ -21,8 +21,7 @@ $ cojo-prepare.sh -i <input table> -o <output table> -k <known signals> -w <bp w
     +  column 18: p-value
     +  column 24: number of missing samples in meta-analysis of the current hit
 + output table: a tab separated table containing
-    + record ID of the form: PANEL_PROTEIN_CHR_POS, where CHR and POS refer to the genomic position of the independent hit  
-    from the input table
+    + record ID of the form: PANEL_PROTEIN_CHR_POS, where CHR and POS refer to the genomic position of the independent hit from the input table
     + CHR: chromosome of the signal (either input hit, or conditioning variant)
     + POS: position of the signal (either input hit, or conditioning variant)
     + A1
@@ -32,6 +31,6 @@ $ cojo-prepare.sh -i <input table> -o <output table> -k <known signals> -w <bp w
     + SE
     + p-value
     + N
-    + comma-separated list of samples 
+    + comma-separated list of samples used in the meta-analysis
 + known signals: a tab separated table 
 + optional bp window restricting conditioning known signals (default: 1Mbp)
