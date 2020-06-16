@@ -7,6 +7,7 @@ import re
 from requests.exceptions import Timeout,TooManyRedirects,RequestException
 import datetime
 import functions
+import json
 
 headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
 
@@ -107,7 +108,7 @@ while cur_line<total_lines:
     if r:
         for snprec in r:
             if verbose:
-                print("INFO: "+repr(snprec),file=sys.stderr,flush=True)
+                print(json.dumps(snprec, indent=4, sort_keys=True))
 
             H={}
             id0=snprec["input"] # original ID
