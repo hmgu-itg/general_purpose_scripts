@@ -24,14 +24,14 @@ containing information about known signals in a specified bp window around hits.
     + record ID of the form: PANEL_PROTEIN_CHR_POS, where CHR and POS refer to the genomic position of the independent hit from the input table
     + CHR: chromosome of the signal (either input hit, or conditioning variant)
     + POS: position of the signal (either input hit, or conditioning variant)
-    + A1
-    + A2
-    + freq
-    + beta
-    + SE
+    + A1: effect allele
+    + A2: other allele
+    + freq: allele frequency of the effect allele
+    + beta: effect size
+    + SE: standard error of the effect size
     + p-value
-    + N
-    + comma-separated list of samples used in the meta-analysis
+    + N: number of samples analyzed <-- redundant
+    + sample names: comma-separated list of samples used in the meta-analysis
 + known signals: a BED file containing information about known associations; should at least contain the following fields:
     + 1: chromosome of the known signal
     + 2: pos-1, where pos is the position of the known signal
