@@ -24,13 +24,13 @@ cond=args.cond
 #---------------------------------------------------------------------------------------------------------------------------
 def recode(a1,a2,a,f):
     if a1=="0" or a2=="0":
-        return None
+        return np.nan
     if a1==a and a2==a:
-        return -2*f
+        return 2-2*f
     elif (a1==a and a2!=a) or (a1!=a and a2==a):
         return 1-2*f
     else:
-        return 2-2*f
+        return -2*f
 
 #---------------------------------------------------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ def recode(a1,a2,a,f):
 
 pedfile=pd.read_table(ped,sep=" ",header=None)
 pedfile=pedfile.loc[:,6:]
+#print(pedfile)
 mapfile=pd.read_table(mapfn,names=["ID"],usecols=[1],sep="\t",header=None)
 print(mapfile)
 mafile=pd.read_table(ma,sep="\t",header=0)
@@ -46,51 +47,146 @@ condfile=pd.read_table(cond,header=None,names=["ID"])
 print(condfile)
 print("")
 
-S1=set(mapfile["ID"])
-S2=set(condfile["ID"])
+L=[]
+L1=[]
+# L1: variant IDs in the correct order
+for index, row in mapfile.iterrows():
+    x=row["ID"]
+    L1.append(x)
+    L.append(x+"_1")
+    L.append(x+"_2")
 
-# variant being tested
-var=S1.difference(S2).pop()
+# sed column names to variant id_1, id_2
+pedfile.columns=L
+print(pedfile)
+
+# conditioning variants
+L2=[]
+for index, row in condfile.iterrows():
+    x=row["ID"]
+    L2.append(x)
+
+
+var=None # variant being tested
+L3=[] # conditioning variants in correct order
+for x in L1:
+    if x in L2:
+        L3.append(x)
+    else:
+        var=x
+
 print(var)
+print(L3)
 
 beta_var=None
 f_var=None
 a_var=None
+tmp_betas=dict()
+tmp_freqs=dict()
+tmp_alleles=dict()
+AL=dict() # id -> effect allele
+for index, row in mafile.iterrows():
+    AL[row["SNP"]]=row["A1"]
+    if var==row["SNP"]:
+        beta_var=float(row["b"])
+        f_var=float(row["freq"])
+        a_var=row["A1"]
+    else:
+        tmp_betas[row["SNP"]]=float(row["b"])
+        tmp_freqs[row["SNP"]]=float(row["freq"])
+        tmp_alleles[row["SNP"]]=row["A1"]
+
+# allele frequencies from the pedfile
+AF=dict()
+for x in AL:
+    t=0
+    c=0
+    a=AL[x]
+    for i, r in pedfile.iterrows():
+        a1=r[x+"_1"]
+        a2=r[x+"_2"]
+        if a1==a:
+            c=c+1
+        if a2==a:
+            c=c+1
+        
+        if a1!="0" and a2!="0":
+            t=t+1
+    AF[x]=c/(2*t)
+
 betas=[]
 freqs=[]
 alleles=[]
-for index, row in mafile.iterrows():
-    if var==row["SNP"]:
-        beta_var=row["b"]
-        f_var=row["freq"]
-        a_var=row["A1"]
-    else:
-        betas.append(row["b"])
-        freqs.append(row["freq"])
-        alleles.append(row["A1"])
+
+# betas etc. in correct order
+for x in L2:
+    betas.append(tmp_betas[x])
+    freqs.append(tmp_freqs[x])
+    alleles.append(tmp_alleles[x])
+
+betas=np.asarray(betas)
 
 print(a_var,f_var,beta_var)
 print(alleles,freqs,betas)
 
-L=[]
+# genotype encoded
+df0=pd.DataFrame()
 for index, row in mapfile.iterrows():
     x=row["ID"]
-    if x==var:
-        beta_var=row
-    L.append(x+"_1")
-    L.append(x+"_2")
-    f=mafile.loc[mafile["SNP"]==x,"freq"].values[0]
-    a=mafile.loc[mafile["SNP"]==x,"A1"].values[0]
-    print(index,row["ID"],f,a)
+    a=mafile.loc[mafile.SNP==x,"A1"].values[0]
+    f=mafile.loc[mafile.SNP==x,"freq"].values[0]
+    df0[x]=pedfile[[x+"_1",x+"_2"]].apply(lambda row: recode(row[0],row[1],a,AF[x]),axis=1)
 
-pedfile.columns=L
-print(pedfile)
-df=pd.DataFrame()
-for index, row in mapfile.iterrows():
-    x=row["ID"]
-    f=mafile.loc[mafile["SNP"]==row["ID"],"freq"].values[0]
-    a=mafile.loc[mafile["SNP"]==row["ID"],"A1"].values[0]
-    df[x]=pedfile[[x+"_1",x+"_2"]].apply(lambda row: recode(row[0],row[1],a,f),axis=1)
-
+# remove rows with nan
+df=df0.dropna()
+print("DF")
 print(df)
 
+# creating necessary matrices
+
+# tested variant's genotypes
+X2=df[[var]].to_numpy(copy=True)
+# conditioning variants' genotypes
+X1=df[L3].to_numpy(copy=True)
+
+print("X1")
+print(X1)
+print("X2")
+print(X2)
+
+Xp1=np.dot(np.transpose(X1),X1)
+Xp2=np.dot(np.transpose(X2),X2)
+
+print("Xp1")
+print(Xp1)
+print("Xp2")
+print(Xp2)
+
+X11=np.linalg.inv(Xp1)
+X22=np.linalg.inv(Xp2)
+X21=np.dot(np.transpose(X2),X1)
+
+print("X11")
+print(X11)
+print("X22")
+print(X22)
+print("X21")
+print(X21)
+
+D1=np.diag(np.diagonal(Xp1))
+D2=np.diag(np.diagonal(Xp2))
+
+print("D1")
+print(D1)
+print("D2")
+print(D2)
+print("")
+
+X=np.dot(np.dot(X22,np.dot(X21,X11)),D1)
+
+print(X)
+
+b2=beta_var-np.dot(X,betas)
+print("")
+print("OUTPUT: input beta "+str(beta_var))
+print("      : conditional beta "+str(b2))
