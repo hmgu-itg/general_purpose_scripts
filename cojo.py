@@ -38,18 +38,20 @@ def recode(a1,a2,a,f):
 
 pedfile=pd.read_table(ped,sep=" ",header=None)
 pedfile=pedfile.loc[:,6:]
-#print(pedfile)
 mapfile=pd.read_table(mapfn,names=["ID"],usecols=[1],sep="\t",header=None)
+print("============================ MAP ================================")
 print(mapfile)
 mafile=pd.read_table(ma,sep="\t",header=0)
+print("======================== M/A RESULTS ============================")
 print(mafile)
 condfile=pd.read_table(cond,header=None,names=["ID"])
+print("==================== CONDITIONAL VARIANTS =======================")
 print(condfile)
 print("")
 
 L=[]
 L1=[]
-# L1: variant IDs in the correct order
+# L1: variant IDs in correct order
 for index, row in mapfile.iterrows():
     x=row["ID"]
     L1.append(x)
@@ -58,6 +60,7 @@ for index, row in mapfile.iterrows():
 
 # sed column names to variant id_1, id_2
 pedfile.columns=L
+print("============================ PED ================================")
 print(pedfile)
 
 # conditioning variants
@@ -65,7 +68,6 @@ L2=[]
 for index, row in condfile.iterrows():
     x=row["ID"]
     L2.append(x)
-
 
 var=None # variant being tested
 L3=[] # conditioning variants in correct order
@@ -75,8 +77,9 @@ for x in L1:
     else:
         var=x
 
+print("===================== TESTED VARIANT  ===========================")
 print(var)
-print(L3)
+#print(L3)
 
 beta_var=None
 f_var=None
@@ -84,7 +87,7 @@ a_var=None
 tmp_betas=dict()
 tmp_freqs=dict()
 tmp_alleles=dict()
-AL=dict() # id -> effect allele
+AL=dict() # id --> effect allele
 for index, row in mafile.iterrows():
     AL[row["SNP"]]=row["A1"]
     if var==row["SNP"]:
@@ -96,8 +99,7 @@ for index, row in mafile.iterrows():
         tmp_freqs[row["SNP"]]=float(row["freq"])
         tmp_alleles[row["SNP"]]=row["A1"]
 
-# allele frequencies from the pedfile
-AF=dict()
+AF=dict() # effect allele --> AF
 for x in AL:
     t=0
     c=0
@@ -139,7 +141,7 @@ for index, row in mapfile.iterrows():
 
 # remove rows with nan
 df=df0.dropna()
-print("DF")
+print("====================== GENOTYPE MATRIX  ===========================")
 print(df)
 
 # creating necessary matrices
@@ -149,41 +151,42 @@ X2=df[[var]].to_numpy(copy=True)
 # conditioning variants' genotypes
 X1=df[L3].to_numpy(copy=True)
 
-print("X1")
+print("================== CONDITIONING GENOTYPES (X1) ====================")
 print(X1)
-print("X2")
+print("================= TESTED VARIANT'S GENOTYPES (X2) =================")
 print(X2)
 
 Xp1=np.dot(np.transpose(X1),X1)
 Xp2=np.dot(np.transpose(X2),X2)
 
-print("Xp1")
+print("============================= X1'X1 =============================")
 print(Xp1)
-print("Xp2")
+print("============================= X2'X2 =============================")
 print(Xp2)
 
 X11=np.linalg.inv(Xp1)
 X22=np.linalg.inv(Xp2)
 X21=np.dot(np.transpose(X2),X1)
 
-print("X11")
+print("=========================== (X1'X1)-1 ===========================")
 print(X11)
-print("X22")
+print("=========================== (X2'X2)-1 ===========================")
 print(X22)
-print("X21")
+print("===========================  (X2'X1)= ===========================")
 print(X21)
 
 D1=np.diag(np.diagonal(Xp1))
 D2=np.diag(np.diagonal(Xp2))
 
-print("D1")
+print("============================== D1 ===============================")
 print(D1)
-print("D2")
+print("============================== D2 ===============================")
 print(D2)
 print("")
 
 X=np.dot(np.dot(X22,np.dot(X21,X11)),D1)
 
+print("================= (X2'X2)-1 X2'X1 (X1'X1)-1 D1 ==================")
 print(X)
 
 b2=beta_var-np.dot(X,betas)
