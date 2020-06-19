@@ -155,10 +155,11 @@ print("")
 print(df)
 print("")
 
-# creating necessary matrices
+#-------------------------------------------- creating necessary matrices -------------------------------------------------
 
 # tested variant's genotypes
 X2=df[[var]].to_numpy(copy=True)
+
 # conditioning variants' genotypes
 X1=df[L3].to_numpy(copy=True)
 
@@ -224,5 +225,4 @@ print("")
 
 b2=beta_var-np.dot(X,betas)
 print('{:=^80}'.format(' OUTPUT '))
-print("input beta",str(beta_var),sep="\t")
-print("conditional beta",str(b2),sep="\t")
+print(ma,str(beta_var),str(b2),sep="\t")
