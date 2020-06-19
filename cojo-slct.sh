@@ -37,6 +37,7 @@ fi
 # m/a results
 ma_results="/storage/hmgu/projects/helic/OLINK/meta_analysis"
 
+logfile="cojo-slct.log"
 > "$logfile"
 echo "ID            : $id" >> "$logfile"
 echo "N             : $N" >> "$logfile"
