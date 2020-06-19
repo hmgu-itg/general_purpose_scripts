@@ -43,7 +43,7 @@ print(mapfile)
 print("")
 mafile=pd.read_table(ma,sep="\t",header=0)
 print('{:=^80}'.format(' M/A RESULTS '))
-print("")
+print(ma)
 print(mafile)
 print("")
 condfile=pd.read_table(cond,header=None,names=["ID"])
@@ -137,7 +137,9 @@ for x in L2:
 betas=np.asarray(betas)
 
 print(a_var,f_var,beta_var)
-print(alleles,freqs,betas)
+print("COND ALLELES: ",alleles)
+print("COND FREQS  : ",freqs)
+print("COND BETAS  : ",betas)
 
 # genotype encoded
 df0=pd.DataFrame()
@@ -146,6 +148,11 @@ for index, row in mapfile.iterrows():
     a=mafile.loc[mafile.SNP==x,"A1"].values[0]
     f=mafile.loc[mafile.SNP==x,"freq"].values[0]
     df0[x]=pedfile[[x+"_1",x+"_2"]].apply(lambda row: recode(row[0],row[1],a,AF[x]),axis=1)
+
+print('{:=^80}'.format(' GENOTYPE MATRIX WITH NAs '))
+print("")
+print(df0)
+print("")
 
 # remove rows with nan
 df=df0.dropna()
