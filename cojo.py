@@ -31,7 +31,6 @@ def recode(a1,a2,a,f):
         return 1-2*f
     else:
         return -2*f
-
 #---------------------------------------------------------------------------------------------------------------------------
 
 # Read input files
@@ -62,7 +61,7 @@ for index, row in mapfile.iterrows():
     L.append(x+"_1")
     L.append(x+"_2")
 
-# sed column names to variant id_1, id_2
+# set column names to variant id_1, id_2
 pedfile.columns=L
 print('{:=^80}'.format(' PED '))
 print("")
