@@ -6,19 +6,22 @@ function usage {
     echo "          -n <number of samples in m/a analysis>"
     echo "          -f <bfile prefix>"
     echo "          -t <optional: number of threads; default: 1>"
+    echo "          -c <optional: collinearity threshold, default: 0.9>"
     exit 0
 }
 
 # default
 threads=1
+ct=0.9
 
 OPTIND=1
-while getopts "i:n:f:t:" optname; do
+while getopts "i:n:f:t:c:" optname; do
     case "$optname" in
         "i" ) id="${OPTARG}";;
         "n" ) N="${OPTARG}";;
         "f" ) bfile="${OPTARG}";;
         "t" ) threads="${OPTARG}";;
+        "c" ) ct="${OPTARG}";;
         "?" ) usage ;;
         *) usage ;;
     esac;
@@ -34,10 +37,13 @@ fi
 # m/a results
 ma_results="/storage/hmgu/projects/helic/OLINK/meta_analysis"
 
-echo "ID    : $id"
-echo "N     : $N"
-echo "bfile : $bfile"
+> "$logfile"
+echo "ID            : $id" >> "$logfile"
+echo "N             : $N" >> "$logfile"
+echo "bfile         : $bfile" >> "$logfile"
+echo "collinearity  : $ct" >> "$logfile"
+echo "threads       : $threads" >> "$logfile"
 
 read -r panel prot chr pos <<<$(echo $id|tr '_' ' ')
 
-gcta64 --bfile "$bfile" --cojo-slct --out "$id".slct --cojo-file <(zcat "$ma_results"/"$panel"/METAL/"$panel"."$prot".metal.bgz| cut -f 1-5,9-11| awk -v n=$N 'BEGIN{FS="\t";OFS="\t";}{if (NR==1){print "SNP","A1","A2","freq","b","se","p","N";}else{ print $1":"$2,$3,$4,$5,$6,$7,$8,n;}}') --extract "$id".cond --threads "$threads"
+gcta64 --bfile "$bfile" --cojo-slct --out "$id".slct --cojo-file <(zcat "$ma_results"/"$panel"/METAL/"$panel"."$prot".metal.bgz| cut -f 1-5,9-11| awk -v n=$N 'BEGIN{FS="\t";OFS="\t";}{if (NR==1){print "SNP","A1","A2","freq","b","se","p","N";}else{ print $1":"$2,$3,$4,$5,$6,$7,$8,n;}}') --extract "$id".cond --threads "$threads" --cojo-collinear "$ct"
