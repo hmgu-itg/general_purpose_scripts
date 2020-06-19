@@ -3,7 +3,7 @@
 function usage {
     echo ""
     echo "Usage: $0 -i <signal ID>"
-    echo "          -n <number of samples in m/a analysis>"
+    echo "          -n <number of samples in meta analysis>"
     echo "          -f <bfile prefix>"
     echo "          -t <optional: number of threads; default: 1>"
     echo "          -c <optional: collinearity threshold, default: 0.9>"
