@@ -95,6 +95,7 @@ a_var=None
 tmp_betas=dict()
 tmp_freqs=dict()
 tmp_alleles=dict()
+
 AL=dict() # id --> effect allele
 for index, row in mafile.iterrows():
     AL[row["SNP"]]=row["A1"]
@@ -186,6 +187,9 @@ X11=np.linalg.inv(Xp1)
 X22=np.linalg.inv(Xp2)
 X21=np.dot(np.transpose(X2),X1)
 
+#print(np.dot(Xp1,X11))
+#print(np.dot(Xp2,X22))
+
 print('{:=^80}'.format(' (X1\'X1)-1 '))
 print("")
 print(X11)
@@ -219,5 +223,6 @@ print(X)
 print("")
 
 b2=beta_var-np.dot(X,betas)
-print("OUTPUT: input beta "+str(beta_var))
-print("      : conditional beta "+str(b2))
+print('{:=^80}'.format(' OUTPUT '))
+print("input beta",str(beta_var),sep="\t")
+print("conditional beta",str(b2),sep="\t")
