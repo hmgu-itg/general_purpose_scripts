@@ -1,12 +1,14 @@
 #!/bin/bash
 
+# a simple wrapper for cojo-slct
+
 function usage {
     echo ""
     echo "Usage: $0 -i <signal ID>"
     echo "          -n <number of samples in meta analysis>"
     echo "          -f <bfile prefix>"
     echo "          -t <optional: number of threads; default: 1>"
-    echo "          -c <optional: collinearity threshold, default: 0.9>"
+    echo "          -c <optional: collinearity threshold; default: 0.9>"
     exit 0
 }
 
@@ -31,8 +33,6 @@ if [[ $# -eq 0 ]];then
     usage
     exit 0
 fi
-
-# a simple wrapper for cojo-slct
 
 # m/a results
 ma_results="/storage/hmgu/projects/helic/OLINK/meta_analysis"
