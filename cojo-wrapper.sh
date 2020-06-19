@@ -5,15 +5,20 @@ function usage {
     echo "Usage: $0 -f <PLINK file prefix>"
     echo "          -o <output dir>"
     echo "          -i <input table>"
+    echo "          -c <optional: collinearity threshold, default: 0.9>"
     exit 0
 }
 
+# default
+ct=0.9
+
 OPTIND=1
-while getopts "f:o:i:" optname; do
+while getopts "f:o:i:c:" optname; do
     case "$optname" in
         "f" ) bfile="${OPTARG}";;
         "o" ) out="${OPTARG}";;
         "i" ) input="${OPTARG}";;
+        "c" ) ct="${OPTARG}";;
         "?" ) usage ;;
         *) usage ;;
     esac;
@@ -38,10 +43,11 @@ logfile="$out"/"cojo-wrapper.log"
 errfile="$out"/"cojo-wrapper.err"
 
 date > "$logfile"
-echo "working dir   : $PWD" >> "$logfile"
-echo "bfile         : $bfile" >> "$logfile"
-echo "input table   : $input" >> "$logfile"
-echo "output dir    : $out" >> "$logfile"
+echo "working dir     : $PWD" >> "$logfile"
+echo "bfile           : $bfile" >> "$logfile"
+echo "input table     : $input" >> "$logfile"
+echo "output dir      : $out" >> "$logfile"
+echo "collinearity    : $ct" >> "$logfile"
 
 # reading the input table
 cut -f 1,11 "$input"|sort|uniq| while read varid samples; do
@@ -87,7 +93,7 @@ fgrep -v -w "$id" "$plinkout"."bim"| cut -f 2 > "$condfile"
 
 # calling GCTA
 echo -n "Calling GCTA ... " >> "$logfile"
-gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$condfile" --out "$plinkout"."out" 1>> "$logfile" 2>> "$logfile"
+gcta64 --bfile "$plinkout" --cojo-file "$cojofile" --cojo-cond "$condfile" --cojo-collinear "$ct" --out "$plinkout"."out" 1>> "$logfile" 2>> "$logfile"
 echo "Done " >> "$logfile"
 echo >> "$logfile"
 
