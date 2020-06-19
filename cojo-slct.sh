@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# a simple wrapper for cojo-slct
+# a simple cojo-slct wrapper
 
 function usage {
     echo ""
