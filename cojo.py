@@ -154,7 +154,7 @@ print("")
 print(df0)
 print("")
 
-# remove rows with nan
+# remove rows with NaNs
 df=df0.dropna()
 print('{:=^80}'.format(' GENOTYPE MATRIX '))
 print("")
