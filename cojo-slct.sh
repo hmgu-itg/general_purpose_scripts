@@ -50,7 +50,7 @@ echo "ID                 : $id" >> "$logfile"
 echo "N                  : $N" >> "$logfile"
 echo "bfile              : $bfile" >> "$logfile"
 echo "collinearity       : $ct" >> "$logfile"
-echo "p-value threshold  : $ct" >> "$logfile"
+echo "p-value threshold  : $pt" >> "$logfile"
 echo "threads            : $threads" >> "$logfile"
 
 read -r panel prot chr pos <<<$(echo $id|tr '_' ' ')
