@@ -24,7 +24,7 @@ cond=args.cond
 #---------------------------------------------------------------------------------------------------------------------------
 def recode(a1,a2,a,f):
     if a1=="0" or a2=="0":
-        return np.nan
+        return 0
     if a1==a and a2==a:
         return 2-2*f
     elif (a1==a and a2!=a) or (a1!=a and a2==a):
@@ -147,19 +147,19 @@ for index, row in mapfile.iterrows():
     x=row["ID"]
     a=mafile.loc[mafile.SNP==x,"A1"].values[0]
     f=mafile.loc[mafile.SNP==x,"freq"].values[0]
-    df0[x]=pedfile[[x+"_1",x+"_2"]].apply(lambda row: recode(row[0],row[1],a,AF[x]),axis=1)
+    df[x]=pedfile[[x+"_1",x+"_2"]].apply(lambda row: recode(row[0],row[1],a,AF[x]),axis=1)
 
 print('{:=^80}'.format(' GENOTYPE MATRIX WITH NAs '))
 print("")
-print(df0)
+print(df)
 print("")
 
 # remove rows with NaNs
-df=df0.dropna()
-print('{:=^80}'.format(' GENOTYPE MATRIX '))
-print("")
-print(df)
-print("")
+#df=df0.dropna()
+#print('{:=^80}'.format(' GENOTYPE MATRIX '))
+#print("")
+#print(df)
+#print("")
 
 #-------------------------------------------- creating necessary matrices -------------------------------------------------
 
