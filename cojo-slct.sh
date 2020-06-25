@@ -46,11 +46,12 @@ echo "" >> "$logfile"
 date >> "$logfile"
 echo "" >> "$logfile"
 
-echo "ID            : $id" >> "$logfile"
-echo "N             : $N" >> "$logfile"
-echo "bfile         : $bfile" >> "$logfile"
-echo "collinearity  : $ct" >> "$logfile"
-echo "threads       : $threads" >> "$logfile"
+echo "ID                 : $id" >> "$logfile"
+echo "N                  : $N" >> "$logfile"
+echo "bfile              : $bfile" >> "$logfile"
+echo "collinearity       : $ct" >> "$logfile"
+echo "p-value threshold  : $ct" >> "$logfile"
+echo "threads            : $threads" >> "$logfile"
 
 read -r panel prot chr pos <<<$(echo $id|tr '_' ' ')
 

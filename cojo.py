@@ -149,7 +149,7 @@ for index, row in mapfile.iterrows():
     f=mafile.loc[mafile.SNP==x,"freq"].values[0]
     df[x]=pedfile[[x+"_1",x+"_2"]].apply(lambda row: recode(row[0],row[1],a,AF[x]),axis=1)
 
-print('{:=^80}'.format(' GENOTYPE MATRIX WITH NAs '))
+print('{:=^80}'.format(' GENOTYPE MATRIX '))
 print("")
 print(df)
 print("")
