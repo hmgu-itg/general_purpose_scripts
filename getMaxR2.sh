@@ -1,32 +1,22 @@
 #!/bin/bash
 
-# a simple cojo-slct wrapper
+# get max r2 between the given variant and a list of valiants
 
 function usage {
     echo ""
-    echo "Usage: $0 -i <signal ID>"
-    echo "          -n <number of samples in meta analysis>"
-    echo "          -f <bfile prefix>"
-    echo "          -t <optional: number of threads; default: 1>"
-    echo "          -c <optional: collinearity threshold; default: 0.9>"
-    echo "          -p <optional: p-value threshold; default: 5e-8>"
+    echo "Usage: $0 -i <variant ID>"
+    echo "          -l <list of variant IDs>"
+    echo "          -f <pfile prefix>"
     exit 0
 }
 
-# default
-threads=1
-ct=0.9
-pt=5e-8
 
 OPTIND=1
-while getopts "i:n:f:t:c:p:" optname; do
+while getopts "i:l:f:" optname; do
     case "$optname" in
         "i" ) id="${OPTARG}";;
-        "n" ) N="${OPTARG}";;
-        "f" ) bfile="${OPTARG}";;
-        "t" ) threads="${OPTARG}";;
-        "c" ) ct="${OPTARG}";;
-        "p" ) pt="${OPTARG}";;
+        "l" ) vars="${OPTARG}";;
+        "f" ) pfile="${OPTARG}";;
         "?" ) usage ;;
         *) usage ;;
     esac;
@@ -36,6 +26,13 @@ if [[ $# -eq 0 ]];then
     usage
     exit 0
 fi
+
+ped="$pfile".ped
+map="$pfile".map
+
+n=$(fgrep -w -n $id $map|cut -d ':' -f 1)
+
+
 
 # m/a results
 ma_results="/storage/hmgu/projects/helic/OLINK/meta_analysis"
