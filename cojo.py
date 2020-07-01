@@ -9,6 +9,7 @@ import datetime
 import pandas as pd
 import numpy as np
 from math import sqrt
+from scipy import stats
 
 parser = argparse.ArgumentParser(description="Perform conditional analysis")
 parser.add_argument('--ma','-m', action="store",help="Meta-analysis results")
@@ -268,10 +269,9 @@ print(ma,str(beta_var),str(b2),sep="\t")
 #-------------------------------------------------------------calculating SE ------------------------------------------------------
 tmpL=[]
 for v in L1:
-    tmpL.append((nsamples-1)*allSE[v]*allSE[v]+allD[v]*allbeta[v]*allbeta[v])
+    tmpL.append((nsamples-1)*allD[v]*allSE[v]*allSE[v]+allD[v]*allbeta[v]*allbeta[v])
 
 yty=np.median(tmpL)
-#yty=np.mean(tmpL)
 print('{:=^80}'.format(' yty '))
 print("")
 print(tmpL)
@@ -310,4 +310,15 @@ se2=sqrt(sigma2*z)/allD[var]
 print('{:=^80}'.format(' SE2 '))
 print("")
 print(se2)
+print("")
+
+#se2_1=1.0/allD[var]
+#se2_2=yty/(nsamples*2.0*f_var*(1.0-f_var))
+
+stat=b2/se2
+pval=stats.t.sf(np.abs(stat),nsamples-1)*2
+
+print('{:=^80}'.format(' FINAL '))
+print("")
+print(ma,b2,se2,pval,sep="\t")
 print("")
