@@ -63,8 +63,3 @@ A simple wrapper for GCTA `cojo-slct` analysis, intended to be used when `cojo-w
 + number of samples: number of samples used in the m/a analysis
 + PLINK bfile prefix: prefix filename of bed/bim/fam PLINK files
 
-________________________________________________________________________________________________________________________
-
-# rs2position.sh
-
-Given a (list of) rsID(s), retreive (list of) corresponding genomic position(s).
