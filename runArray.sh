@@ -1,6 +1,7 @@
 #!/bin/bash
 
-max_array_size=$(grep "^MaxArraySize=" /etc/slurm/slurm.conf | cut -d '=' -f 2)
+#max_array_size=$(grep "^MaxArraySize=" /etc/slurm/slurm.conf | cut -d '=' -f 2)
+max_array_size=10000
 
 function usage
 {
