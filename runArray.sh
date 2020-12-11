@@ -10,8 +10,9 @@ function usage
     echo "       -m <memory per CPU> : required; format: 100M, 5G etc."
     echo "       -c <CPUs per task> : optional, default: 1"
     echo "       -j <job name> : optional, default: \"noname\""
-    echo "       -t <upper running time limit> : optional, default: 2h; format: hh:mm:ss"
+    echo "       -t <upper running time limit> : optional, default: 3h; format: hh:mm:ss"
     echo "       -r <max running jobs> : optional, default: all (if specified, should not exceed ${max_array_size})"
+    echo "       -h : this help message"
 }
 
 username=$(id|cut -d ' ' -f 1|sed 's/[(]/ /'|cut -d ' ' -f 2 |sed 's/[)]//')
