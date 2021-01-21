@@ -24,7 +24,7 @@ echo "#!/usr/bin/Rscript --vanilla
 #Loading dependancies
 library(EasyQC)
 #RUN EASYQC
-EasyQC($1.EasyQC.ecf)
+EasyQC(\"$1.EasyQC.ecf\")
 # Exiting EasyQC-START.R
 q()
 #########################################################
@@ -195,6 +195,6 @@ chmod +x $1.EasyQC-START.R
 ### RUN EASYQC
 
 #~ag15/local_programs/gsub 80G -n4 -R"span[hosts=1]" -q normal -G t144_oagwas_meta  -o $1.o  -e $1.e ./$1.EasyQC-START.R
-sbatch -c 1 -e %A.%a.step2.err -o %A.%a.step2.out --mem 50G --time 7-0:0:0 -p normal_q --wrap 'singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 ./$1.EasyQC-START.R'
+sbatch -c 1 -e %A.%a.step2.err -o %A.%a.step2.out --mem 50G --time 7-0:0:0 -p normal_q --wrap "singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 ./$1.EasyQC-START.R"
 
 exit
