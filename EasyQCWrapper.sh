@@ -28,7 +28,7 @@ EasyQC($1.EasyQC.ecf)
 # Exiting EasyQC-START.R
 q()
 #########################################################
-" >> $1.EasyQC-START.R
+" > $1.EasyQC-START.R
 
 #########################################################
 ######### Write EasyQC.ecf #######################
@@ -41,13 +41,16 @@ DEFINE  --pathOut $2
         --strMissing NA
 	--strSeparator TAB
 	--acolIn CPTID;CHR;POS;EA;NEA;EAF;P;BETA;SE;NCASES;NCONTROLS;N;INFO
-	--acolInClasses character;numeric;numeric;character;character;numeric;numeric;numeric;numeric;numeric;numeric;numeric;numeric" >>  $1.EasyQC.ecf
+	--acolInClasses character;numeric;numeric;character;character;numeric;numeric;numeric;numeric;numeric;numeric;numeric;numeric" >  $1.EasyQC.ecf
 
-for i in $(ls -d -1 $3/**)
+#for i in $(ls -d -1 $3/**)
+for f in $(find $3 -maxdepth 1 -type f)     
 do
-echo EASYIN  --fileIn $i >> $1.EasyQC.ecf
+    echo EASYIN  --fileIn $f >> $1.EasyQC.ecf
 done
 
+echo "" >> $1.EasyQC.ecf
+echo "######################" >> $1.EasyQC.ecf
 echo "START EASYQC" >> $1.EasyQC.ecf
 
 echo "
