@@ -18,7 +18,7 @@ cat("Processing FastQTL output (", args$fastqtlOutput, ") with FDR=", args$fdr, 
 fastqtl.df <- read.table(args$fastqtlOutput, header=FALSE, stringsAsFactors=FALSE)
 
 # Add colnames as they are not present in the FastQTL output
-colnames(fastqtl.df) <- c("pid", "nvar", "beta_shape1", "beta_shape2", "dummy", "unknown6", "sid", "dist", "nominal_p", "unknown10", "unknown11", "unknown12", "unknown13", "unknown14", "unknown15", "pval_perm", "pval_beta")
+colnames(fastqtl.df) <- c("pid", "nvar", "beta_shape1", "beta_shape2", "dummy", "unknown6", "sid", "dist", "unknown9", "unknown10", "unknown11", "unknown12", "nominal_p", "unknown14", "unknown15", "pval_perm", "pval_beta")
 
 stopifnot("pval_beta" %in% colnames(fastqtl.df))
 
