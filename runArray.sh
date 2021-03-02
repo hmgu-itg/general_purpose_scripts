@@ -117,5 +117,6 @@ if [[ ${maxtime} != "NA" ]];then
     CMD=${CMD}" --time=${maxtime}"
 fi
 
-CMD=${CMD}" --job-name=${jobname} --cpus-per-task=${cpus} ${runner} ${argfile}"
+# using normal_q partition
+CMD=${CMD}" -p normal_q --job-name=${jobname} --cpus-per-task=${cpus} ${runner} ${argfile}"
 ${CMD} 1 >> ${logfile} 2 >> ${logfile}
