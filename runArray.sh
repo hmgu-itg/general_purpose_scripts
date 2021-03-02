@@ -77,6 +77,8 @@ if [[ ${max_running} > ${max_array_size} ]];then
 fi
 
 logfile=${username}_${jobname}_${datestring}.log
+outfile=${username}_${jobname}_${datestring}'_%A_%a.log'
+errfile=${username}_${jobname}_${datestring}'_%A_%a.err'
 
 if [ -z ${argfile} ]; then
     echo "ERROR: no argument file name specified"
@@ -118,5 +120,6 @@ if [[ ${maxtime} != "NA" ]];then
 fi
 
 # using normal_q partition
-CMD=${CMD}" -p normal_q --job-name=${jobname} --cpus-per-task=${cpus} ${runner} ${argfile}"
-${CMD} 1 >> ${logfile} 2 >> ${logfile}
+CMD=${CMD}" -o ${outfile} -e ${errfile} -p normal_q --job-name=${jobname} --cpus-per-task=${cpus} ${runner} ${argfile}"
+#${CMD} 1 >> ${logfile} 2 >> ${logfile}
+${CMD}
