@@ -14,8 +14,8 @@ if (( $n > $total ));then
 fi
 
 fname=$(ls $indir/*.vcf.gz| sort | head -n $n | tail -n 1)
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
+echo "INPUT DIR=$indir"
 echo "FNAME=$fname"
 echo "P THRESHOLD=$t"
 echo "PHENOTYPE FILE=$pheno"
