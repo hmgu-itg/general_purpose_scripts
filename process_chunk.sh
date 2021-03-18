@@ -90,35 +90,46 @@ oname3="$output"/"$oname3"
 oname4=${x/%.vcf.gz/.filtered.vcf.gz}
 oname4="$output"/"$oname4"
 
-if [[ -s "$oname1" ]];then
-    echo "INFO: bcftools output ($oname1) already exists; skipping" | ts
-else
-    echo "INFO: running bcftools; input: $input; output: $oname1" | ts
-    bcftools norm -m- "$input" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$oname1"
-    echo "INFO: done" | ts
-    echo "--------------------------------------------------------------"
-    echo "INFO: running qctool2; input: $oname1; output: $oname2" | ts
-    zcat "$oname1" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$oname2" -s "$pheno"
-    echo "INFO: done" | ts
-    echo "--------------------------------------------------------------"
-fi
+# if [[ -s "$oname1" ]];then
+#     echo "INFO: bcftools output ($oname1) already exists; skipping" | ts
+# else
+echo "INFO: demultiplexing using bcftools; input: $input; output: $oname1" | ts
+echo "INFO: input: $input" | ts
+echo "INFO: output: $oname1" | ts
+bcftools norm -m- "$input" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$oname1"
+echo "INFO: done" | ts
+echo "--------------------------------------------------------------"
+echo "INFO: running qctool2; input: $oname1; output: $oname2" | ts
+echo "INFO: input: $oname1" | ts
+echo "INFO: output: $oname2" | ts
+zcat "$oname1" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$oname2" -s "$pheno"
+echo "INFO: done" | ts
+echo "--------------------------------------------------------------"
+# fi
 
-if [[ -s "$oname2" ]];then
-    echo "INFO: qctool2 output ($oname2) already exists; skipping" | ts
-else
-    echo "INFO: running qctool2; input: $oname1; output: $oname2" | ts
-    zcat "$oname1" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$oname2" -s "$pheno"
-    echo "INFO: done" | ts
-    echo "--------------------------------------------------------------"
-fi
+# if [[ -s "$oname2" ]];then
+#     echo "INFO: qctool2 output ($oname2) already exists; skipping" | ts
+# else
+#     echo "INFO: running qctool2; input: $oname1; output: $oname2" | ts
+#     echo "INFO: input: $oname1" | ts
+#     echo "INFO: output: $oname2" | ts
+#     zcat "$oname1" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$oname2" -s "$pheno"
+#     echo "INFO: done" | ts
+#     echo "--------------------------------------------------------------"
+# fi
 
 # P-value: lrt_pvalue
 echo "INFO: filtering P-values" | ts
+echo "INFO: input: $oname2" | ts
+echo "INFO: output: $oname3" | ts
 grep -v "^#" "$oname2" | tail -n +2 | awk -v p=$t 'BEGIN{FS="\t";OFS="\t";}$13<p{print $2;}' > "$oname3"
 echo "INFO: done" | ts
 echo "--------------------------------------------------------------"
 
 echo "INFO: bcftools: creating filtered output VCF" | ts
+echo "INFO: input: $oname1" | ts
+echo "INFO: input: excluding variants in $oname3" | ts
+echo "INFO: output: $oname4" | ts
 bcftools view --exclude ID=@"$oname3" "$oname1" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$oname4"
 echo "INFO: done" | ts
 echo "--------------------------------------------------------------"
