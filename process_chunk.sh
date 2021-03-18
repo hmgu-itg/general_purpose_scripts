@@ -76,15 +76,23 @@ pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
 echo "INFO: phenotype name: $pheno_name"  | ts
 
 x=$(basename $input)
+oname1=${x/%.vcf.gz/.dmx.vcf.gz}
+oname1="$output"/"$oname1"
 oname2=${x/%.vcf.gz/.qctool.out}
 oname2="$output"/"$oname2"
 
-if [[ -s "$oname2" ]];then
-    echo "INFO: qctool2 output ($oname2) already exists" | ts
+if [[ -s "$oname1" ]];then
+    echo "INFO: bcftools output ($oname1) already exists; skipping" | ts
 else
-    echo "INFO: running bcftools | qctool2; input: $input; output: $oname2" | ts
-    bcftools norm -m- "$input" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$oname2" -s "$pheno"
+    echo "INFO: running bcftools; input: $input; output: $oname1" | ts
+    bcftools norm -m- "$input" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$oname1"
 fi
 
+if [[ -s "$oname2" ]];then
+    echo "INFO: qctool2 output ($oname2) already exists; skipping" | ts
+else
+    echo "INFO: running qctool2; input: $oname1; output: $oname2" | ts
+    zcat "$oname1" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$oname2" -s "$pheno"
+fi
 
 #rm -rf "$tmp_dir"
