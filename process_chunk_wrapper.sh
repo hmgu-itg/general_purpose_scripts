@@ -9,7 +9,7 @@ indir=${indir/%/}
 total=$(ls $indir/*.vcf.gz| wc -l)
 
 if (( $n > $total ));then
-    echo "ERROR: there are $total < $n VCF files in $indir" | ts
+    echo "ERROR: there are $total < $n VCF files in $indir"
     exit 1
 fi
 
