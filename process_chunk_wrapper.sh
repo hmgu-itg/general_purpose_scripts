@@ -15,5 +15,8 @@ fi
 
 fname=$(ls $indir/*.vcf.gz| sort | head -n $n | tail -n 1)
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-"$DIR"/process_chunk.sh -i $fname -t $t -p $pheno
+
+echo "FNAME=$fname"
+
+singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 "$DIR"/process_chunk.sh -i $fname -t $t -p $pheno
 
