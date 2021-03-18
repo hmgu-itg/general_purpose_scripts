@@ -16,5 +16,7 @@ fi
 
 fname=$(ls $indir/*.vcf.gz| sort | head -n $n | tail -n 1)
 
-process_chunk.sh -i $fname -t $t -p $pheno
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+"$DIR"/process_chunk.sh -i $fname -t $t -p $pheno
 
