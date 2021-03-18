@@ -75,12 +75,18 @@ pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
 echo "INFO: phenotype name: $pheno_name"  | ts
 
 x=$(basename $input)
+
+# intermediate files
 oname1=${x/%.vcf.gz/.dmx.vcf.gz}
 oname1="$output"/"$oname1"
 oname2=${x/%.vcf.gz/.qctool.out}
 oname2="$output"/"$oname2"
 oname3=${x/%.vcf.gz/.Pfilter.out}
 oname3="$output"/"$oname3"
+
+# final output
+oname4=${x/%.vcf.gz/.filtered.vcf.gz}
+oname4="$output"/"$oname3"
 
 if [[ -s "$oname1" ]];then
     echo "INFO: bcftools output ($oname1) already exists; skipping" | ts
@@ -102,5 +108,12 @@ fi
 echo "INFO: filtering P-values" | ts
 grep -v "^#" "$oname2" | tail -n +2 | awk -v p=$t 'BEGIN{FS="\t";OFS="\t";}$13<p{print $2;}' > "$oname3"
 
+echo "INFO: bcftools: creating filtered output VCF" | ts
+bcftools view --exclude ID=@"$oname3" "$oname1" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$oname4"
+
+echo "INFO: removing intermediate files" | ts
+rm -f "$oname1" "$oname2" "$oname3"
+
+echo "INFO: done" | ts
 
 #rm -rf "$tmp_dir"
