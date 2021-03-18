@@ -111,8 +111,8 @@ grep -v "^#" "$oname2" | tail -n +2 | awk -v p=$t 'BEGIN{FS="\t";OFS="\t";}$13<p
 echo "INFO: bcftools: creating filtered output VCF" | ts
 bcftools view --exclude ID=@"$oname3" "$oname1" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$oname4"
 
-echo "INFO: removing intermediate files" | ts
-rm -f "$oname1" "$oname2" "$oname3"
+#echo "INFO: removing intermediate files" | ts
+#rm -f "$oname1" "$oname2" "$oname3"
 
 echo "INFO: done" | ts
 
