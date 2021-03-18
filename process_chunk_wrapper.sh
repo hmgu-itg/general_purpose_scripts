@@ -17,6 +17,8 @@ fname=$(ls $indir/*.vcf.gz| sort | head -n $n | tail -n 1)
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 echo "FNAME=$fname"
+echo "P THRESHOLD=$t"
+echo "PHENOTYPE FILE=$pheno"
 
-singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 "$DIR"/process_chunk.sh -i $fname -t $t -p $pheno
+singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 /compute/Genomics/software/scripts/general_purpose_scripts/process_chunk.sh -i $fname -t $t -p $pheno
 
