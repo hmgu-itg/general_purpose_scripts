@@ -86,7 +86,7 @@ oname3="$output"/"$oname3"
 
 # final output
 oname4=${x/%.vcf.gz/.filtered.vcf.gz}
-oname4="$output"/"$oname3"
+oname4="$output"/"$oname4"
 
 if [[ -s "$oname1" ]];then
     echo "INFO: bcftools output ($oname1) already exists; skipping" | ts
