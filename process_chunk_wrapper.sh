@@ -5,7 +5,7 @@ n=$SLURM_ARRAY_TASK_ID
 t=$2
 pheno=$3
 
-indir=${indir/%/}
+indir=${indir%/}
 total=$(ls $indir/*.vcf.gz| wc -l)
 
 if (( $n > $total ));then
