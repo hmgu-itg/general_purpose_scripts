@@ -8,8 +8,10 @@ pheno=$3
 
 indir=${indir%/}
 total=$(ls $indir/*.vcf.gz| wc -l)
+outdir="$indir"/output
 
 echo "INPUT DIR=$indir"
+echo "OUTPUT DIR=$outdir"
 echo "P THRESHOLD=$t"
 echo "PHENOTYPE FILE=$pheno"
 echo "TOTAL FILES=$total"
@@ -26,5 +28,5 @@ echo "FNAME=$fname"
 echo "-------------------------------------"
 echo ""
 
-singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 /compute/Genomics/software/scripts/general_purpose_scripts/process_chunk.sh -i $fname -t $t -p $pheno
+singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 /compute/Genomics/software/scripts/general_purpose_scripts/process_chunk.sh -i "$fname" -t "$t" -p "$pheno" -o "$outdir"
 
