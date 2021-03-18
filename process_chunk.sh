@@ -50,12 +50,13 @@ if [[ ! -f "$input" ]];then
     exit 0
 fi
 
-indir=$(dirname $(realpath "$input"))
+indir=$(dirname "$input")
 if [[ -z "$output" ]];then
     output="$indir"
 else
+    mkdir -p "$output"
     if [[ ! -d "$output" ]];then
-	echo "ERROR: output directory $output does not exist" | ts
+	echo "ERROR: output directory $output could not be created" | ts
 	usage
 	exit 0
     fi
@@ -73,6 +74,7 @@ fi
 # phenotype name from header
 pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
 echo "INFO: phenotype name: $pheno_name"  | ts
+echo "--------------------------------------------------------------"
 
 x=$(basename $input)
 
@@ -93,8 +95,12 @@ if [[ -s "$oname1" ]];then
 else
     echo "INFO: running bcftools; input: $input; output: $oname1" | ts
     bcftools norm -m- "$input" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$oname1"
+    echo "INFO: done" | ts
+    echo "--------------------------------------------------------------"
     echo "INFO: running qctool2; input: $oname1; output: $oname2" | ts
     zcat "$oname1" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$oname2" -s "$pheno"
+    echo "INFO: done" | ts
+    echo "--------------------------------------------------------------"
 fi
 
 if [[ -s "$oname2" ]];then
@@ -102,18 +108,23 @@ if [[ -s "$oname2" ]];then
 else
     echo "INFO: running qctool2; input: $oname1; output: $oname2" | ts
     zcat "$oname1" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$oname2" -s "$pheno"
+    echo "INFO: done" | ts
+    echo "--------------------------------------------------------------"
 fi
 
 # P-value: lrt_pvalue
 echo "INFO: filtering P-values" | ts
 grep -v "^#" "$oname2" | tail -n +2 | awk -v p=$t 'BEGIN{FS="\t";OFS="\t";}$13<p{print $2;}' > "$oname3"
+echo "INFO: done" | ts
+echo "--------------------------------------------------------------"
 
 echo "INFO: bcftools: creating filtered output VCF" | ts
 bcftools view --exclude ID=@"$oname3" "$oname1" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$oname4"
+echo "INFO: done" | ts
+echo "--------------------------------------------------------------"
 
-#echo "INFO: removing intermediate files" | ts
-#rm -f "$oname1" "$oname2" "$oname3"
-
+echo "INFO: removing intermediate files" | ts
+rm -f "$oname1" "$oname2" "$oname3"
 echo "INFO: done" | ts
 
 #rm -rf "$tmp_dir"
