@@ -69,7 +69,6 @@ fi
 # else
 #     echo "INFO: created temporary directory $tmp_dir" | ts
 # fi
-# oname1="$tmp_dir"/bcftools_out.vcf.gz
 
 # phenotype name from header
 pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
@@ -80,6 +79,8 @@ oname1=${x/%.vcf.gz/.dmx.vcf.gz}
 oname1="$output"/"$oname1"
 oname2=${x/%.vcf.gz/.qctool.out}
 oname2="$output"/"$oname2"
+oname3=${x/%.vcf.gz/.Pfilter.out}
+oname3="$output"/"$oname3"
 
 if [[ -s "$oname1" ]];then
     echo "INFO: bcftools output ($oname1) already exists; skipping" | ts
@@ -94,5 +95,10 @@ else
     echo "INFO: running qctool2; input: $oname1; output: $oname2" | ts
     zcat "$oname1" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$oname2" -s "$pheno"
 fi
+
+# P-value: lrt_pvalue
+echo "INFO: filtering P-values" | ts
+cat "$oname2" | grep -v "^#" | tail -n +2 | awk -v p=$t 'BEGIN{FS="\t";OFS="\t";}$13<p{print $2;}' > "$oname3"
+
 
 #rm -rf "$tmp_dir"
