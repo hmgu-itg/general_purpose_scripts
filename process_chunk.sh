@@ -87,6 +87,8 @@ if [[ -s "$oname1" ]];then
 else
     echo "INFO: running bcftools; input: $input; output: $oname1" | ts
     bcftools norm -m- "$input" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$oname1"
+    echo "INFO: running qctool2; input: $oname1; output: $oname2" | ts
+    zcat "$oname1" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$oname2" -s "$pheno"
 fi
 
 if [[ -s "$oname2" ]];then
@@ -98,7 +100,7 @@ fi
 
 # P-value: lrt_pvalue
 echo "INFO: filtering P-values" | ts
-cat "$oname2" | grep -v "^#" | tail -n +2 | awk -v p=$t 'BEGIN{FS="\t";OFS="\t";}$13<p{print $2;}' > "$oname3"
+grep -v "^#" "$oname2" | tail -n +2 | awk -v p=$t 'BEGIN{FS="\t";OFS="\t";}$13<p{print $2;}' > "$oname3"
 
 
 #rm -rf "$tmp_dir"
