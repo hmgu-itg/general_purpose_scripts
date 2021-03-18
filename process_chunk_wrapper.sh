@@ -14,7 +14,7 @@ if (( $n > $total ));then
     exit 1
 fi
 
-fname=$(ls $indir/*.vcf.gz| head -n $n| tail -n 1)
+fname=$(ls $indir/*.vcf.gz| sort | head -n $n | tail -n 1)
 
 process_chunk.sh -i $fname -t $t -p $pheno
 
