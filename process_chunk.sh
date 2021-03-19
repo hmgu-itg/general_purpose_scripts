@@ -136,10 +136,10 @@ echo "INFO: done" | ts
 echo "--------------------------------------------------------------"
 
 # TABIX output
-echo "INFO: tabix $oname4" | ts
-tabix "$oname4"
-echo "INFO: done" | ts
-echo "--------------------------------------------------------------"
+# echo "INFO: tabix $oname4" | ts
+# tabix "$oname4"
+# echo "INFO: done" | ts
+# echo "--------------------------------------------------------------"
 
 echo "INFO: removing intermediate files" | ts
 rm -f "$oname1" "$oname2" "$oname3"
