@@ -23,7 +23,7 @@ for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz");do
     realpath $f >> list
 done
 
-bcftools concat -f list -Oz -o "$output"
-tabix "$output"
+singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 bcftools concat -f list -Oz -o "$output"
+singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 tabix "$output"
 rm -f list
-plink2 --vcf "$output" --make-pgen --out "$plout"
+singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 plink2 --vcf "$output" --make-pgen --out "$plout"
