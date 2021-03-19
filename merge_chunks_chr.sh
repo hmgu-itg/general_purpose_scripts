@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 
 indir=$1
-threads=$2
-
-if [[ -z "$threads" ]];then
-    threads=1
-fi
 
 indir=${indir%/}
 output="$indir"/merged.vcf.gz
@@ -13,7 +8,6 @@ plout="$indir"/merged
 
 echo "MERGING VCF FILES IN $indir AND CONVERTING TO PLINK FORMAT"
 echo "INPUT DIR=$indir"
-echo "THREADS=$threads"
 echo "OUTPUT=$output"
 echo "PLINK OUTPUT PREFIX=$plout"
 echo "-------------------------------------"
@@ -29,7 +23,7 @@ for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz");do
     realpath $f >> list
 done
 
-bcftools concat -f list -Oz -o "$output" --threads "$threads"
+bcftools concat -f list -Oz -o "$output"
 tabix "$output"
 rm -f list
 plink2 --vcf "$output" --make-pgen --out "$plout"
