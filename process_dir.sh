@@ -42,7 +42,7 @@ ID=$(sbatch --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --ar
 
 echo "WAITING FOR PROCESSING JOB $ID (CHR $c) TO COMPLETE"
 
-ID=$(sbatch --dependency=afterok:$ID --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1-"$total" -o merge_chr"$c"_%A_%a.log -e merge_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/merge_chunks_chr.sh "$outdir")
+ID=$(sbatch --dependency=afterok:$ID --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1 -o merge_chr"$c"_%A_%a.log -e merge_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/merge_chunks_chr.sh "$outdir")
 
 echo "WAITING FOR MERGING JOB $ID (CHR $c) TO COMPLETE"
 
