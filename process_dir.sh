@@ -12,7 +12,7 @@ indir=${indir%/}
 echo "INPUT DIR=$indir"
 echo "P THRESHOLD=$t"
 echo "PHENOTYPE FILE=$pheno"
-echo "CURRENT CHROM=$n"
+echo "CURRENT CHROM=$c"
 echo ""
 
 outdir="$indir"/output_chr"$c"
