@@ -24,7 +24,7 @@ fi
 
 total=0
 # pattern: _c9_ for chrom 9 etc.
-for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*_c$c_*.vcf.gz");do
+for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*_c${c}_*.vcf.gz");do
     b=$(basename $f)
     ln -s $f "$outdir/$b"
     total=$((total+1))
