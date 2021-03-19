@@ -16,7 +16,7 @@ echo "CURRENT CHROM=$c"
 echo ""
 
 outdir="$indir"/output_chr"$c"
-mkdir "$outdir"
+mkdir -p "$outdir"
 if [[ ! -d "$outdir" ]];then
     echo "ERROR: could not create output directory $outdir"
     exit 1
