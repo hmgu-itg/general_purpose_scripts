@@ -130,7 +130,7 @@ echo "INFO: bcftools: creating filtered output VCF" | ts
 echo "INFO: input: $oname1" | ts
 echo "INFO: input: excluding variants in $oname3" | ts
 echo "INFO: output: $oname4" | ts
-bcftools view --exclude ID=@"$oname3" "$oname1" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$oname4"
+bcftools view --exclude ID=@"$oname3" "$oname1" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +fill-tags -Oz -o "$oname4"
 echo "INFO: done" | ts
 echo "--------------------------------------------------------------"
 
