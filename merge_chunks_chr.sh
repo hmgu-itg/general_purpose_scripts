@@ -30,5 +30,6 @@ for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz");do
 done
 
 bcftools concat -f list -Oz -o "$output" --threads "$threads"
+tabix "$output"
 rm -f list
 plink2 --vcf "$output" --make-pgen --out "$plout"
