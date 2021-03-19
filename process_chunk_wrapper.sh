@@ -5,10 +5,10 @@ n=$SLURM_ARRAY_TASK_ID
 indir=$1
 t=$2
 pheno=$3
+outdir=$4
 
 indir=${indir%/}
 total=$(ls $indir/*.vcf.gz| wc -l)
-outdir="$indir"/output
 
 echo "INPUT DIR=$indir"
 echo "OUTPUT DIR=$outdir"

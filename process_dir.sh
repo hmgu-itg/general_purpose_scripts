@@ -15,7 +15,12 @@ echo "PHENOTYPE FILE=$pheno"
 echo "CURRENT CHROM=$c"
 echo ""
 
+# symlinks go here
 outdir="$indir"/output_chr"$c"
+
+# processed chunks go here
+outdir2="$outdir"/processed
+
 mkdir -p "$outdir"
 if [[ ! -d "$outdir" ]];then
     echo "ERROR: could not create output directory $outdir"
@@ -38,9 +43,9 @@ fi
 echo "-------------------------------------"
 echo ""
 
-ID=$(sbatch --job-name=process_chr"$c" --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1-"$total" -o process_chunk_wrapper_chr"$c"_%A_%a.log -e process_chunk_wrapper_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/process_chunk_wrapper.sh "$outdir" "$t" "$pheno"| cut -d ' ' -f 4)
+ID=$(sbatch --job-name=process_chr"$c" --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1-"$total" -o process_chunk_wrapper_chr"$c"_%A_%a.log -e process_chunk_wrapper_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/process_chunk_wrapper.sh "$outdir" "$t" "$pheno" "$outdir2"| cut -d ' ' -f 4)
 
-ID=$(sbatch --job-name=merge_chr"$c" --dependency=afterok:$ID --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1 -o merge_chr"$c"_%A_%a.log -e merge_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/merge_chunks_chr.sh "$outdir"| cut -d ' ' -f 4)
+ID=$(sbatch --job-name=merge_chr"$c" --dependency=afterok:$ID --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1 -o merge_chr"$c"_%A_%a.log -e merge_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/merge_chunks_chr.sh "$outdir2"| cut -d ' ' -f 4)
 
 # cleanup
 
