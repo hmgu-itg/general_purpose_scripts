@@ -40,11 +40,7 @@ echo ""
 
 ID=$(sbatch --job-name=process_chr"$c" --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1-"$total" -o process_chunk_wrapper_chr"$c"_%A_%a.log -e process_chunk_wrapper_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/process_chunk_wrapper.sh "$outdir" "$t" "$pheno"| cut -d ' ' -f 4)
 
-echo "WAITING FOR PROCESSING JOB $ID (CHR $c) TO COMPLETE"
-
 ID=$(sbatch --job-name=merge_chr"$c" --dependency=afterok:$ID --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1 -o merge_chr"$c"_%A_%a.log -e merge_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/merge_chunks_chr.sh "$outdir"| cut -d ' ' -f 4)
-
-echo "WAITING FOR MERGING JOB $ID (CHR $c) TO COMPLETE"
 
 # cleanup
 
