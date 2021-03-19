@@ -118,7 +118,7 @@ echo "--------------------------------------------------------------"
 #     echo "--------------------------------------------------------------"
 # fi
 
-# P-value: lrt_pvalue
+# filtering; P-value: lrt_pvalue
 echo "INFO: filtering P-values" | ts
 echo "INFO: input: $oname2" | ts
 echo "INFO: output: $oname3" | ts
@@ -126,11 +126,18 @@ grep -v "^#" "$oname2" | tail -n +2 | awk -v p=$t 'BEGIN{FS="\t";OFS="\t";}$13<p
 echo "INFO: done" | ts
 echo "--------------------------------------------------------------"
 
+# removing variants with P<threshold, merging back
 echo "INFO: bcftools: creating filtered output VCF" | ts
 echo "INFO: input: $oname1" | ts
 echo "INFO: input: excluding variants in $oname3" | ts
 echo "INFO: output: $oname4" | ts
 bcftools view --exclude ID=@"$oname3" "$oname1" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +fill-tags -Oz -o "$oname4"
+echo "INFO: done" | ts
+echo "--------------------------------------------------------------"
+
+# TABIX output
+echo "INFO: tabix $oname4" | ts
+tabix "$oname4"
 echo "INFO: done" | ts
 echo "--------------------------------------------------------------"
 
