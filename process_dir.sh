@@ -6,12 +6,14 @@ c=$SLURM_ARRAY_TASK_ID
 indir=$1
 t=$2
 pheno=$3
+threads=$4
 
 indir=${indir%/}
 
 echo "INPUT DIR=$indir"
 echo "P THRESHOLD=$t"
 echo "PHENOTYPE FILE=$pheno"
+echo "THREADS=$threads"
 echo "CURRENT CHROM=$c"
 echo ""
 
@@ -38,5 +40,14 @@ fi
 echo "-------------------------------------"
 echo ""
 
-sbatch --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1-"$total" -o process_chunk_wrapper_chr"$c"_%A_%a.log -e process_chunk_wrapper_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/process_chunk_wrapper.sh "$outdir" "$t" "$pheno"
+ID=$(sbatch --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1-"$total" -o process_chunk_wrapper_chr"$c"_%A_%a.log -e process_chunk_wrapper_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/process_chunk_wrapper.sh "$outdir" "$t" "$pheno"| cut -d ' ' -f 4)
+
+echo "WAITING FOR PROCESSING JOB $ID (CHR $c) TO COMPLETE"
+
+ID=$(sbatch --dependency=afterok:$ID --cpus-per-task=$threads --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1-"$total" -o merge_chr"$c"_%A_%a.log -e merge_chr"$c"_%A_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/merge_chunks_chr.sh "$outdir" "$threads")
+
+echo "WAITING FOR MERGING JOB $ID (CHR $c) TO COMPLETE"
+
+# cleanup
+
 
