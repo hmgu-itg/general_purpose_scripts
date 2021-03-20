@@ -12,7 +12,7 @@ indir=${indir%/}
 
 echo "INPUT DIR $indir"
 echo "P THRESHOLD $t"
-echo "THREADS $t"
+echo "THREADS $threads"
 echo "PHENOTYPE FILE $pheno"
 echo "CURRENT CHROM $c"
 echo ""
