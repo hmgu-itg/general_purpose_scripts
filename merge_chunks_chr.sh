@@ -28,4 +28,6 @@ done
 singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 bcftools concat -a -f "$flist" -Oz -o "$output" --threads "$threads"
 singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 tabix "$output"
 rm -f "$flist"
-singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 plink2 --vcf "$output" --make-pgen --out "$plout" --threads "$threads"
+
+# TODO: change --vcf-half-call mode if necessary
+singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 plink2 --vcf "$output" --make-pgen --out "$plout" --threads "$threads" --vcf-half-call m
