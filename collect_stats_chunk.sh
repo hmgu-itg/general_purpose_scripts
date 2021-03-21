@@ -14,7 +14,7 @@ total=$(ls $indir/*.vcf.gz| wc -l)
 echo "INPUT DIR $indir" | ts
 echo "PHENOTYPE FILE $phenofile" | ts
 echo "TOTAL FILES $total" | ts
-echo "CURRENT FILENO=$n" | ts
+echo "CURRENT FILENO $n" | ts
 
 if (( $n > $total ));then
     echo "ERROR: there are $total < $n VCF files in $indir" | ts
