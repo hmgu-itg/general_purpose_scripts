@@ -12,6 +12,7 @@ echo "INPUT DIR $indir"
 echo "USING THREADS $threads"
 echo "OUTPUT VCF $output"
 echo "PLINK OUTPUT PREFIX $plout"
+echo "START" $(date)
 echo "-------------------------------------"
 echo ""
 
@@ -26,7 +27,9 @@ for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz");do
 done
 
 singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 bcftools concat -a -f "$flist" -Oz -o "$output" --threads "$threads"
+echo "MERGING DONE" $(date)
 singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 tabix "$output"
+echo "INDEXING DONE" $(date)
 rm -f "$flist"
 
 # TODO: change --vcf-half-call mode if necessary
