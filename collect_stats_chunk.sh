@@ -4,7 +4,7 @@
 #
 ###################
 
-# set -eo pipefail
+set -eo pipefail
 
 indir=$1
 phenofile=$2
@@ -38,10 +38,13 @@ echo "INFO: done" | ts
 echo "--------------------------------------------------------------"
 echo ""
 
-# if [[ $? -eq 0 ]];then
-#     echo "INFO: removing $fname" | ts
-# else
-#     echo "INFO: something went wrong; keeping $fname" | ts
-# fi
+if [[ $? -eq 0 ]];then
+    echo "INFO: removing $fname" | ts
+else
+    echo "INFO: something went wrong; keeping $fname" | ts
+fi
+
+echo "--------------------------------------------------------------"
+echo ""
 
 exit 0
