@@ -7,6 +7,13 @@
 indir=$1
 outdir=$2
 pheno=$3
+chr=$4
+
+if [[ -z "$chr" ]];then
+    chroms="$chr"
+else
+    chroms="1-22"
+fi
 
 indir=${indir%/}
 outdir=${outdir%/}
@@ -14,6 +21,7 @@ outdir=${outdir%/}
 echo "INPUT DIR $indir"
 echo "OUTPUT DIR $outdir"
 echo "PHENOTYPE FILE $pheno"
+echo "CHROMS $chroms"
 echo "--------------------------------------"
 echo ""
 
@@ -24,7 +32,7 @@ if [[ ! -d "$outdir" ]];then
     exit 1
 fi
 
-ID=$(sbatch --job-name=collect_stats --cpus-per-task=1 --mem-per-cpu=1G --time=10:00:00 -p normal_q --array=1-22 -o "$logdir"/collect_stats_%A_chr_%a.log -e collect_stats_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/collect_stats_chr.sh "$indir" "$outdir" "$pheno" | cut -d ' ' -f 4)
+ID=$(sbatch --job-name=collect_stats --cpus-per-task=1 --mem-per-cpu=1G --time=10:00:00 -p normal_q --array="$chroms" -o "$logdir"/collect_stats_%A_chr_%a.log -e collect_stats_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/collect_stats_chr.sh "$indir" "$outdir" "$pheno" | cut -d ' ' -f 4)
 
 # cleanup
 
