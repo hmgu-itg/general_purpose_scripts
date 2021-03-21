@@ -54,5 +54,5 @@ if [[ "$total" -eq 0 ]];then
     exit 0
 fi
 
-sbatch --job-name=merge_chr"$c" --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1-"$total" -o "$logdir"/collect_stats_chr_"$c"_%A_part_%a.log -e "$logdir"/collect_stats_chr_"$c"_%A_part_%a.err --wrap="singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 /compute/Genomics/software/scripts/general_purpose_scripts/collect_stats_chunk.sh $outdir2 $pheno"
+sbatch --job-name=collect_stats_chr_"$c" --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1-"$total" -o "$logdir"/collect_stats_chr_"$c"_%A_part_%a.log -e "$logdir"/collect_stats_chr_"$c"_%A_part_%a.err --wrap="singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 /compute/Genomics/software/scripts/general_purpose_scripts/collect_stats_chunk.sh $outdir2 $pheno"
 
