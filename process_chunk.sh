@@ -135,11 +135,11 @@ bcftools view --exclude ID=@"$oname3" "$oname1" -Ov | bcftools norm -m+ | bcftoo
 echo "INFO: done" | ts
 echo "--------------------------------------------------------------"
 
-# TABIX output
-# echo "INFO: tabix $oname4" | ts
-# tabix "$oname4"
-# echo "INFO: done" | ts
-# echo "--------------------------------------------------------------"
+TABIX output
+echo "INFO: tabix $oname4" | ts
+tabix "$oname4"
+echo "INFO: done" | ts
+echo "--------------------------------------------------------------"
 
 echo "INFO: removing intermediate files" | ts
 rm -f "$oname1" "$oname2" "$oname3"
