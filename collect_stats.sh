@@ -9,7 +9,7 @@ outdir=$2
 pheno=$3
 chr=$4
 
-if [[ -z "$chr" ]];then
+if [[ ! -z "$chr" ]];then
     chroms="$chr"
 else
     chroms="1-22"
