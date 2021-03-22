@@ -34,9 +34,6 @@ pheno_name=$(head -n 1 $phenofile| tr ' ' '\t' |cut -f 2)
 echo "INFO: phenotype name: $pheno_name"  | ts
 
 bcftools norm -m- "$fname" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$phenofile"
-echo "INFO: done" | ts
-echo "--------------------------------------------------------------"
-echo ""
 
 if [[ $? -eq 0 ]];then
     echo "INFO: removing $fname" | ts
@@ -45,6 +42,7 @@ else
     echo "INFO: something went wrong; keeping $fname" | ts
 fi
 
+echo "INFO: done" | ts
 echo "--------------------------------------------------------------"
 echo ""
 
