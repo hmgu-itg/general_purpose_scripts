@@ -40,7 +40,7 @@ echo ""
 
 if [[ $? -eq 0 ]];then
     echo "INFO: removing $fname" | ts
-    rm "$fname"
+    rm -v "$fname"
 else
     echo "INFO: something went wrong; keeping $fname" | ts
 fi
