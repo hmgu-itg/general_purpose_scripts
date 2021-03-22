@@ -4,42 +4,64 @@
 #
 ########################
 
-indir=$1
-outdir=$2
-pheno=$3
-chr=$4
+function usage {
+    echo ""
+    echo "Usage: $0 -i <input dir>"
+    echo "          -o <output dir>"
+    echo "          -p <pheno file>"
+    echo "        { -c <chromosome(s)> : optional; default: 1-22 }"
+    echo "        { -r : if analyses should be reusmed; optional; default: false }"
+    exit 0
+}
 
-if [[ ! -z "$chr" ]];then
-    chroms="$chr"
-else
-    chroms="1-22"
+resume="no"
+chroms="1-22"
+OPTIND=1
+while getopts "i:o:p:c:r" optname; do
+    case "$optname" in
+        "i" ) input="${OPTARG}";;
+        "o" ) output="${OPTARG}";;
+        "p" ) pheno="${OPTARG}";;
+        "c" ) chroms="${OPTARG}";;
+        "r" ) resume="yes";;
+        "?" ) usage ;;
+        *) usage ;;
+    esac;
+done
+
+if [[ $# -eq 0 ]];then
+    usage
+    exit 0
 fi
 
-indir=${indir%/}
-outdir=${outdir%/}
+input=${input%/}
+output=${output%/}
 
-echo "INPUT DIR $indir"
-echo "OUTPUT DIR $outdir"
+echo "INPUT DIR $input"
+echo "OUTPUT DIR $output"
 echo "PHENOTYPE FILE $pheno"
 echo "CHROMS $chroms"
+echo "RESUME $resume"
 echo "--------------------------------------"
 echo ""
 
-logdir="$outdir"/logs
+logdir="$output"/logs
 mkdir -p "$logdir"
-if [[ ! -d "$outdir" ]];then
-    echo "ERROR: could not create output directory $outdir; exit"
+if [[ ! -d "$logdir" ]];then
+    echo "ERROR: could not create log directory $logdir; exit"
     exit 1
 fi
 
-tempdir="$outdir"/temp
+tempdir="$output"/temp
 mkdir -p "$tempdir"
 if [[ ! -d "$tempdir" ]];then
     echo "ERROR: could not create temporary directory $tempdir; exit"
     exit 1
 fi
 
-ID=$(sbatch --job-name=collect_stats --cpus-per-task=1 --mem-per-cpu=1G --time=10:00:00 -p normal_q --array="$chroms" -o "$logdir"/collect_stats_%A_chr_%a.log -e collect_stats_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/collect_stats_chr.sh "$indir" "$outdir" "$pheno" | cut -d ' ' -f 4)
+resopt=""
+if [[ "$resume" == "yes" ]];then
+    resopt="-r"
+fi
 
-# cleanup
-
+sbatch --job-name=collect_stats --cpus-per-task=1 --mem-per-cpu=1G --time=10:00:00 -p normal_q --array="$chroms" -o "$logdir"/collect_stats_%A_chr_%a.log -e collect_stats_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/collect_stats_chr.sh -i "$indir" -o "$outdir" -p "$pheno" -t "$tempdir" "$resopt"
