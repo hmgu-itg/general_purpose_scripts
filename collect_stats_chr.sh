@@ -72,7 +72,7 @@ echo "---------------------------------------------------------------"
 echo ""
 
 # file with list of files
-flist=$(mktemp -p "$tempdir" -t file_list_chr_"$c"_-XXXXXXX)
+flist="$tempdir"/file_list_chr_"$c".txt
 if [[ ! -f $flist ]];then
     echo "ERROR: could not create temp list file; exit"
     exit 1
@@ -86,6 +86,7 @@ if [[ "$resume" == "no" ]];then
     done
 fi
 
+echo "" > "$flist"
 for f in $(find "${output2}" -mindepth 1 -maxdepth 1 -name "*.vcf.gz");do
     echo "$f" >> "$flist"
 done

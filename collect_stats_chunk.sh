@@ -32,6 +32,11 @@ fi
 
 input=${input%/}
 
+if [[ ! f "$flist" ]];then
+    echo "ERROR: file list $flist does not exist; exit"
+    exit 1
+fi
+
 # current file number in the file list
 n=$SLURM_ARRAY_TASK_ID
 
