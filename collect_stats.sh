@@ -66,4 +66,4 @@ if [[ "$resume" == "yes" ]];then
     resopt="-r"
 fi
 
-sbatch --job-name=collect_stats --cpus-per-task=1 --mem-per-cpu=1G --time=10:00:00 -p normal_q --array="$chroms" -o "$logdir"/collect_stats_%A_chr_%a.log -e "$logdir"/collect_stats_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/collect_stats_chr.sh -i "$indir" -o "$outdir" -p "$pheno" "$resopt"
+sbatch --job-name=collect_stats --cpus-per-task=1 --mem-per-cpu=1G --time=10:00:00 -p normal_q --array="$chroms" -o "$logdir"/collect_stats_%A_chr_%a.log -e "$logdir"/collect_stats_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/collect_stats_chr.sh -i "$input" -o "$output" -p "$pheno" "$resopt"
