@@ -6,7 +6,8 @@
 
 function usage {
     echo ""
-    echo "Usage: $0 -i <input dir>"
+    echo "Usage: $0"
+    echo "          -i <input dir>"
     echo "          -o <output dir>"
     echo "          -p <pheno file>"
     echo "        { -c <chromosome(s)> : optional; default: 1-22 }"
@@ -30,6 +31,7 @@ while getopts "i:o:p:c:r" optname; do
 done
 
 if [[ $# -eq 0 ]];then
+    echo "No arguments provided; exit"
     usage
     exit 0
 fi
@@ -64,4 +66,4 @@ if [[ "$resume" == "yes" ]];then
     resopt="-r"
 fi
 
-sbatch --job-name=collect_stats --cpus-per-task=1 --mem-per-cpu=1G --time=10:00:00 -p normal_q --array="$chroms" -o "$logdir"/collect_stats_%A_chr_%a.log -e collect_stats_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/collect_stats_chr.sh -i "$indir" -o "$outdir" -p "$pheno" -t "$tempdir" "$resopt"
+sbatch --job-name=collect_stats --cpus-per-task=1 --mem-per-cpu=1G --time=10:00:00 -p normal_q --array="$chroms" -o "$logdir"/collect_stats_%A_chr_%a.log -e "$logdir"/collect_stats_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/collect_stats_chr.sh -i "$indir" -o "$outdir" -p "$pheno" "$resopt"
