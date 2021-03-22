@@ -36,6 +36,7 @@ c=$SLURM_ARRAY_TASK_ID
 echo "INPUT DIR $input"
 echo "ROOT OUTPUT DIR $output"
 echo "PHENOTYPE FILE $pheno"
+echo "RESUME $resume"
 echo "CURRENT CHR $c"
 
 # should exist already
