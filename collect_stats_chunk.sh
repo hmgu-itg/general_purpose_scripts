@@ -32,7 +32,7 @@ fi
 
 input=${input%/}
 
-if [[ ! f "$flist" ]];then
+if [[ ! -f "$flist" ]];then
     echo "ERROR: file list $flist does not exist; exit"
     exit 1
 fi
