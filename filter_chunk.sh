@@ -23,8 +23,8 @@ while getopts "p:f:m:t:" optname; do
     case "$optname" in
         "p" ) pheno="${OPTARG}";;
         "f" ) flist="${OPTARG}";;
-        "m" ) input="${OPTARG}";;
-        "t" ) input="${OPTARG}";;
+        "m" ) mode="${OPTARG}";;
+        "t" ) pt="${OPTARG}";;
         "?" ) usage ;;
         *) usage ;;
     esac;
@@ -64,8 +64,8 @@ outname=${fname/%.vcf.gz/.qctool.out}
 
 echo "INPUT DIR $input" | ts
 echo "PHENOTYPE FILE $pheno" | ts
-echo "MODE $mode"
-echo "PVALUE THRESHOLD $pt"
+echo "MODE $mode" | ts
+echo "PVALUE THRESHOLD $pt" | ts
 echo "CURRENT FILENO $n" | ts
 echo "CURRENT FILE $fname" | ts
 echo "OUTPUT FILE $outname" | ts
@@ -75,17 +75,63 @@ echo ""
 pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
 echo "INFO: phenotype name: $pheno_name"  | ts
 
-bcftools norm -m- "$fname" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno"
-
-if [[ $? -eq 0 ]];then
-    echo "INFO: removing $fname" | ts
-    rm -v "$fname"
+if [[ ! -s "$outname" ]];then
+    bcftools norm -m- "$fname" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno"
+    retval=$?
 else
-    echo "INFO: something went wrong; keeping $fname" | ts
+    echo "INFO: $outname already exists" | ts
 fi
 
-echo "INFO: done" | ts
-echo "--------------------------------------------------------------"
-echo ""
+if [[ $retval -ne 0 ]];then
+    echo "INFO: something went wrong when creating qctool output; exit" | ts
+    exit 1
+fi
+
+if [[ "$mode" == "stats" ]];then
+    if [[ $retval -eq 0 ]];then
+	echo "INFO: removing $fname" | ts
+	rm -v "$fname"
+    else
+	echo "INFO: something went wrong; keeping $fname" | ts
+    fi
+else
+    to_remove=${outname/%.qctool.out/.rm}
+    # filtering; P-value: lrt_pvalue
+    echo "INFO: filtering using P-values" | ts
+    echo "INFO: input: $outname" | ts
+    echo "INFO: output: $to_remove" | ts
+    grep -v "^#" "$outname" | tail -n +2 | awk -v p=${pt} 'BEGIN{FS="\t";OFS="\t";}$13<p{print $2;}' > "$to_remove"
+    echo "INFO: done" | ts
+    echo "--------------------------------------------------------------"
+
+    final_vcf=${fname/%.vcf.gz/.filtered.vcf.gz}
+    # removing variants with P<threshold, merging back
+    echo "INFO: bcftools: creating filtered output VCF" | ts
+    echo "INFO: input: $fname" | ts
+    echo "INFO: input: excluding variants in $to_remove" | ts
+    echo "INFO: output: $final_vcf" | ts
+    bcftools view --exclude ID=@"$to_remove" "$fname" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +fill-tags -Oz -o "$final_vcf"
+    retval=$?
+    if [[ $retval -ne 0 ]];then
+	echo "INFO: something went wrong when creating filtered VCF; exit" | ts
+	exit 1
+    fi
+    echo "INFO: done" | ts
+    echo "--------------------------------------------------------------"
+
+    # TABIX output
+    echo "INFO: tabix $final_vcf" | ts
+    tabix "$final_vcf"
+    if [[ $? -ne 0 ]];then
+	echo "INFO: something went wrong when indexing filtered VCF; exit" | ts
+	exit 1
+    fi
+    echo "INFO: done" | ts
+    echo "--------------------------------------------------------------"
+
+    echo "INFO: removing intermediate files" | ts
+    rm -fv "$fname" "$to_remove" "$outname"
+    echo "INFO: done" | ts
+fi
 
 exit 0

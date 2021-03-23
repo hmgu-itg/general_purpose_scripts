@@ -9,14 +9,16 @@ function usage {
     echo "        { -m : <mode>; optional, \"stats\" or \"full\"; default: \"full\" }"
     echo "        { -t : <pvalue threshold>; only required if mode is \"full\"}"
     echo "        { -r : if analyses should be reusmed; optional; default: false }"
+    echo "        { -e <threads> : # threads to use for bcftools/plink; default: 1 }"
     exit 0
 }
 
 resume="no"
 mode="full"
 pt=""
+threads=1
 OPTIND=1
-while getopts "i:o:p:m:t:r" optname; do
+while getopts "i:o:p:m:t:re:" optname; do
     case "$optname" in
         "i" ) input="${OPTARG}";;
         "o" ) output="${OPTARG}";;
@@ -24,6 +26,7 @@ while getopts "i:o:p:m:t:r" optname; do
         "m" ) mode="${OPTARG}";;
         "t" ) pt="${OPTARG}";;
         "r" ) resume="yes";;
+        "e" ) threads="${OPTARG}";;
         "?" ) usage ;;
         *) usage ;;
     esac;
@@ -61,6 +64,7 @@ echo "ROOT OUTPUT DIR $output"
 echo "PHENOTYPE FILE $pheno"
 echo "MODE $mode"
 echo "PVALUE THRESHOLD $pt"
+echo "THREADS $threads"
 echo "RESUME $resume"
 echo "CURRENT CHR $c"
 
@@ -129,5 +133,7 @@ fi
 ID=$(sbatch --job-name=filter_chr_"$c" --cpus-per-task=1 --mem-per-cpu=10G --time=10:00:00 -p normal_q --array=1-"$total" -o "$logdir"/filter_chr_"$c"_%A_part_%a.log -e "$logdir"/filter_chr_"$c"_%A_part_%a.err --wrap="singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 /compute/Genomics/software/scripts/general_purpose_scripts/filter_chunk.sh -p $pheno -f $flist" -m "$mode" "$topt" | cut -d ' ' -f 4)
 
 # remove file list after chr processing is done
-
 sbatch --job-name=cleanup_chr_"$c" --dependency=afterany:"$ID"  --cpus-per-task=1 --mem-per-cpu=1M -p normal_q --array=1 -o "$logdir"/cleanup_chr_"$c"_%A.log -e "$logdir"/cleanup_chr_"$c"_%A.err --wrap="rm -v $flist"
+
+sbatch --job-name=merge_chunks_chr"$c" --dependency=afterok:$ID --cpus-per-task=${threads} --mem-per-cpu=20G --time=10:00:00 -p normal_q --array=1 -o "$logdir"/merge_chunks_chr"$c"_%A.log -e "$logdir"/merge_chunks_chr"$c"_%A.err /compute/Genomics/software/scripts/general_purpose_scripts/merge_chunks_chr.sh "$outdir2" "$threads"
+

@@ -26,6 +26,10 @@ for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz");do
     realpath $f >> "$flist"
 done
 
+echo "MERGING FILES:"
+cat "$flist"
+echo ""
+
 singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 bcftools concat -a -f "$flist" -Oz -o "$output" --threads "$threads"
 echo "MERGING DONE" $(date)
 singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 tabix "$output"
