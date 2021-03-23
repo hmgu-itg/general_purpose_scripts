@@ -85,7 +85,9 @@ fi
 
 if [[ $retval -ne 0 ]];then
     echo "INFO: something went wrong when creating qctool output; exit" | ts
-    rm -vf "$outname"
+    if [[ -f "$outname" ]];then
+	rm -v "$outname"
+    fi
     exit 1
 fi
 
