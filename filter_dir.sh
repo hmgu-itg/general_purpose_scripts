@@ -98,4 +98,4 @@ if [[ ! -z "$pt" ]];then
     topt="-t $pt"
 fi
 
-sbatch --job-name=collect_stats --cpus-per-task=1 --mem-per-cpu=1G --time=10:00:00 -p normal_q --array="$chroms" -o "$logdir"/collect_stats_%A_chr_%a.log -e "$logdir"/collect_stats_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/filter_chr.sh -i "$input" -o "$output" -p "$pheno" -m "$mode" -e "$threads" "$topt" "$resopt"
+sbatch --job-name=filter_chr --cpus-per-task=1 --mem-per-cpu=1G --time=10:00:00 -p normal_q --array="$chroms" -o "$logdir"/filter_chr_%A_chr_%a.log -e "$logdir"/filter_chr_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/filter_chr.sh -i "$input" -o "$output" -p "$pheno" -m "$mode" -e "$threads" "$topt" "$resopt"
