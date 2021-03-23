@@ -68,7 +68,7 @@ echo "MODE $mode" | ts
 echo "PVALUE THRESHOLD $pt" | ts
 echo "CURRENT FILENO $n" | ts
 echo "CURRENT FILE $fname" | ts
-echo "OUTPUT FILE $outname" | ts
+echo "QCTOOL2 OUTPUT FILE $outname" | ts
 echo "--------------------------------------------------------------"
 echo ""
 
