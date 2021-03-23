@@ -35,7 +35,7 @@ done
 if [[ $# -eq 0 ]];then
     echo "No arguments provided; exit"
     usage
-    exit 0
+    exit 1
 fi
 
 if [[ "$mode" != "full" && "$mode" != "stats" ]];then
