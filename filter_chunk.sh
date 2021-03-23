@@ -8,32 +8,51 @@ set -eo pipefail
 
 function usage {
     echo ""
-    echo "Usage: $0 -i <input dir>"
+    echo "Usage: $0"
     echo "          -p <pheno file>"
     echo "          -f <file list>"
+    echo "        { -m : <mode>; optional, \"stats\" or \"full\"; default: \"full\" }"
+    echo "        { -t : <pvalue threshold>; only required if mode is \"full\"}"
     exit 0
 }
 
+mode="full"
+pt=""
 OPTIND=1
-while getopts "i:p:f:" optname; do
+while getopts "p:f:m:t:" optname; do
     case "$optname" in
-        "i" ) input="${OPTARG}";;
         "p" ) pheno="${OPTARG}";;
         "f" ) flist="${OPTARG}";;
+        "m" ) input="${OPTARG}";;
+        "t" ) input="${OPTARG}";;
         "?" ) usage ;;
         *) usage ;;
     esac;
 done
 
 if [[ $# -eq 0 ]];then
+    echo "No arguments provided; exit"
     usage
     exit 0
 fi
 
-input=${input%/}
+if [[ "$mode" != "full" && "$mode" != "stats" ]];then
+    echo "ERROR: mode (-m) should be either \"full\" or \"stats\"; exit"
+    exit 1
+fi
+
+if [[ "$mode" == "full" && -z "$pt" ]];then
+    echo "ERROR: no pvalue threshold (-t) specified; exit"
+    exit 1
+fi
 
 if [[ ! -f "$flist" ]];then
     echo "ERROR: file list $flist does not exist; exit"
+    exit 1
+fi
+
+if [[ ! -f "$pheno" ]];then
+    echo "ERROR: phenotype file $pheno does not exist; exit"
     exit 1
 fi
 
@@ -45,6 +64,8 @@ outname=${fname/%.vcf.gz/.qctool.out}
 
 echo "INPUT DIR $input" | ts
 echo "PHENOTYPE FILE $pheno" | ts
+echo "MODE $mode"
+echo "PVALUE THRESHOLD $pt"
 echo "CURRENT FILENO $n" | ts
 echo "CURRENT FILE $fname" | ts
 echo "OUTPUT FILE $outname" | ts

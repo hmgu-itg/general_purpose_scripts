@@ -2,7 +2,8 @@
 
 function usage {
     echo ""
-    echo "Usage: $0 -i <input dir>"
+    echo "Usage: $0"
+    echo "          -i <input dir>"
     echo "          -o <output dir>"
     echo "          -p <pheno file>"
     echo "        { -m : <mode>; optional, \"stats\" or \"full\"; default: \"full\" }"
@@ -41,6 +42,11 @@ fi
 
 if [[ "$mode" == "full" && -z "$pt" ]];then
     echo "ERROR: no pvalue threshold (-t) specified; exit"
+    exit 1
+fi
+
+if [[ ! -f "$pheno" ]];then
+    echo "ERROR: phenotype file $pheno does not exist; exit"
     exit 1
 fi
 

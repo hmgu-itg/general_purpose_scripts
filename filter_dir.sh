@@ -52,6 +52,11 @@ if [[ "$mode" == "full" && -z "$pt" ]];then
     exit 1
 fi
 
+if [[ ! -f "$pheno" ]];then
+    echo "ERROR: phenotype file $pheno does not exist; exit"
+    exit 1
+fi
+
 input=${input%/}
 output=${output%/}
 
