@@ -122,6 +122,7 @@ total=$(cat $flist | wc -l)
 
 if [[ "$total" -eq 0 ]];then
     echo "INFO: no input VCFs for chr $c found in $output2"
+    rm -fv "$flist"
     sbatch --job-name=merge_chunks_chr"$c" --cpus-per-task=${threads} --mem-per-cpu=20G --time=10:00:00 -p normal_q --array=1 -o "$logdir"/merge_chunks_chr"$c"_%A.log -e "$logdir"/merge_chunks_chr"$c"_%A.err /compute/Genomics/software/scripts/general_purpose_scripts/merge_chunks_chr.sh "$outdir2" "$threads"
 else
     topt=""
