@@ -75,6 +75,7 @@ echo ""
 pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
 echo "INFO: phenotype name: $pheno_name"  | ts
 
+retval=0
 if [[ ! -s "$outname" ]];then
     bcftools norm -m- "$fname" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno"
     retval=$?
@@ -84,16 +85,13 @@ fi
 
 if [[ $retval -ne 0 ]];then
     echo "INFO: something went wrong when creating qctool output; exit" | ts
+    rm -vf "$outname"
     exit 1
 fi
 
 if [[ "$mode" == "stats" ]];then
-    if [[ $retval -eq 0 ]];then
-	echo "INFO: removing $fname" | ts
-	rm -v "$fname"
-    else
-	echo "INFO: something went wrong; keeping $fname" | ts
-    fi
+    echo "INFO: removing $fname" | ts
+    rm -v "$fname"
 else
     to_remove=${outname/%.qctool.out/.rm}
     # filtering; P-value: lrt_pvalue
