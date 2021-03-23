@@ -103,7 +103,7 @@ echo ""
 
 # file with list of files
 flist="$tempdir"/file_list_chr_"$c".txt
-echo "" > "$flist"
+: > "$flist"
 
 if [[ "$resume" == "no" ]];then
     # pattern: _c9_ for chrom 9 etc.
