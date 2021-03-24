@@ -93,8 +93,8 @@ if [[ $retval -ne 0 ]];then
 fi
 
 if [[ "$mode" == "stats" ]];then
-    # echo "INFO: removing $fname" | ts
-    # rm -v "$fname"
+    echo "INFO: removing $dmx_vcf" | ts
+    rm -v "$dmx_vcf"
 else
     to_remove=${outname/%.qctool.out/.rm}
     # filtering; P-value: lrt_pvalue
@@ -114,7 +114,8 @@ else
     echo "INFO: input: $dmx_vcf" | ts
     echo "INFO: input: excluding variants in $to_remove" | ts
     echo "INFO: output: $final_vcf" | ts
-    bcftools view --exclude ID=@"$to_remove" "$dmx_vcf" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +fill-tags -Oz -o "$final_vcf"
+    # NORM ANY
+    bcftools view --exclude ID=@"$to_remove" "$dmx_vcf" -Ov | bcftools norm -m +any | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +fill-tags -Oz -o "$final_vcf"
     retval=$?
     if [[ $retval -ne 0 ]];then
 	echo "INFO: something went wrong when creating filtered VCF; exit" | ts
