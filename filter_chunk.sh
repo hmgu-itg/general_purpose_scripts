@@ -137,7 +137,8 @@ else
 
     echo "INFO: removing intermediate files" | ts
     rm -fv "$fname" "$to_remove" "$outname" "$dmx_vcf"
-    echo "INFO: done" | ts
 fi
+
+echo "INFO: done" | ts
 
 exit 0
