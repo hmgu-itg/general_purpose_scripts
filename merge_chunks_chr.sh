@@ -75,6 +75,21 @@ done
 
 /compute/Genomics/software/plink2/plink2_23.Mar.2021/plink2 --pmerge-list "$flist2" --make-pgen --out "$plout" --threads "$threads"
 
+# delete VCF chunk files
+if [[ $? -eq 0 ]];then
+    cat "$flist" | while read fname
+    do
+	rm -v "$fname"
+    done
+fi
+
+# delete PGEN chunk files
+cat "$flist" | while read fname
+do
+    outname=${fname/%.vcf.gz}
+    rm -v "$outname".pgen "$outname".pvar "$outname".psam
+done
+
 rm -v "$flist"
 rm -v "$flist2"
 
