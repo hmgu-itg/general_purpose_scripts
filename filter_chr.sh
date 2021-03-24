@@ -113,8 +113,8 @@ if [[ "$resume" == "no" ]];then
     done
 fi
 
-# exclude "filtered" output VCFs
-for f in $(find "${output2}" -mindepth 1 -maxdepth 1 -name "*.vcf.gz" ! -name "*.filtered.vcf.gz");do
+# only input symlinks
+for f in $(find "${output2}" -mindepth 1 -maxdepth 1 -name "*.vcf.gz" -type l);do
     echo "$f" >> "$flist"
 done
 
@@ -135,6 +135,6 @@ else
     # remove file list after chr processing is done
     sbatch --job-name=cleanup_chr_"$c" --dependency=afterany:"$ID"  --cpus-per-task=1 --mem-per-cpu=1M -p normal_q --array=1 -o "$logdir"/cleanup_chr_"$c"_%A.log -e "$logdir"/cleanup_chr_"$c"_%A.err --wrap="rm -v $flist"
 
-    sbatch --job-name=merge_chunks_chr"$c" --dependency=afterok:$ID --cpus-per-task=${threads} --mem-per-cpu=20G --time=10:00:00 -p normal_q --array=1 -o "$logdir"/merge_chunks_chr"$c"_%A.log -e "$logdir"/merge_chunks_chr"$c"_%A.err /compute/Genomics/software/scripts/general_purpose_scripts/merge_chunks_chr.sh "$output2" "$threads"
+    sbatch --job-name=merge_chunks_chr"$c" --dependency=afterok:$ID --cpus-per-task=${threads} --mem-per-cpu=20G --time=72:00:00 -p normal_q --array=1 -o "$logdir"/merge_chunks_chr"$c"_%A.log -e "$logdir"/merge_chunks_chr"$c"_%A.err /compute/Genomics/software/scripts/general_purpose_scripts/merge_chunks_chr.sh "$output2" "$threads"
 fi
 
