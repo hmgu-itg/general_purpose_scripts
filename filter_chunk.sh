@@ -74,10 +74,12 @@ echo ""
 
 pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
 echo "INFO: phenotype name: $pheno_name"  | ts
+dmx_vcf=${fname/%.vcf.gz/.dmx.vcf.gz}
 
 retval=0
 if [[ ! -s "$outname" ]];then
-    bcftools norm -m- "$fname" | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno"
+    bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$dmx_vcf"
+    zcat "$dmx_vcf" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno"
     retval=$?
 else
     echo "INFO: $outname already exists" | ts
@@ -85,35 +87,38 @@ fi
 
 if [[ $retval -ne 0 ]];then
     echo "INFO: something went wrong when creating qctool output; exit" | ts
-    if [[ -f "$outname" ]];then
-	rm -v "$outname"
-    fi
+    if [[ -f "$outname" ]];then rm -v "$outname";fi
+    if [[ -f "$dmx_vcf" ]];then rm -v "$dmx_vcf";fi
     exit 1
 fi
 
 if [[ "$mode" == "stats" ]];then
-    echo "INFO: removing $fname" | ts
-    rm -v "$fname"
+    # echo "INFO: removing $fname" | ts
+    # rm -v "$fname"
 else
     to_remove=${outname/%.qctool.out/.rm}
     # filtering; P-value: lrt_pvalue
     echo "INFO: filtering using P-values" | ts
     echo "INFO: input: $outname" | ts
     echo "INFO: output: $to_remove" | ts
-    grep -v "^#" "$outname" | tail -n +2 | awk -v p=${pt} 'BEGIN{FS="\t";OFS="\t";}$13<p{print $2;}' > "$to_remove"
+    # in case input VCF has incorrect GT records there will be error messages in the qctool output
+    grep -i error "$outname" | cut -f 2 > "$to_remove"
+    grep -v "^#" "$outname" | tail -n +2 | grep -v -i "error" | awk -v p=${pt} 'BEGIN{FS="\t";OFS="\t";}$13<p{print $2;}' >> "$to_remove"
+    sort "$to_remove" | uniq | sponge "$to_remove"
     echo "INFO: done" | ts
     echo "--------------------------------------------------------------"
 
     final_vcf=${fname/%.vcf.gz/.filtered.vcf.gz}
     # removing variants with P<threshold, merging back
     echo "INFO: bcftools: creating filtered output VCF" | ts
-    echo "INFO: input: $fname" | ts
+    echo "INFO: input: $dmx_vcf" | ts
     echo "INFO: input: excluding variants in $to_remove" | ts
     echo "INFO: output: $final_vcf" | ts
-    bcftools view --exclude ID=@"$to_remove" "$fname" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +fill-tags -Oz -o "$final_vcf"
+    bcftools view --exclude ID=@"$to_remove" "$dmx_vcf" -Ov | bcftools norm -m+ | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +fill-tags -Oz -o "$final_vcf"
     retval=$?
     if [[ $retval -ne 0 ]];then
 	echo "INFO: something went wrong when creating filtered VCF; exit" | ts
+	if [[ -f "$final_vcf" ]];then rm -v "$final_vcf";fi
 	exit 1
     fi
     echo "INFO: done" | ts
@@ -130,7 +135,7 @@ else
     echo "--------------------------------------------------------------"
 
     echo "INFO: removing intermediate files" | ts
-    rm -fv "$fname" "$to_remove" "$outname"
+    rm -fv "$fname" "$to_remove" "$outname" "$dmx_vcf"
     echo "INFO: done" | ts
 fi
 
