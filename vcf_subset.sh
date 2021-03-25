@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 infile=$1
-outfile=$1
+outfile=$2
 
 tfile=$(mktemp -t vcf-XXXXXXX)
 
