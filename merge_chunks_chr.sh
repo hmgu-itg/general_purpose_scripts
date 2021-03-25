@@ -107,6 +107,8 @@ do
 done
 
 rm "$indir"/*.log
+rm "$indir"/"$plout"-merge.*
+
 rm -v "$flist"
 rm -v "$flist2"
 
