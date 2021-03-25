@@ -23,6 +23,12 @@ for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz" ! -name "merge
     fi
 done
 
+total=$(cat "$flist" | wc -l)
+if [[ "$total" -eq 0 ]];then
+    echo "INFO: no files to merge; exit"
+    exit 0
+fi
+   
 output="$indir"/merged"$suffix".vcf.gz
 plout="$indir"/merged"$suffix"
 
