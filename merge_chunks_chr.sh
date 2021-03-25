@@ -62,7 +62,7 @@ else
 	echo "INFO: merged VCF $output is older than input VCFs; removing and re-merging"
 	rm -v "$output"
 	if [[ -f "$output".tbi ]];then rm -v "$output".tbi;fi
-	echo $(date) "MERGING FILES:"
+	echo "MERGING FILES:"
 	cat "$flist"
 	echo ""
 	singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 bcftools concat -a -f "$flist" -Oz -o "$output" --threads "$threads"
