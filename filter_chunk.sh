@@ -97,8 +97,9 @@ if [[ $retval -ne 0 ]];then
 fi
 
 if [[ "$mode" == "stats" ]];then
-    echo "INFO: removing $dmx_vcf" | ts
-    rm -v "$dmx_vcf"
+    echo "INFO: done" | ts
+    # echo "INFO: removing $dmx_vcf" | ts
+    # rm -v "$dmx_vcf"
 else
     to_remove=${outname/%.qctool.out/."$pt".rm}
     # filtering; P-value: lrt_pvalue
@@ -141,8 +142,7 @@ else
 
     echo "INFO: removing intermediate files" | ts
     rm -fv "$fname" "$to_remove" "$outname" "$dmx_vcf"
+    echo "INFO: done" | ts
 fi
-
-echo "INFO: done" | ts
 
 exit 0
