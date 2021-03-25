@@ -106,13 +106,9 @@ else
     echo "INFO: input: $outname" | ts
     echo "INFO: output: $to_remove" | ts
     # in case input VCF has incorrect GT records there will be error messages in the qctool output
-    echo "GREP"
     grep -i error "$outname" | cut -f 2 > "$to_remove"
-    echo "AWK"
     grep -v "^#" "$outname" | tail -n +2 | grep -v -i error | awk -v p=${pt} 'BEGIN{FS="\t";OFS="\t";}$13<p{print $2;}' >> "$to_remove"
-    echo "SPONGE"
     sort "$to_remove" | uniq | sponge "$to_remove"
-    echo "SPONGE DONE"
     echo "INFO: done" | ts
     echo "--------------------------------------------------------------"
 
