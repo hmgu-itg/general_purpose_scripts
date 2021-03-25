@@ -74,6 +74,28 @@ echo "RESUME $resume"
 echo "--------------------------------------"
 echo ""
 
+if [[ -z "$input" ]];then
+    echo "ERROR: input directory not specified; exit"
+    exit 1
+fi
+
+if [[ -z "$output" ]];then
+    echo "ERROR: output directory not specified; exit"
+    exit 1
+fi
+
+if [[ -d "$output" ]];then
+    echo "INFO: output directory $output already exists"
+else
+    echo "INFO: creating output directory $output"
+    mkdir -p "$output"
+fi
+
+if [[ ! -d "$output" ]];then
+    echo "ERROR: could not create output directory $output; exit"
+    exit 1
+fi
+
 logdir="$output"/logs
 mkdir -p "$logdir"
 if [[ ! -d "$logdir" ]];then

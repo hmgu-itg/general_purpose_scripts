@@ -68,6 +68,16 @@ echo "THREADS $threads"
 echo "RESUME $resume"
 echo "CURRENT CHR $c"
 
+if [[ -z "$input" ]];then
+    echo "ERROR: input directory not specified; exit"
+    exit 1
+fi
+
+if [[ -z "$output" ]];then
+    echo "ERROR: root output directory not specified; exit"
+    exit 1
+fi
+
 # should exist already
 logdir="$output"/logs
 tempdir="$output"/temp
@@ -89,8 +99,19 @@ fi
 
 # output dir for the current chr
 output2="$output"/chr"$c"
-mkdir -p "$output2"
-if [[ ! -d "$output2" ]];then
+
+if [[ -d "${output2}" ]];then
+    echo "INFO: output directory for chr $c ${output2} already exists"
+    if [[ "$resume" == "no" ]];then
+	echo "INFO: removing everything in ${output2}"
+	rm -vrf "${output2}"/*
+    fi
+else
+    echo "INFO: creating output directory $output for chr $c"
+    mkdir -p "${output2}"
+fi
+
+if [[ ! -d "${output2}" ]];then
     echo "ERROR: could not create output directory $output2 for chr $c; exit"
     exit 1
 fi
