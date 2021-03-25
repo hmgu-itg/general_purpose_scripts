@@ -10,11 +10,11 @@ function usage {
     echo "          -i <input dir>"
     echo "          -o <output dir>"
     echo "          -p <pheno file>"
-    echo "        { -c <chromosome(s)> : optional; default: 1-22 }"
+    echo "        { -c <chromosome(s)> : optional; anything that \"sbatch --array=...\" accepts; default: 1-22 }"
     echo "        { -m : <mode>; optional, \"stats\" or \"full\"; default: \"full\" }"
     echo "        { -t : <pvalue threshold>; only required if mode is \"full\"}"
     echo "        { -r : if analyses should be rerun; optional; default: false }"
-    echo "        { -e <threads> : # threads to use for bcftools/plink; default: 1 }"
+    echo "        { -e <threads> : optional; # threads to use for bcftools/plink; only required if mode is \"full\"; default: 1 }"
     exit 0
 }
 
