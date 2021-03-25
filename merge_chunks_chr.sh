@@ -35,6 +35,8 @@ echo "START" $(date)
 echo "-------------------------------------"
 echo ""
 
+newest_vcf=$(find . -maxdepth 1 -mindepth 1 -name "*.vcf.gz" ! -name "merged*.vcf.gz" -printf "%T@ %p\n"| sort -t ' ' -k1,1n |cut -d ' ' -f 2- | tail -n 1)
+
 # bcftools merge
 if [[ ! -s "$output" ]];then
     echo $(date) "MERGING FILES:"
@@ -50,10 +52,29 @@ if [[ ! -s "$output" ]];then
     echo "MERGING DONE" $(date)
     echo ""
 else
-    echo "INFO: merged VCF $output already exists; skipping merging"
+    if [[ "$output" -ot "$newest_vcf" ]];then
+	echo "INFO: merged VCF $output is older than input VCFs; removing and re-merging"
+	rm -v "$output"
+	if [[ -f "$output".tbi ]];then rm -v "$output".tbi;fi
+	echo $(date) "MERGING FILES:"
+	cat "$flist"
+	echo ""
+	singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 bcftools concat -a -f "$flist" -Oz -o "$output" --threads "$threads"
+	if [[ $? -ne 0 ]];then
+	    echo "ERROR: merging failed; exit"
+	    if [[ -f "$output" ]];then rm -v "$output";fi
+	    rm -v "$flist"
+	    exit 1
+	fi
+	echo "MERGING DONE" $(date)
+	echo ""    
+    else
+	echo "INFO: merged VCF $output already exists; skipping merging"	
+    fi
 fi
 
 # tabix
+echo "INDEXING" $(date)
 if [[ ! -s "$output".tbi ]];then
     singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 tabix "$output"
     if [[ $? -ne 0 ]];then
@@ -66,7 +87,21 @@ if [[ ! -s "$output".tbi ]];then
     echo "INDEXING DONE" $(date)
     echo ""
 else
-    echo "INFO: index file ${output}.tbi already exists; skipping indexing"
+    if [[ "$output".tbi -ot "$output" ]];then
+	echo "INFO: index file is older than merged VCF; re-indexing"
+	singularity exec -B /compute/Genomics /compute/Genomics/containers/worker_3.1 tabix "$output"
+	if [[ $? -ne 0 ]];then
+	    echo "ERROR: tabix failed; exit"
+	    if [[ -f "$output" ]];then rm -v "$output";fi
+	    if [[ -f "$output".tbi ]];then rm -v "$output".tbi;fi
+	    rm -v "$flist"
+	    exit 1
+	fi
+	echo "INDEXING DONE" $(date)
+	echo ""
+    else	
+	echo "INFO: index file ${output}.tbi already exists; skipping indexing"
+    fi
 fi
 
 # PLINK
