@@ -4,7 +4,7 @@
 #
 ###################
 
-set -eo pipefail
+set -o pipefail
 
 function usage {
     echo ""
