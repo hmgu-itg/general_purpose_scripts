@@ -85,6 +85,8 @@ if [[ ! -s "$outname" ]];then
     retval=$?
 else
     echo "INFO: $outname already exists" | ts
+    echo "--------------------------------------------------------------"
+    echo ""
 fi
 
 if [[ $retval -ne 0 ]];then
