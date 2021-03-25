@@ -106,7 +106,7 @@ do
     rm "$outname".pgen "$outname".pvar "$outname".psam
 done
 
-rm *.log
+rm "$indir"/*.log
 rm -v "$flist"
 rm -v "$flist2"
 
