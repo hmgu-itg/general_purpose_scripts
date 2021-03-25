@@ -35,7 +35,7 @@ echo "START" $(date)
 echo "-------------------------------------"
 echo ""
 
-newest_vcf=$(find . -maxdepth 1 -mindepth 1 -name "*.vcf.gz" ! -name "merged*.vcf.gz" -printf "%T@ %p\n"| sort -t ' ' -k1,1n |cut -d ' ' -f 2- | tail -n 1)
+newest_vcf=$(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz" ! -name "merged*.vcf.gz" -printf "%T@ %p\n"| sort -t ' ' -k1,1n |cut -d ' ' -f 2- | tail -n 1)
 
 # bcftools merge
 if [[ ! -s "$output" ]];then
@@ -142,7 +142,7 @@ do
 done
 
 rm "$indir"/*.log
-rm "$indir"/"$plout"-merge.*
+rm "$plout"-merge.*
 
 rm -v "$flist"
 rm -v "$flist2"
