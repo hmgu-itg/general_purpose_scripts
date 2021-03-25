@@ -47,6 +47,7 @@ if [[ ! -s "$output" ]];then
 	exit 1
     fi
     echo "MERGING DONE" $(date)
+    echo ""
 else
     echo "INFO: merged VCF $output already exists; skipping merging"
 fi
@@ -62,6 +63,7 @@ if [[ ! -s "$output".tbi ]];then
 	exit 1
     fi
     echo "INDEXING DONE" $(date)
+    echo ""
 else
     echo "INFO: index file ${output}.tbi already exists; skipping indexing"
 fi
@@ -73,14 +75,20 @@ if [[ ! -f $flist2 ]];then
     exit 1
 fi
 
+echo "CONVERTING CHUNKS TO PGEN"
 cat "$flist" | while read fname
 do
     outname=${fname/%.vcf.gz}
     /compute/Genomics/software/plink2/plink2_23.Mar.2021/plink2 --vcf "$fname" --make-pgen --out "$outname" --threads "$threads" --vcf-half-call m  
     echo "$outname".pgen "$outname".pvar "$outname".psam >> "$flist2"
 done
+echo "CONVERTING DONE"
+echo ""
 
+echo "MERGING PGEN CHUNKS"
 /compute/Genomics/software/plink2/plink2_23.Mar.2021/plink2 --pmerge-list "$flist2" --make-pgen --out "$plout" --threads "$threads"
+echo "DONE"
+echo ""
 
 # delete VCF chunk files
 if [[ $? -eq 0 ]];then
