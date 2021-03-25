@@ -5,8 +5,25 @@ threads=$2
 c=$3
 
 indir=${indir%/}
-output="$indir"/merged_chr"$c".vcf.gz
-plout="$indir"/merged_chr"$c"
+
+flist=$(mktemp -t merge_list_chr"$c"-XXXXXXX)
+if [[ ! -f $flist ]];then
+    echo "ERROR: could not create list file; exit"
+    exit 1
+fi
+
+suffix=""
+for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz" ! -name "merged*.vcf.gz");do
+    realpath $f >> "$flist"
+    if [[ -z "$suffix" ]];then
+	b=$(basename $f)
+	b=${b/#*filtered.}
+	suffix=_chr"$c"_"$b"
+    fi
+done
+
+output="$indir"/merged"$suffix".vcf.gz
+plout="$indir"/merged"$suffix"
 
 echo "MERGING VCF FILES AND CONVERTING TO PLINK FORMAT"
 echo "INPUT DIR $indir"
@@ -16,16 +33,6 @@ echo "PLINK OUTPUT PREFIX $plout"
 echo "START" $(date)
 echo "-------------------------------------"
 echo ""
-
-flist=$(mktemp -t merge_list_chr"$c"-XXXXXXX)
-if [[ ! -f $flist ]];then
-    echo "ERROR: could not create list file; exit"
-    exit 1
-fi
-
-for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz" ! -name "merged*.vcf.gz");do
-    realpath $f >> "$flist"
-done
 
 # bcftools merge
 if [[ ! -s "$output" ]];then

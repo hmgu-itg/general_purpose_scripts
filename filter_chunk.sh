@@ -59,8 +59,9 @@ fi
 # current file number in the file list
 n=$SLURM_ARRAY_TASK_ID
 
+pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
 fname=$(cat $flist | head -n $n | tail -n 1)
-outname=${fname/%.vcf.gz/.qctool.out}
+outname=${fname/%.vcf.gz/."$pheno_name".qctool.out}
 
 echo "INPUT DIR $input" | ts
 echo "PHENOTYPE FILE $pheno" | ts
@@ -72,7 +73,6 @@ echo "QCTOOL2 OUTPUT FILE $outname" | ts
 echo "--------------------------------------------------------------"
 echo ""
 
-pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
 echo "INFO: phenotype name: $pheno_name"  | ts
 dmx_vcf=${fname/%.vcf.gz/.dmx.vcf.gz}
 
@@ -100,7 +100,7 @@ if [[ "$mode" == "stats" ]];then
     echo "INFO: removing $dmx_vcf" | ts
     rm -v "$dmx_vcf"
 else
-    to_remove=${outname/%.qctool.out/.rm}
+    to_remove=${outname/%.qctool.out/."$pt".rm}
     # filtering; P-value: lrt_pvalue
     echo "INFO: filtering using P-values" | ts
     echo "INFO: input: $outname" | ts
@@ -112,7 +112,7 @@ else
     echo "INFO: done" | ts
     echo "--------------------------------------------------------------"
 
-    final_vcf=${fname/%.vcf.gz/.filtered.vcf.gz}
+    final_vcf=${fname/%.vcf.gz/.filtered."$pheno_name"."$pt".vcf.gz}
     # removing variants with P<threshold, merging back
     echo "INFO: bcftools: creating filtered output VCF" | ts
     echo "INFO: input: $dmx_vcf" | ts

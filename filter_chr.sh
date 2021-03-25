@@ -101,7 +101,7 @@ echo "START" $(date)
 echo "---------------------------------------------------------------"
 echo ""
 
-# file with list of files
+# list of files
 flist="$tempdir"/file_list_chr_"$c".txt
 : > "$flist"
 
@@ -113,15 +113,15 @@ if [[ "$resume" == "no" ]];then
     done
 fi
 
-# only input symlinks
+# only symlinks
 for f in $(find "${output2}" -mindepth 1 -maxdepth 1 -name "*.vcf.gz" -type l);do
     echo "$f" >> "$flist"
 done
 
 total=$(cat $flist | wc -l)
 
-# memory in GB for merging
-mem=$(echo "100/$threads" | bc)
+# memory per cpu in GB for merging; total: 40G
+mem=$(echo "40/$threads" | bc)
 if [[ "$mem" -eq 0 ]];then
     mem=1
 fi
