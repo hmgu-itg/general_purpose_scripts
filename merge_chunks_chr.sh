@@ -19,6 +19,7 @@ for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz" ! -name "merge
 	b=$(basename $f)
 	b=${b/#*filtered.}
 	suffix=_chr"$c"."$b"
+	suffix=${suffix/%.vcf.gz}
     fi
 done
 
@@ -94,7 +95,7 @@ echo ""
 if [[ $? -eq 0 ]];then
     cat "$flist" | while read fname
     do
-	rm -v "$fname"
+	rm "$fname" "$fname".tbi
     done
 fi
 
@@ -102,9 +103,10 @@ fi
 cat "$flist" | while read fname
 do
     outname=${fname/%.vcf.gz}
-    rm -v "$outname".pgen "$outname".pvar "$outname".psam
+    rm "$outname".pgen "$outname".pvar "$outname".psam
 done
 
+rm *.log
 rm -v "$flist"
 rm -v "$flist2"
 
