@@ -18,7 +18,7 @@ for f in $(find "$indir" -maxdepth 1 -mindepth 1 -name "*.vcf.gz" ! -name "merge
     if [[ -z "$suffix" ]];then
 	b=$(basename $f)
 	b=${b/#*filtered.}
-	suffix=_chr"$c"_"$b"
+	suffix=_chr"$c"."$b"
     fi
 done
 
