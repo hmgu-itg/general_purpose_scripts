@@ -26,7 +26,7 @@ done
 output="$indir"/merged"$suffix".vcf.gz
 plout="$indir"/merged"$suffix"
 
-echo "MERGING VCF FILES AND CONVERTING TO PLINK FORMAT"
+echo "MERGING VCF FILES AND CONVERTING TO PGEN FORMAT"
 echo "INPUT DIR $indir"
 echo "USING THREADS $threads"
 echo "OUTPUT VCF $output"
