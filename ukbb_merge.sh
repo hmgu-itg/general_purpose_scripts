@@ -32,14 +32,6 @@ while getopts "i:u:f:" opt; do
 done
 shift "$((OPTIND-1))"
 
-for f in "${input_fnames[@]}"; do
-    echo "INFO: input file: $f" 1>&2
-done
-
-for f in "${update_fnames[@]}"; do
-    echo "INFO: update file: $f" 1>&2
-done
-
 n_input=${#input_fnames[@]}
 n_update=${#update_fnames[@]}
 
@@ -49,7 +41,7 @@ if [[ $n_input -eq 0 ]];then
 fi
 
 if [[ $n_input -lt 2 && $n_update -eq 0 ]];then
-    echo "ERROR: no update files specified, only one input file specified (need at least two to do merging)" 1>&2
+    echo "ERROR: no update files specified, only one input file specified (need at least two input files to merge)" 1>&2
     exit 1;
 fi
 
@@ -69,6 +61,23 @@ for i in $(seq 0 $((n_update-1)));do
     update_nrows+=$(cat ${update_fnames[$i]} | wc -l)
 done
 
+# output info
+for i in $(seq 0 $((n_input-1)));do
+    echo "INFO: input file: ${input_fnames[$i]}" 1>&2
+    echo "INFO: ID column index: ${input_ID_column[$i]}" 1>&2
+    echo "INFO: rows: ${input_nrows[$i]}" 1>&2
+    echo "" 1>&2
+done
+
+for i in $(seq 0 $((n_update-1)));do
+    echo "INFO: update file: ${update_fnames[$i]}" 1>&2
+    echo "INFO: ID column index: ${update_ID_column[$i]}" 1>&2
+    echo "INFO: rows: ${update_nrows[$i]}" 1>&2
+    echo "" 1>&2
+done
+
+    
+
 # nrows=${input_nrows[0]}
 # for i in $(seq 0 $((n_input-1)));do
 #     x=${input_nrows[$i]}
@@ -86,7 +95,10 @@ done
 #     fi
 # done
 
+#
 # check if all files have the same sample IDs
+#
+echo "Checking if input/update files have same sample IDs ... " 1>&2
 for i in $(seq 0 $((n_input-1)));do
     x=$(cat <(cut -f ${input_ID_column[0]} ${input_fnames[0]}) <(cut -f ${input_ID_column[$i]} ${input_fnames[$i]})|sort|uniq -u|wc -l)
     if [[ $x -ne 0 ]];then
@@ -102,8 +114,13 @@ for i in $(seq 0 $((n_update-1)));do
 	exit 1
     fi
 done
+echo "OK" 1>&2
+echo "" 1>&2
 
+#
 # check if column names (excepth for ID field) in input files are disjoint
+#
+echo "Checking if column names in input/update files are disjoint ... " 1>&2
 if [[ $n_input -gt 1 ]];then
     for i in $(seq 0 $((n_input-1)));do
 	for j in $(seq $((i+1)) $((n_input-1)));do
@@ -116,7 +133,9 @@ if [[ $n_input -gt 1 ]];then
     done
 fi
 
+#
 # check if column names (excepth for ID field) in update files are disjoint
+#
 if [[ $n_update -gt 1 ]];then
     for i in $(seq 0 $((n_update-1)));do
 	for j in $(seq $((i+1)) $((n_update-1)));do
@@ -128,26 +147,31 @@ if [[ $n_update -gt 1 ]];then
 	done
     done
 fi
-
+echo "OK" 1>&2
+echo "" 1>&2
 
 if [[ $n_update -eq 0 ]];then # just merging input files
+    echo "Merging input files ... " 1>&2
     command1="paste <(head -n 1 ${input_fnames[0]})"
     for i in $(seq 1 $((n_input-1)));do
 	command1=$command1" <(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]})"
     done
 
-    # echo "Command 1 "$command1 1>&2
-    
     command2="paste <(tail -n +2 ${input_fnames[0]}|sort -k${input_ID_column[0]},${input_ID_column[0]})"
     for i in $(seq 1 $((n_input-1)));do
 	command2=$command2" <(tail -n +2 ${input_fnames[$i]}|sort -k${input_ID_column[$i]},${input_ID_column[$i]}|cut --complement -f ${input_ID_column[$i]})"
     done
 
-    # echo "Command 2 "$command2 1>&2
-
     eval "cat <($command1) <($command2)"
+    echo "Done" 1>&2
+    echo "" 1>&2
 else # updating the first input file using update files
-exit 0
+    exit 0
+    echo "Merging input files ... " 1>&2
+
+    echo "Done" 1>&2
+    echo "" 1>&2
+
     
 fi
 
