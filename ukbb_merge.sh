@@ -87,7 +87,6 @@ done
 # done
 
 # check if all files have the same sample IDs
-
 for i in $(seq 0 $((n_input-1)));do
     x=$(cat <(cut -f ${input_ID_column[0]} ${input_fnames[0]}) <(cut -f ${input_ID_column[$i]} ${input_fnames[$i]})|sort|uniq -u|wc -l)
     if [[ $x -ne 0 ]];then
@@ -105,7 +104,7 @@ for i in $(seq 0 $((n_update-1)));do
 done
 
 # check if column names (excepth for ID field) in input files are disjoint
-if [[ $n_update -eq 0 ]];then
+if [[ $n_input -gt 1 ]];then
     for i in $(seq 0 $((n_input-1)));do
 	for j in $(seq $((i+1)) $((n_input-1)));do
 	    x=$(cat <(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]}) <(head -n 1 ${input_fnames[$j]}|cut --complement -f ${input_ID_column[$j]})|sort|uniq -d|wc -l)
@@ -117,25 +116,38 @@ if [[ $n_update -eq 0 ]];then
     done
 fi
 
-# just merging input files, no update
-if [[ $n_update -eq 0 ]];then
+# check if column names (excepth for ID field) in update files are disjoint
+if [[ $n_update -gt 1 ]];then
+    for i in $(seq 0 $((n_update-1)));do
+	for j in $(seq $((i+1)) $((n_update-1)));do
+	    x=$(cat <(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]}) <(head -n 1 ${update_fnames[$j]}|cut --complement -f ${update_ID_column[$j]})|sort|uniq -d|wc -l)
+	    if [[ $x -ne 0 ]];then
+		echo "ERROR: update files ${update_fnames[$i]} and ${update_fnames[$j]} have columns in common" 1>&2
+		exit 1
+	    fi	    
+	done
+    done
+fi
+
+
+if [[ $n_update -eq 0 ]];then # just merging input files
     command1="paste <(head -n 1 ${input_fnames[0]})"
     for i in $(seq 1 $((n_input-1)));do
 	command1=$command1" <(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]})"
     done
 
-    echo "Command 1 "$command1 1>&2
+    # echo "Command 1 "$command1 1>&2
     
     command2="paste <(tail -n +2 ${input_fnames[0]}|sort -k${input_ID_column[0]},${input_ID_column[0]})"
     for i in $(seq 1 $((n_input-1)));do
 	command2=$command2" <(tail -n +2 ${input_fnames[$i]}|sort -k${input_ID_column[$i]},${input_ID_column[$i]}|cut --complement -f ${input_ID_column[$i]})"
     done
 
-    echo "Command 2 "$command2 1>&2
-    
-    `cat <($command1) <($command2)`
-#else
-# updating the first input file using update files
+    # echo "Command 2 "$command2 1>&2
+
+    eval "cat <($command1) <($command2)"
+else # updating the first input file using update files
+exit 0
     
 fi
 
