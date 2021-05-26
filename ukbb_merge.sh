@@ -34,11 +34,14 @@ function usage () {
     echo "and ignores the remaining input files. I a field in the input file"
     echo "is present in an update file, its content in the input file will be updated."
     echo ""
+    echo "Both modes expect all input/update files to have the same IDs in the ID field."
+    echo ""
     exit 0
 }
 
 # default ID column
 id_field="f.eid"
+datestr=$(date)
 
 declare -a input_fnames
 declare -a update_filenames
@@ -106,25 +109,6 @@ for i in $(seq 0 $((n_update-1)));do
     echo "INFO: rows: ${update_nrows[$i]}" 1>&2
     echo "" 1>&2
 done
-
-    
-
-# nrows=${input_nrows[0]}
-# for i in $(seq 0 $((n_input-1)));do
-#     x=${input_nrows[$i]}
-#     if [[ $x -ne $nrows ]];then
-# 	echo "ERROR: files ${input_fnames[0]}  and ${input_fnames[$i]} have different number of rows" 1>&2
-# 	exit 1
-#     fi
-# done
-
-# for i in $(seq 0 $((n_update-1)));do
-#     x=${update_nrows[$i]}
-#     if [[ $x -ne $nrows ]];then
-# 	echo "ERROR: files ${input_fnames[0]}  and ${update_fnames[$i]} have different number of rows" 1>&2
-# 	exit 1
-#     fi
-# done
 
 #
 # check if all files have the same sample IDs
@@ -197,7 +181,7 @@ if [[ $n_update -eq 0 ]];then # just merging input files
     echo "Done" 1>&2
     echo "" 1>&2
 else # updating the first input file using update files
-    echo "Merging input files ... " 1>&2
+    echo "Updating input ... " 1>&2
 
     #-------------------------------------------------------
     # exclude fields from input that are present in update files
