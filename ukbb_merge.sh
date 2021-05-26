@@ -2,6 +2,8 @@
 
 # ALL INPUT FILES ARE TSV
 
+function join_by { local IFS="$1"; shift; echo "$*"; }
+
 function getColNum () {
     local fname=$1
     local colname=$2
@@ -21,6 +23,7 @@ declare -a input_ID_column
 declare -a update_ID_column
 declare -a input_nrows
 declare -a update_nrows
+declare -a fields_to_exclude
 
 while getopts "i:u:f:" opt; do
     case $opt in
@@ -52,13 +55,13 @@ fi
 for i in $(seq 0 $((n_input-1)));do
     x=$(getColNum ${input_fnames[$i]} $id_field)
     input_ID_column+=($x)
-    input_nrows+=$(cat ${input_fnames[$i]} | wc -l)
+    input_nrows+=($(cat ${input_fnames[$i]} | wc -l))
 done
 
 for i in $(seq 0 $((n_update-1)));do
     x=$(getColNum ${update_fnames[$i]} $id_field)
     update_ID_column+=($x)
-    update_nrows+=$(cat ${update_fnames[$i]} | wc -l)
+    update_nrows+=($(cat ${update_fnames[$i]} | wc -l))
 done
 
 # output info
@@ -166,16 +169,44 @@ if [[ $n_update -eq 0 ]];then # just merging input files
     echo "Done" 1>&2
     echo "" 1>&2
 else # updating the first input file using update files
-    exit 0
     echo "Merging input files ... " 1>&2
 
-    echo "Done" 1>&2
-    echo "" 1>&2
-
+    #-------------------------------------------------------
+    # exclude fields from input that are present in update files
     
-fi
+    command1="cat"
+    for i in $(seq 0 $((n_update-1)));do
+	command1=$command1" <(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]}| tr '\t' '\n')"
+    done
+    command1=$command1" | sort|uniq"
+    command1="cat <(head -n 1 ${input_fnames[0]}|cut --complement -f ${input_ID_column[0]}| tr '\t' '\n') <($command1) | sort|uniq -d"
 
-# cat <(paste <(head -n 1 $fname1) <(head -n 1 $fname2| cut -f 2-) <(head -n 1 $fname3| cut -f 2-)) <(paste -d ',' <(tail -n +2 $fname1|sort -t ',' -k1,1) <(tail -n +2 $fname2| sort -t ',' -k1,1|cut -d ',' -f 2-) <(tail -n +2 $fname3|sort -t ',' -k1,1| cut -d ',' -f 2-))
+    for r in $(eval $command1);do
+	x=$(getColNum ${input_fnames[0]} $r)
+	fields_to_exclude+=($x)
+    done
+    str=$(join_by , ${fields_to_exclude[*]})
+    echo "Fields to exclude: $str" 1>&2
+    
+    #-------------------------------------------------------
+    
+    command1="paste <(head -n 1 ${input_fnames[0]}| cut --complement -f $str)"
+    for i in $(seq 0 $((n_update-1)));do
+	command1=$command1" <(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]})"
+    done
+    
+    command2="paste <(tail -n +2 ${input_fnames[0]}|sort -k${input_ID_column[0]},${input_ID_column[0]}| cut --complement -f $str)"
+    for i in $(seq 0 $((n_update-1)));do
+	command2=$command2" <(tail -n +2 ${update_fnames[$i]}|sort -k${update_ID_column[$i]},${update_ID_column[$i]}|cut --complement -f ${update_ID_column[$i]})"
+    done
+
+    eval "cat <($command1) <($command2)"
+    
+    #-------------------------------------------------------
+
+    echo "Done" 1>&2
+    echo "" 1>&2    
+fi
 
 exit 0
 
