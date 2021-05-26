@@ -28,6 +28,8 @@ function usage () {
     echo "           ...                    "
     echo "                     -u updateM.tab"
     echo ""
+    echo "All input/update files are tab-separated."
+    echo ""
     echo "${underlined}Merge mode${normal}: if no update (-u) files are specified, the script merges all input files."
     echo ""
     echo "${underlined}Update mode${normal}: if at least one update file is given, the script works only with the first input (-i) file" 
@@ -71,12 +73,12 @@ n_update=${#update_fnames[@]}
 
 if [[ $n_input -eq 0 ]];then
     echo "ERROR: no input files specified" 1>&2
-    exit 1;
+    exit 1
 fi
 
 if [[ $n_input -lt 2 && $n_update -eq 0 ]];then
     echo "ERROR: no update files specified, only one input file specified (need at least two input files to merge)" 1>&2
-    exit 1;
+    exit 1
 fi
 
 if [[ $n_update -gt 0 && $n_input -gt 1 ]];then
