@@ -2,6 +2,10 @@
 
 # ALL INPUT FILES ARE TSV
 
+bold=$(tput bold)
+underlined=$(tput smul)
+normal=$(tput sgr0)
+
 function join_by { local IFS="$1"; shift; echo "$*"; }
 
 function getColNum () {
@@ -11,7 +15,26 @@ function getColNum () {
 }
 
 function usage () {
-    echo "Merging script"
+    echo ""
+    echo "Merging/updating script for UKBB data"
+    echo ""
+    echo "Usage: ukbb_merge.sh -f <ID field name; default: \"f.eid\">"
+    echo "                     -i input1.tab"
+    echo "                     -i input2.tab"
+    echo "           ...                    "
+    echo "                     -i inputN.tab"
+    echo "                     -u update1.tab"
+    echo "                     -u update2.tab"
+    echo "           ...                    "
+    echo "                     -u updateM.tab"
+    echo ""
+    echo "${underlined}Merge mode${normal}: if no update (-u) files are specified, the script merges all input files."
+    echo ""
+    echo "${underlined}Update mode${normal}: if at least one update file is given, the script works only with the first input (-i) file" 
+    echo "and ignores the remaining input files. I a field in the input file"
+    echo "is present in an update file, its content in the input file will be updated."
+    echo ""
+    exit 0
 }
 
 # default ID column
@@ -25,11 +48,16 @@ declare -a input_nrows
 declare -a update_nrows
 declare -a fields_to_exclude
 
-while getopts "i:u:f:" opt; do
+if [[ $# -eq 0 ]];then
+    usage
+fi
+
+while getopts "hi:u:f:" opt; do
     case $opt in
         i)input_fnames+=($OPTARG);;
         u)update_fnames+=($OPTARG);;
         f)id_field=($OPTARG);;
+        h)usage;;
         *)usage;;
     esac
 done
