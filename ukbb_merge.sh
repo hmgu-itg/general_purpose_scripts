@@ -1,10 +1,22 @@
 #!/usr/bin/env bash
 
-# ALL INPUT FILES ARE TSV
+# ALL INPUT FILES ARE TAB SEPARATED
 
 bold=$(tput bold)
 underlined=$(tput smul)
 normal=$(tput sgr0)
+
+function checkFields {
+    local fname=$1
+    echo -n "Checking # fields in $fname ... "
+    local x=$(awk 'BEGIN{FS="\t";}{print NF;}' $fname| sort|uniq| wc -l)
+    if [[ $x -eq 1 ]];then
+	echo "OK"
+    else
+	echo "ERROR: $fname contains rows with different number of fields" 1>&2
+	exit 1
+    fi
+}
 
 function join_by { local IFS="$1"; shift; echo "$*"; }
 
