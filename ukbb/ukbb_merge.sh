@@ -8,10 +8,10 @@ normal=$(tput sgr0)
 
 function checkFields {
     local fname=$1
-    echo -n "Checking # fields in $fname ... "
+    echo -n "Checking # fields in $fname ... " 1>&2
     local x=$(awk 'BEGIN{FS="\t";}{print NF;}' $fname| sort|uniq| wc -l)
     if [[ $x -eq 1 ]];then
-	echo "OK"
+	echo "OK" 1>&2
     else
 	echo "ERROR: $fname contains rows with different number of fields" 1>&2
 	exit 1
@@ -39,8 +39,11 @@ function usage () {
     echo "                     -u update2.tab"
     echo "           ...                    "
     echo "                     -u updateM.tab"
+    echo "                     -o <output prefix>"
+    echo "                     -m <input.meta; ignored if merging>"
+    echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input.meta if updating>"
     echo ""
-    echo "All input/update files are tab-separated."
+    echo "All input/update files are tab-separated"
     echo ""
     echo "${underlined}Merge mode${normal}: if no update (-u) files are specified, the script merges all input files."
     echo ""
@@ -52,10 +55,6 @@ function usage () {
     echo ""
     exit 0
 }
-
-# default ID column
-id_field="f.eid"
-datestr=$(date)
 
 declare -a input_fnames
 declare -a update_filenames
@@ -69,11 +68,19 @@ if [[ $# -eq 0 ]];then
     usage
 fi
 
-while getopts "hi:u:f:" opt; do
+id_field="f.eid"
+datestr=$(date +%F)
+out_prefix=""
+input_meta=""
+release="1"
+while getopts "hi:u:f:o:m:r:" opt; do
     case $opt in
         i)input_fnames+=($OPTARG);;
         u)update_fnames+=($OPTARG);;
         f)id_field=($OPTARG);;
+        o)out_prefix=($OPTARG);;
+        m)input_meta=($OPTARG);;
+        r)release=($OPTARG);;
         h)usage;;
         *)usage;;
     esac
@@ -149,7 +156,7 @@ echo "" 1>&2
 #
 # check if column names (excepth for ID field) in input files are disjoint
 #
-echo "Checking if column names in input/update files are disjoint ... " 1>&2
+echo "Checking if column names in input files are disjoint ... " 1>&2
 if [[ $n_input -gt 1 ]];then
     for i in $(seq 0 $((n_input-1)));do
 	for j in $(seq $((i+1)) $((n_input-1)));do
@@ -179,6 +186,8 @@ fi
 echo "OK" 1>&2
 echo "" 1>&2
 
+#-------------------------------------- OUTPUT -------------------------------------------------
+
 if [[ $n_update -eq 0 ]];then # just merging input files
     echo "Merging input files ... " 1>&2
     command1="paste <(head -n 1 ${input_fnames[0]})"
@@ -191,7 +200,16 @@ if [[ $n_update -eq 0 ]];then # just merging input files
 	command2=$command2" <(tail -n +2 ${input_fnames[$i]}|sort -k${input_ID_column[$i]},${input_ID_column[$i]}|cut --complement -f ${input_ID_column[$i]})"
     done
 
-    eval "cat <($command1) <($command2)"
+    eval "cat <($command1) <($command2) > ${out_prefix}.txt"
+    # creating meta file
+    echo "RELEASE $release" > ${out_prefix}.meta
+    echo "CREATED $datestr" >> ${out_prefix}.meta
+    for i in $(seq 0 $((n_input-1)));do
+	for f in $(cat <(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]}));do
+	    echo $f ${input_fnames[$i]} >> ${out_prefix}.meta
+	done
+    done
+    
     echo "Done" 1>&2
     echo "" 1>&2
 else # updating the first input file using update files
