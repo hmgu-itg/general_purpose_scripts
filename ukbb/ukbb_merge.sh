@@ -106,6 +106,15 @@ if [[ $n_update -gt 0 && $n_input -gt 1 ]];then
     echo "WARN: $n_update update files and $n_input input files specified; only the first input file (${input_fnames[0]}) will be processed" 1>&2
 fi
 
+# TODO: update
+for i in $(seq 0 $((n_input-1)));do
+    checkFields ${input_fnames[$i]}
+done
+
+for i in $(seq 0 $((n_update-1)));do
+    checkFields ${update_fnames[$i]}
+done
+
 for i in $(seq 0 $((n_input-1)));do
     x=$(getColNum ${input_fnames[$i]} $id_field)
     input_ID_column+=($x)
@@ -134,9 +143,9 @@ for i in $(seq 0 $((n_update-1)));do
 done
 
 #
-# check if all files have the same sample IDs
+# check if all files have the same IDs
 #
-echo "Checking if input/update files have same sample IDs ... " 1>&2
+echo "Checking if input files have same IDs ... " 1>&2
 for i in $(seq 0 $((n_input-1)));do
     x=$(cat <(cut -f ${input_ID_column[0]} ${input_fnames[0]}) <(cut -f ${input_ID_column[$i]} ${input_fnames[$i]})|sort|uniq -u|wc -l)
     if [[ $x -ne 0 ]];then
@@ -145,13 +154,13 @@ for i in $(seq 0 $((n_input-1)));do
     fi
 done
 
-for i in $(seq 0 $((n_update-1)));do
-    x=$(cat <(cut -f ${input_ID_column[0]} ${input_fnames[0]}) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]})|sort|uniq -u|wc -l)
-    if [[ $x -ne 0 ]];then
-	echo "ERROR: files ${input_fnames[0]} and ${update_fnames[$i]} have different sets of IDs" 1>&2
-	exit 1
-    fi
-done
+# for i in $(seq 0 $((n_update-1)));do
+#     x=$(cat <(cut -f ${input_ID_column[0]} ${input_fnames[0]}) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]})|sort|uniq -u|wc -l)
+#     if [[ $x -ne 0 ]];then
+# 	echo "ERROR: files ${input_fnames[0]} and ${update_fnames[$i]} have different sets of IDs" 1>&2
+# 	exit 1
+#     fi
+# done
 echo "OK" 1>&2
 echo "" 1>&2
 
@@ -252,55 +261,73 @@ else # updating the first input file using update files
     # if no release specified, read previous release and increment it
     if [[ -z "$release" ]];then
 	release_col=$(getColNum ${input_fnames[0]} "RELEASE")
+	if [[ -z "$release_col" ]];then
+	    echo "ERROR: no RELEASE column in the input file ${input_fnames[0]}" 1>&2
+	    exit 1
+	fi
 	release=$(cut -f ${release_col} ${input_fnames[0]}|head -n 2| tail  -n 1)
 	release=$((release+1))
     fi
 
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    #-------------------------------------------------------
-    # exclude fields from input that are present in update files
-    
-    command1="cat"
     for i in $(seq 0 $((n_update-1)));do
-	command1=$command1" <(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]}| tr '\t' '\n')"
-    done
-    command1=$command1" | sort|uniq"
-    command1="cat <(head -n 1 ${input_fnames[0]}|cut --complement -f ${input_ID_column[0]}| tr '\t' '\n') <($command1) | sort|uniq -d"
-
-    for r in $(eval $command1);do
-	x=$(getColNum ${input_fnames[0]} $r)
-	fields_to_exclude+=($x)
-    done
-    str=$(join_by , ${fields_to_exclude[*]})
-    echo "Fields to exclude: $str" 1>&2
-    
-    #-------------------------------------------------------
-    
-    command1="paste <(head -n 1 ${input_fnames[0]}| cut --complement -f $str)"
-    for i in $(seq 0 $((n_update-1)));do
-	command1=$command1" <(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]})"
-    done
-    
-    command2="paste <(tail -n +2 ${input_fnames[0]}|sort -k${input_ID_column[0]},${input_ID_column[0]}| cut --complement -f $str)"
-    for i in $(seq 0 $((n_update-1)));do
-	command2=$command2" <(tail -n +2 ${update_fnames[$i]}|sort -k${update_ID_column[$i]},${update_ID_column[$i]}|cut --complement -f ${update_ID_column[$i]})"
+	echo "Checking IDs in update file $i: ${update_fnames[$i]}" 1>&2
+	n_missing=$(join -1 1 -2 1 -t $'\t' -a 1 -a 2 -e NA -o 1.1,2.1 <(cut -f ${input_ID_column[0]} ${input_fnames[0]}|tail -n +3|sort) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]}|tail -n +2|sort)| awk 'BEGIN{FS="\t";}$2=="NA"{print $0;}' | wc -l)
+	n_new=$(join -1 1 -2 1 -t $'\t' -a 1 -a 2 -e NA -o 1.1,2.1 <(cut -f ${input_ID_column[0]} ${input_fnames[0]}|tail -n +3|sort) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]}|tail -n +2|sort)| awk 'BEGIN{FS="\t";}$1=="NA"{print $0;}' | wc -l)
+	echo "Missing IDs: ${n_missing}" 1>&2
+	if [[ $n_missing -gt 0 ]];then
+	    join -1 1 -2 1 -t $'\t' -a 1 -a 2 -e NA -o 1.1,2.1 <(cut -f ${input_ID_column[0]} ${input_fnames[0]}|tail -n +3|sort) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]}|tail -n +2|sort)| awk 'BEGIN{FS="\t";}$2=="NA"{print $1;}' 1>&2
+	fi
+     	echo "New IDs: ${n_new}" 1>&2
+	if [[ $n_new -gt 0 ]];then
+	    join -1 1 -2 1 -t $'\t' -a 1 -a 2 -e NA -o 1.1,2.1 <(cut -f ${input_ID_column[0]} ${input_fnames[0]}|tail -n +3|sort) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]}|tail -n +2|sort)| awk 'BEGIN{FS="\t";}$1=="NA"{print $2;}' 1>&2
+	fi
+	echo "" 1>&2
     done
 
-    eval "cat <($command1) <($command2)"
+
+
+
+
+
+
+
+
+
+
+
     
-    #-------------------------------------------------------
+    # #-------------------------------------------------------
+    # # exclude fields from input that are present in update files
+    
+    # command1="cat"
+    # for i in $(seq 0 $((n_update-1)));do
+    # 	command1=$command1" <(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]}| tr '\t' '\n')"
+    # done
+    # command1=$command1" | sort|uniq"
+    # command1="cat <(head -n 1 ${input_fnames[0]}|cut --complement -f ${input_ID_column[0]}| tr '\t' '\n') <($command1) | sort|uniq -d"
+
+    # for r in $(eval $command1);do
+    # 	x=$(getColNum ${input_fnames[0]} $r)
+    # 	fields_to_exclude+=($x)
+    # done
+    # str=$(join_by , ${fields_to_exclude[*]})
+    # echo "Fields to exclude: $str" 1>&2
+    
+    # #-------------------------------------------------------
+    
+    # command1="paste <(head -n 1 ${input_fnames[0]}| cut --complement -f $str)"
+    # for i in $(seq 0 $((n_update-1)));do
+    # 	command1=$command1" <(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]})"
+    # done
+    
+    # command2="paste <(tail -n +2 ${input_fnames[0]}|sort -k${input_ID_column[0]},${input_ID_column[0]}| cut --complement -f $str)"
+    # for i in $(seq 0 $((n_update-1)));do
+    # 	command2=$command2" <(tail -n +2 ${update_fnames[$i]}|sort -k${update_ID_column[$i]},${update_ID_column[$i]}|cut --complement -f ${update_ID_column[$i]})"
+    # done
+
+    # eval "cat <($command1) <($command2)"
+    
+    # #-------------------------------------------------------
 
     echo "Done" 1>&2
     echo "" 1>&2    
