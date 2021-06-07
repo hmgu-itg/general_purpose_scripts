@@ -40,7 +40,7 @@ function usage () {
     echo "           ...                    "
     echo "                     -u updateM.tab"
     echo "                     -o <output prefix>"
-    echo "                     -m <input.meta; ignored if merging>"
+#    echo "                     -m <input.meta; ignored if merging>"
     echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input.meta if updating>"
     echo ""
     echo "All input/update files are tab-separated"
@@ -63,6 +63,8 @@ declare -a update_ID_column
 declare -a input_nrows
 declare -a update_nrows
 declare -a fields_to_exclude
+declare -a class_array
+declare -A column_class
 
 if [[ $# -eq 0 ]];then
     usage
@@ -71,15 +73,15 @@ fi
 id_field="f.eid"
 datestr=$(date +%F)
 out_prefix=""
-input_meta=""
-release="1"
-while getopts "hi:u:f:o:m:r:" opt; do
+#input_meta=""
+release=""
+while getopts "hi:u:f:o:r:" opt; do
     case $opt in
         i)input_fnames+=($OPTARG);;
         u)update_fnames+=($OPTARG);;
         f)id_field=($OPTARG);;
         o)out_prefix=($OPTARG);;
-        m)input_meta=($OPTARG);;
+#        m)input_meta=($OPTARG);;
         r)release=($OPTARG);;
         h)usage;;
         *)usage;;
@@ -190,31 +192,83 @@ echo "" 1>&2
 
 if [[ $n_update -eq 0 ]];then # just merging input files
     echo "Merging input files ... " 1>&2
+
+    # column classes are based on source input files
+    for i in $(seq 0 $((n_input-1)));do
+    	for c in $(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]});do
+    	    column_class[$c]=$i
+    	done
+    done
+    column_class[$id_field]="NA"
+
+    # if no release specified, set it to "1"
+    if [[ -z "$release" ]];then
+	release="1"
+    fi
+
+    # HEADER
     command1="paste <(head -n 1 ${input_fnames[0]})"
     for i in $(seq 1 $((n_input-1)));do
-	command1=$command1" <(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]})"
+	command1=${command1}" <(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]})"
     done
+    command1=${command1}" <(echo RELEASE CREATED| tr ' ' '\t')"
 
-    command2="paste <(tail -n +2 ${input_fnames[0]}|sort -k${input_ID_column[0]},${input_ID_column[0]})"
+
+    for c in $(head -n 1 ${input_fnames[0]});do
+	class_array+=(${column_class[$c]})
+    done
     for i in $(seq 1 $((n_input-1)));do
-	command2=$command2" <(tail -n +2 ${input_fnames[$i]}|sort -k${input_ID_column[$i]},${input_ID_column[$i]}|cut --complement -f ${input_ID_column[$i]})"
-    done
-
-    eval "cat <($command1) <($command2) > ${out_prefix}.txt"
-    # creating meta file
-    echo "RELEASE $release" > ${out_prefix}.meta
-    echo "CREATED $datestr" >> ${out_prefix}.meta
-    for i in $(seq 0 $((n_input-1)));do
-	for f in $(cat <(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]}));do
-	    echo $f ${input_fnames[$i]} >> ${out_prefix}.meta
+	for c in $(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]});do
+	    class_array+=(${column_class[$c]})
 	done
     done
+    class_array+=($release)
+    class_array+=($datestr)
+    header2=$(join_by , ${class_array[*]})
+    
+    command2="paste <(tail -n +2 ${input_fnames[0]}|sort -k${input_ID_column[0]},${input_ID_column[0]})"
+    for i in $(seq 1 $((n_input-1)));do
+	command2=${command2}" <(tail -n +2 ${input_fnames[$i]}|sort -k${input_ID_column[$i]},${input_ID_column[$i]}|cut --complement -f ${input_ID_column[$i]})"
+    done
+    x=${input_nrows[0]}
+    x=$((x-1))
+    command2=${command2}" <(yes $release $datestr| tr ' ' '\t'| head -n $x)"
+
+    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) > ${out_prefix}.txt"
+    # # creating meta file
+    # echo "RELEASE $release" > ${out_prefix}.meta
+    # echo "CREATED $datestr" >> ${out_prefix}.meta
+    # for i in $(seq 0 $((n_input-1)));do
+    # 	for f in $(cat <(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]}));do
+    # 	    echo $f ${input_fnames[$i]} >> ${out_prefix}.meta
+    # 	done
+    # done
     
     echo "Done" 1>&2
     echo "" 1>&2
 else # updating the first input file using update files
     echo "Updating input ... " 1>&2
 
+    # if no release specified, read previous release and increment it
+    if [[ -z "$release" ]];then
+	release_col=$(getColNum ${input_fnames[0]} "RELEASE")
+	release=$(cut -f ${release_col} ${input_fnames[0]}|head -n 2| tail  -n 1)
+	release=$((release+1))
+    fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     #-------------------------------------------------------
     # exclude fields from input that are present in update files
     
