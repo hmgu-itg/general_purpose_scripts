@@ -6,6 +6,24 @@ bold=$(tput bold)
 underlined=$(tput smul)
 normal=$(tput sgr0)
 
+# check if key is in array
+function checkArray {
+    local k=$1
+    shift
+    local ar=("$@")
+
+    x="NO"
+    for c in "${ar[@]}";do
+	if [[ $c == $k ]];then
+	    x="YES"
+	    break
+	fi
+    done
+    
+    echo $x
+}
+
+# check if all rows in a TSV file have same # fields
 function checkFields {
     local fname=$1
     echo -n "Checking # fields in $fname ... " 1>&2
@@ -18,8 +36,10 @@ function checkFields {
     fi
 }
 
+# join an array
 function join_by { local IFS="$1"; shift; echo "$*"; }
 
+# get column number for a specific column
 function getColNum () {
     local fname=$1
     local colname=$2
@@ -65,6 +85,9 @@ declare -a update_nrows
 declare -a fields_to_exclude
 declare -a class_array
 declare -A column_class
+declare -a input_fields
+declare -a input_classes
+declare -A input_field2class
 
 if [[ $# -eq 0 ]];then
     usage
@@ -143,24 +166,30 @@ for i in $(seq 0 $((n_update-1)));do
 done
 
 #
-# check if all files have the same IDs
+# check if all input files have same IDs
 #
 echo "Checking if input files have same IDs ... " 1>&2
-for i in $(seq 0 $((n_input-1)));do
+for i in $(seq 1 $((n_input-1)));do
     x=$(cat <(cut -f ${input_ID_column[0]} ${input_fnames[0]}) <(cut -f ${input_ID_column[$i]} ${input_fnames[$i]})|sort|uniq -u|wc -l)
     if [[ $x -ne 0 ]];then
 	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs" 1>&2
 	exit 1
     fi
 done
+echo "OK" 1>&2
+echo "" 1>&2
 
-# for i in $(seq 0 $((n_update-1)));do
-#     x=$(cat <(cut -f ${input_ID_column[0]} ${input_fnames[0]}) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]})|sort|uniq -u|wc -l)
-#     if [[ $x -ne 0 ]];then
-# 	echo "ERROR: files ${input_fnames[0]} and ${update_fnames[$i]} have different sets of IDs" 1>&2
-# 	exit 1
-#     fi
-# done
+#
+# check if all update files have same IDs
+#
+echo "Checking if update files have same IDs ... " 1>&2
+for i in $(seq 1 $((n_update-1)));do
+    x=$(cat <(cut -f ${update_ID_column[0]} ${update_fnames[0]}) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]})|sort|uniq -u|wc -l)
+    if [[ $x -ne 0 ]];then
+	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs" 1>&2
+	exit 1
+    fi
+done
 echo "OK" 1>&2
 echo "" 1>&2
 
@@ -179,6 +208,8 @@ if [[ $n_input -gt 1 ]];then
 	done
     done
 fi
+echo "OK" 1>&2
+echo "" 1>&2
 
 #
 # check if column names (excepth for ID field) in update files are disjoint
@@ -202,7 +233,7 @@ echo "" 1>&2
 if [[ $n_update -eq 0 ]];then # just merging input files
     echo "Merging input files ... " 1>&2
 
-    # column classes are based on source input files
+    # column classes of input columns are based on source input files
     for i in $(seq 0 $((n_input-1)));do
     	for c in $(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]});do
     	    column_class[$c]=$i
@@ -222,7 +253,6 @@ if [[ $n_update -eq 0 ]];then # just merging input files
     done
     command1=${command1}" <(echo RELEASE CREATED| tr ' ' '\t')"
 
-
     for c in $(head -n 1 ${input_fnames[0]});do
 	class_array+=(${column_class[$c]})
     done
@@ -231,8 +261,8 @@ if [[ $n_update -eq 0 ]];then # just merging input files
 	    class_array+=(${column_class[$c]})
 	done
     done
-    class_array+=($release)
-    class_array+=($datestr)
+    class_array+=("NA")
+    class_array+=("NA")
     header2=$(join_by , ${class_array[*]})
     
     command2="paste <(tail -n +2 ${input_fnames[0]}|sort -k${input_ID_column[0]},${input_ID_column[0]})"
@@ -244,14 +274,6 @@ if [[ $n_update -eq 0 ]];then # just merging input files
     command2=${command2}" <(yes $release $datestr| tr ' ' '\t'| head -n $x)"
 
     eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) > ${out_prefix}.txt"
-    # # creating meta file
-    # echo "RELEASE $release" > ${out_prefix}.meta
-    # echo "CREATED $datestr" >> ${out_prefix}.meta
-    # for i in $(seq 0 $((n_input-1)));do
-    # 	for f in $(cat <(head -n 1 ${input_fnames[$i]}|cut --complement -f ${input_ID_column[$i]}));do
-    # 	    echo $f ${input_fnames[$i]} >> ${out_prefix}.meta
-    # 	done
-    # done
     
     echo "Done" 1>&2
     echo "" 1>&2
@@ -259,76 +281,177 @@ else # updating the first input file using update files
     echo "Updating input ... " 1>&2
 
     # if no release specified, read previous release and increment it
+    release_col=$(getColNum ${input_fnames[0]} "RELEASE")
+    if [[ -z "$release_col" ]];then
+	echo "ERROR: no RELEASE column found in the input file ${input_fnames[0]}" 1>&2
+	exit 1
+    fi
+    created_col=$(getColNum ${input_fnames[0]} "CREATED")
+    if [[ -z "$created_col" ]];then
+	echo "ERROR: no CREATED column found in the input file ${input_fnames[0]}" 1>&2
+	exit 1
+    fi
     if [[ -z "$release" ]];then
-	release_col=$(getColNum ${input_fnames[0]} "RELEASE")
-	if [[ -z "$release_col" ]];then
-	    echo "ERROR: no RELEASE column in the input file ${input_fnames[0]}" 1>&2
-	    exit 1
-	fi
-	release=$(cut -f ${release_col} ${input_fnames[0]}|head -n 2| tail  -n 1)
+	release=$(cut -f ${release_col} ${input_fnames[0]}|head -n 2| tail -n 1)
 	release=$((release+1))
     fi
-
+    #----------------------------------------------------------------
+    # merging all update files and saving the result in a temporary file
+    # update files have same IDs, so using paste instead of join
+    tmpfile1=$(mktemp ${out_prefix}_XXXXXXXX)
+    echo "Merging update files ... " 1>&2
+    # column classes of input columns are based on source update files
     for i in $(seq 0 $((n_update-1)));do
-	echo "Checking IDs in update file $i: ${update_fnames[$i]}" 1>&2
-	n_missing=$(join -1 1 -2 1 -t $'\t' -a 1 -a 2 -e NA -o 1.1,2.1 <(cut -f ${input_ID_column[0]} ${input_fnames[0]}|tail -n +3|sort) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]}|tail -n +2|sort)| awk 'BEGIN{FS="\t";}$2=="NA"{print $0;}' | wc -l)
-	n_new=$(join -1 1 -2 1 -t $'\t' -a 1 -a 2 -e NA -o 1.1,2.1 <(cut -f ${input_ID_column[0]} ${input_fnames[0]}|tail -n +3|sort) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]}|tail -n +2|sort)| awk 'BEGIN{FS="\t";}$1=="NA"{print $0;}' | wc -l)
-	echo "Missing IDs: ${n_missing}" 1>&2
-	if [[ $n_missing -gt 0 ]];then
-	    join -1 1 -2 1 -t $'\t' -a 1 -a 2 -e NA -o 1.1,2.1 <(cut -f ${input_ID_column[0]} ${input_fnames[0]}|tail -n +3|sort) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]}|tail -n +2|sort)| awk 'BEGIN{FS="\t";}$2=="NA"{print $1;}' 1>&2
+    	for c in $(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]});do
+    	    column_class[$c]=$i
+    	done
+    done
+    column_class[$id_field]="NA"
+    # HEADER
+    command1="paste <(head -n 1 ${update_fnames[0]})"
+    for i in $(seq 1 $((n_update-1)));do
+	command1=${command1}" <(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]})"
+    done
+    # CLASS ROW
+    for c in $(head -n 1 ${update_fnames[0]});do
+	class_array+=(${column_class[$c]})
+    done
+    for i in $(seq 1 $((n_update-1)));do
+	for c in $(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]});do
+	    class_array+=(${column_class[$c]})
+	done
+    done
+    header2=$(join_by , ${class_array[*]})
+    # BODY
+    command2="paste <(tail -n +2 ${update_fnames[0]}|sort -k${update_ID_column[0]},${update_ID_column[0]})"
+    for i in $(seq 1 $((n_update-1)));do
+	command2=${command2}" <(tail -n +2 ${update_fnames[$i]}|sort -k${update_ID_column[$i]},${update_ID_column[$i]}|cut --complement -f ${update_ID_column[$i]})"
+    done
+    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) > $tmpfile1"
+    echo "Done" 1>&2
+    echo "" 1>&2
+    #----------------------------------------------------------------
+    # input fields (except for ID column) and their classes, from the input file
+    for c in $(head -n 1 ${input_fnames[0]}|cut --complement -f ${input_ID_column[0]},${release_col},${created_col});do
+	input_fields+=($c)
+    done
+    for c in $(head -n 2 ${input_fnames[0]}|tail -n 1|cut --complement -f ${input_ID_column[0]},${release_col},${created_col});do
+	input_classes+=($c)
+    done
+    for (( i=0; i<${#input_fields[@]}; i++ )); do input_field2class[${input_fields[$i]}]=${input_classes[$i]};done
+    new_update_ID=$(getColNum $tmpfile1 $id_field)
+    # update fields (except for ID column) and their classes, from the merged update file
+    declare -a update_fields
+    declare -a update_classes
+    declare -A update_field2class
+    for c in $(head -n 1 $tmpfile1|cut --complement -f $new_update_ID);do update_fields+=($c);done
+    for c in $(head -n 2 $tmpfile1|tail -n 1|cut --complement -f $new_update_ID);do update_classes+=($c);done
+    for (( i=0; i<${#update_fields[@]}; i++ )); do update_field2class[${update_fields[$i]}]=${update_classes[$i]};done
+    # input classes intersecting with update fields: all input fields from these will be excluded from input before merging
+    declare -A intersecting_classes
+    # new fields in update that will be added
+    declare -A new_fields
+    for c in $(head -n 1 $tmpfile1|cut --complement -f $new_update_ID);do
+	status=$(checkArray "$c" "${!input_field2class[@]}")
+	if [[ $status == "YES" ]];then
+	    x=${input_field2class[$c]}
+	    intersecting_classes[$x]=1
+	else
+	    new_fields[$c]=1
 	fi
-     	echo "New IDs: ${n_new}" 1>&2
-	if [[ $n_new -gt 0 ]];then
-	    join -1 1 -2 1 -t $'\t' -a 1 -a 2 -e NA -o 1.1,2.1 <(cut -f ${input_ID_column[0]} ${input_fnames[0]}|tail -n +3|sort) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]}|tail -n +2|sort)| awk 'BEGIN{FS="\t";}$1=="NA"{print $2;}' 1>&2
+    done
+    # all column numbers from input intersecting_classes
+    declare -a input_columns_to_exclude
+    for (( i=0; i<${#input_fields[@]}; i++ )); do
+	c=${input_fields[$i]}
+	x=${input_field2class[$c]}
+	status=$(checkArray "$x" "${!intersecting_classes[@]}")
+	if [[ $status == "YES" ]];then
+	    n=$(getColNum ${input_fnames[0]} $c)
+	    input_columns_to_exclude+=($n)
 	fi
-	echo "" 1>&2
+    done
+    
+    tmpfile2=$(mktemp ${out_prefix}_XXXXXXXX)
+    cut -f $(join_by , ${input_columns_to_exclude[*]}) -f $created_col -f $release_col --complement ${input_fnames[0]} | awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' > "$tmpfile2"
+    new_input_ID=$(getColNum $tmpfile2 $id_field)
+    
+    # join input and merged update, without classes
+    fmtstr="1.${new_input_ID},2.${$new_update_ID}"
+    input_ncol=$(head -n 1 $tmpfile2|tr '\t' '\n'|wc -l)
+    update_ncol=$(head -n 1 $tmpfile1|tr '\t' '\n'|wc -l)
+    for (( i=1; i<=$input_ncol; i++ )); do
+	if [[ $i -ne $new_input_ID ]];then
+	    fmtstr=$fmtstr",1.$i"
+	fi
+    done
+    for (( i=1; i<=$update_ncol; i++ )); do
+	if [[ $i -ne $new_update_ID ]];then
+	    fmtstr=$fmtstr",2.$i"
+	fi
+    done
+    tmpfile3=$(mktemp ${out_prefix}_XXXXXXXX)
+    join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr $tmpfile2 $tmpfile1|awk 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($1==NA){$1=$2;}}}'| cut -f 2 --complement > $tmpfile3 
+    joined_ID=$(getColNum $tmpfile3 $id_field)
+    
+    # max update class
+    maxc=0
+    for c in "${update_field2class[@]}";do
+	if [[ $c -gt $maxc]];then
+	    maxc=$c
+	fi
+    done
+    declare -A new_classes
+    declare -A tmp_ar
+    cur_add=1
+    for c in $(head -n 1 $tmpfile3|cut -f $joined_ID --complement);do
+	s=$(checkArray "$c" "${!update_field2class[@]}")
+	if [[ $s == "YES" ]];then
+	    new_classes[$c]=${update_field2class[$c]}
+	else
+	    t=$(checkArray "$c" "${!input_field2class[@]}")
+	    if [[ $t == "YES" ]];then
+		d=${input_field2class[$c]}
+		u=$(checkArray "$d" "${!tmp_ar[@]}")
+		if [[ $u == "YES" ]];then
+		    new_classes[$c]=${tmp_ar[$d]}
+		else
+		    tmp_ar[$d]=$((maxc+cur_add))
+		    new_classes[$c]=${tmp_ar[$d]}
+		    cur_add=$((cur_add+1))
+		fi
+	    else
+		echo "ERROR: could not find class for $c" 1>&2
+		exit 1
+	    fi
+	fi
     done
 
+    # FINAL OUTPUT
+    command1="paste <(head -n 1 $tmpfile3) <(echo RELEASE CREATED|tr ' ' '\t')"
 
+    declare -a temp
+    for c in $(head -n 1 $tmpfile3);do
+	if [[ $c == $id_field ]];then
+	    temp+=("NA")
+	else
+	    temp+=(${new_classes[$c]})
+	fi
+    done
+    temp+=("NA")
+    temp+=("NA")
+    header2=$(join_by , ${temp[*]})
 
+    command2="paste <(tail -n +2 $tmpfile3)"
+    x=$(tail -n +2 $tmpfile3| wc -l)
+    command2=${command2}" <(yes $release $datestr| tr ' ' '\t'| head -n $x)"
 
-
-
-
-
-
-
-
-
+    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) > ${out_prefix}.txt"
     
-    # #-------------------------------------------------------
-    # # exclude fields from input that are present in update files
+    #rm $tmpfile1
+    #rm $tmpfile2
+    #rm $tmpfile3
     
-    # command1="cat"
-    # for i in $(seq 0 $((n_update-1)));do
-    # 	command1=$command1" <(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]}| tr '\t' '\n')"
-    # done
-    # command1=$command1" | sort|uniq"
-    # command1="cat <(head -n 1 ${input_fnames[0]}|cut --complement -f ${input_ID_column[0]}| tr '\t' '\n') <($command1) | sort|uniq -d"
-
-    # for r in $(eval $command1);do
-    # 	x=$(getColNum ${input_fnames[0]} $r)
-    # 	fields_to_exclude+=($x)
-    # done
-    # str=$(join_by , ${fields_to_exclude[*]})
-    # echo "Fields to exclude: $str" 1>&2
-    
-    # #-------------------------------------------------------
-    
-    # command1="paste <(head -n 1 ${input_fnames[0]}| cut --complement -f $str)"
-    # for i in $(seq 0 $((n_update-1)));do
-    # 	command1=$command1" <(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]})"
-    # done
-    
-    # command2="paste <(tail -n +2 ${input_fnames[0]}|sort -k${input_ID_column[0]},${input_ID_column[0]}| cut --complement -f $str)"
-    # for i in $(seq 0 $((n_update-1)));do
-    # 	command2=$command2" <(tail -n +2 ${update_fnames[$i]}|sort -k${update_ID_column[$i]},${update_ID_column[$i]}|cut --complement -f ${update_ID_column[$i]})"
-    # done
-
-    # eval "cat <($command1) <($command2)"
-    
-    # #-------------------------------------------------------
-
     echo "Done" 1>&2
     echo "" 1>&2    
 fi
