@@ -168,7 +168,7 @@ done
 #
 # check if all input files have same IDs
 #
-echo "Checking if input files have same IDs ... " 1>&2
+echo -n "Checking if input files have same IDs ... " 1>&2
 for i in $(seq 1 $((n_input-1)));do
     x=$(cat <(cut -f ${input_ID_column[0]} ${input_fnames[0]}) <(cut -f ${input_ID_column[$i]} ${input_fnames[$i]})|sort|uniq -u|wc -l)
     if [[ $x -ne 0 ]];then
@@ -177,12 +177,11 @@ for i in $(seq 1 $((n_input-1)));do
     fi
 done
 echo "OK" 1>&2
-echo "" 1>&2
 
 #
 # check if all update files have same IDs
 #
-echo "Checking if update files have same IDs ... " 1>&2
+echo -n "Checking if update files have same IDs ... " 1>&2
 for i in $(seq 1 $((n_update-1)));do
     x=$(cat <(cut -f ${update_ID_column[0]} ${update_fnames[0]}) <(cut -f ${update_ID_column[$i]} ${update_fnames[$i]})|sort|uniq -u|wc -l)
     if [[ $x -ne 0 ]];then
@@ -191,12 +190,11 @@ for i in $(seq 1 $((n_update-1)));do
     fi
 done
 echo "OK" 1>&2
-echo "" 1>&2
 
 #
 # check if column names (excepth for ID field) in input files are disjoint
 #
-echo "Checking if column names in input files are disjoint ... " 1>&2
+echo -n "Checking if column names in input files are disjoint ... " 1>&2
 if [[ $n_input -gt 1 ]];then
     for i in $(seq 0 $((n_input-1)));do
 	for j in $(seq $((i+1)) $((n_input-1)));do
@@ -209,11 +207,11 @@ if [[ $n_input -gt 1 ]];then
     done
 fi
 echo "OK" 1>&2
-echo "" 1>&2
 
 #
 # check if column names (excepth for ID field) in update files are disjoint
 #
+echo -n "Checking if column names in update files are disjoint ... " 1>&2
 if [[ $n_update -gt 1 ]];then
     for i in $(seq 0 $((n_update-1)));do
 	for j in $(seq $((i+1)) $((n_update-1)));do
@@ -298,8 +296,8 @@ else # updating the first input file using update files
     #----------------------------------------------------------------
     # merging all update files and saving the result in a temporary file
     # update files have same IDs, so using paste instead of join
-    tmpfile1=$(mktemp ${out_prefix}_XXXXXXXX)
-    echo "Merging update files ... " 1>&2
+    tmpfile1=$(mktemp ${out_prefix}_1_update_XXXXXXXX)
+    echo -n "Merging update files ... " 1>&2
     # column classes of input columns are based on source update files
     for i in $(seq 0 $((n_update-1)));do
     	for c in $(head -n 1 ${update_fnames[$i]}|cut --complement -f ${update_ID_column[$i]});do
@@ -371,13 +369,17 @@ else # updating the first input file using update files
 	    input_columns_to_exclude+=($n)
 	fi
     done
+    input_columns_to_exclude+=($created_col)
+    input_columns_to_exclude+=($release_col)
     
-    tmpfile2=$(mktemp ${out_prefix}_XXXXXXXX)
-    cut -f $(join_by , ${input_columns_to_exclude[*]}) -f $created_col -f $release_col --complement ${input_fnames[0]} | awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' > "$tmpfile2"
+    tmpfile2=$(mktemp ${out_prefix}_2_input_XXXXXXXX)
+    #str=$(join_by , ${input_columns_to_exclude[*]})
+    #echo "columns to exclude: $str" 1>&2
+    cut -f $(join_by , ${input_columns_to_exclude[*]}) --complement ${input_fnames[0]} | awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' > "$tmpfile2"
     new_input_ID=$(getColNum $tmpfile2 $id_field)
     
     # join input and merged update, without classes
-    fmtstr="1.${new_input_ID},2.${$new_update_ID}"
+    fmtstr="1.""${new_input_ID}"",2.""${new_update_ID}"
     input_ncol=$(head -n 1 $tmpfile2|tr '\t' '\n'|wc -l)
     update_ncol=$(head -n 1 $tmpfile1|tr '\t' '\n'|wc -l)
     for (( i=1; i<=$input_ncol; i++ )); do
@@ -390,14 +392,19 @@ else # updating the first input file using update files
 	    fmtstr=$fmtstr",2.$i"
 	fi
     done
-    tmpfile3=$(mktemp ${out_prefix}_XXXXXXXX)
-    join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr $tmpfile2 $tmpfile1|awk 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($1==NA){$1=$2;}}}'| cut -f 2 --complement > $tmpfile3 
-    joined_ID=$(getColNum $tmpfile3 $id_field)
+    tmpfile3=$(mktemp ${out_prefix}_3_joined_XXXXXXXX)
+
+    # echo "new_input_ID: $new_input_ID" 1>&2
+    # echo "new_update_ID: $new_update_ID" 1>&2
+    # echo "format string: $fmtstr" 1>&2
     
+    join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr $tmpfile2 <(awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' $tmpfile1)|awk 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($1==NA){$1=$2;}print $0;}}'| cut -f 2 --complement > $tmpfile3
+    joined_ID=$(getColNum $tmpfile3 $id_field)
+
     # max update class
     maxc=0
     for c in "${update_field2class[@]}";do
-	if [[ $c -gt $maxc]];then
+	if [[ $c -gt $maxc ]];then
 	    maxc=$c
 	fi
     done
