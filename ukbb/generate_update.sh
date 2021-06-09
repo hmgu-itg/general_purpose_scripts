@@ -24,7 +24,7 @@ to_mod=$((RANDOM%max_mod))
 rem=$((ns-to_mod))
 del=$((RANDOM%2))
 
-echo "to_mod=$to_mod" 1>&2
+#echo "to_mod=$to_mod" 1>&2
 
 if [[ $to_mod -eq 0 ]];then
     id_cmd='cut -f 1 $infile|tail -n +3'
@@ -67,13 +67,13 @@ for c in ${classes[@]};do
     for (( j=0; j<$n; j++ ));do
 	fmt=$fmt",2.$((j+2))"
     done
-    echo $fmt 1>&2
+#    echo $fmt 1>&2
     to_del=$((RANDOM%del_col_lim))
     echo "Deleting $to_del column(s)"
     to_del_str=""
     if [[ $to_del -gt 0 ]];then
 	to_del_str=$(seq 2 $((n+1))|shuf|head -n $to_del|sort -n|tr '\n' ','|sed 's/,$//')
-	echo "to_del_str=${to_del_str}"
+#	echo "to_del_str=${to_del_str}"
     fi
     to_add=$((RANDOM%add_col_lim))
     echo "Adding $to_add column(s)"
