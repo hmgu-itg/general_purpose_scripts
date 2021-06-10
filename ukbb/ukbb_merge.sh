@@ -6,45 +6,7 @@ bold=$(tput bold)
 underlined=$(tput smul)
 normal=$(tput sgr0)
 
-# check if key is in array
-function checkArray {
-    local k=$1
-    shift
-    local ar=("$@")
-
-    x="NO"
-    for c in "${ar[@]}";do
-	if [[ $c == $k ]];then
-	    x="YES"
-	    break
-	fi
-    done
-    
-    echo $x
-}
-
-# check if all rows in a TSV file have same # fields
-function checkFields {
-    local fname=$1
-    echo -n "Checking # fields in $fname ... " 1>&2
-    local x=$(awk 'BEGIN{FS="\t";}{print NF;}' $fname| sort|uniq| wc -l)
-    if [[ $x -eq 1 ]];then
-	echo "OK" 1>&2
-    else
-	echo "ERROR: $fname contains rows with different number of fields" 1>&2
-	exit 1
-    fi
-}
-
-# join an array
-function join_by { local IFS="$1"; shift; echo "$*"; }
-
-# get column number for a specific column
-function getColNum () {
-    local fname=$1
-    local colname=$2
-    echo $(fgrep -w $colname  <(head -n 1 $fname | tr '\t' '\n'| cat -n | sed 's/^  *//') | cut -f 1)
-}
+source "functions.sh"
 
 function usage () {
     echo ""
@@ -60,7 +22,6 @@ function usage () {
     echo "           ...                    "
     echo "                     -u updateM.tab"
     echo "                     -o <output prefix>"
-#    echo "                     -m <input.meta; ignored if merging>"
     echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input.meta if updating>"
     echo ""
     echo "All input/update files are tab-separated"
@@ -96,7 +57,6 @@ fi
 id_field="f.eid"
 datestr=$(date +%F)
 out_prefix=""
-#input_meta=""
 release=""
 while getopts "hi:u:f:o:r:" opt; do
     case $opt in
@@ -104,7 +64,6 @@ while getopts "hi:u:f:o:r:" opt; do
         u)update_fnames+=($OPTARG);;
         f)id_field=($OPTARG);;
         o)out_prefix=($OPTARG);;
-#        m)input_meta=($OPTARG);;
         r)release=($OPTARG);;
         h)usage;;
         *)usage;;
@@ -326,6 +285,7 @@ else # updating the first input file using update files
 	command2=${command2}" <(tail -n +2 ${update_fnames[$i]}|sort -k${update_ID_column[$i]},${update_ID_column[$i]}|cut --complement -f ${update_ID_column[$i]})"
     done
     eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) > $tmpfile1"
+    
     echo "Done" 1>&2
     echo "Release: $release" 1>&2
     echo "" 1>&2

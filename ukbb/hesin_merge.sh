@@ -6,23 +6,7 @@ bold=$(tput bold)
 underlined=$(tput smul)
 normal=$(tput sgr0)
 
-function checkFields {
-    local fname=$1
-    echo -n "Checking # fields in $fname ... " 1>&2
-    local x=$(awk 'BEGIN{FS="\t";}{print NF;}' $fname| sort|uniq| wc -l)
-    if [[ $x -eq 1 ]];then
-	echo "OK" 1>&2
-    else
-	echo "ERROR: $fname contains rows with different number of fields" 1>&2
-	exit 1
-    fi
-}
-
-function getColNum () {
-    local fname=$1
-    local colname=$2
-    echo $(fgrep -w $colname  <(head -n 1 $fname | tr '\t' '\n'| cat -n | sed 's/^  *//') | cut -f 1)
-}
+source "functions.sh"
 
 function usage () {
     echo ""

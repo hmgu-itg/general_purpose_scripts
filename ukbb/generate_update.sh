@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 
-function getColNum () {
-    local fname=$1
-    local colname=$2
-    echo $(fgrep -w $colname  <(head -n 1 $fname | tr '\t' '\n'| cat -n | sed 's/^  *//') | cut -f 1)
-}
-
-function join_by { local IFS="$1"; shift; echo "$*"; }
+source "functions.sh"
 
 infile=$1
 prefix=$2
