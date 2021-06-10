@@ -290,7 +290,7 @@ else # updating the first input file using update files
 	exit 1
     fi
     if [[ -z "$release" ]];then
-	release=$(cut -f ${release_col} ${input_fnames[0]}|head -n 2| tail -n 1)
+	release=$(cut -f ${release_col} ${input_fnames[0]}|head -n 3| tail -n 1)
 	release=$((release+1))
     fi
     #----------------------------------------------------------------
@@ -327,6 +327,7 @@ else # updating the first input file using update files
     done
     eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) > $tmpfile1"
     echo "Done" 1>&2
+    echo "Release: $release" 1>&2
     echo "" 1>&2
     #----------------------------------------------------------------
     # input fields (except for ID column) and their classes, from the input file
@@ -455,9 +456,9 @@ else # updating the first input file using update files
 
     eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) > ${out_prefix}.txt"
     
-    #rm $tmpfile1
-    #rm $tmpfile2
-    #rm $tmpfile3
+    rm $tmpfile1
+    rm $tmpfile2
+    rm $tmpfile3
     
     echo "Done" 1>&2
     echo "" 1>&2    
