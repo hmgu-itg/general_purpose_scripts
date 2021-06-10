@@ -24,11 +24,10 @@ to_mod=$((RANDOM%max_mod))
 rem=$((ns-to_mod))
 del=$((RANDOM%2))
 
-#echo "to_mod=$to_mod" 1>&2
-
 if [[ $to_mod -eq 0 ]];then
     id_cmd='cut -f 1 $infile|tail -n +3'
     new_total=$ns
+    echo "Keeping same IDs"
 else
     if [[ $del -eq 1 ]];then
 	echo "Deleting $to_mod row(s)" 1>&2
@@ -41,7 +40,6 @@ else
 	new_total=$((ns+to_mod))
     fi
 fi
-echo ""
 
 del_col_lim=3
 add_col_lim=3
@@ -49,11 +47,16 @@ add_col_lim=3
 idcol=$(getColNum $infile "f.eid")
 relcol=$(getColNum $infile "RELEASE")
 crcol=$(getColNum $infile "CREATED")
+release=$(cut -f $relcol $infile|head -n 3|tail -n 1)
+echo "Release: $release"
+echo ""
 
 read -r -a classes <<<$(head -n 2 $infile|tail -n 1|cut --complement -f ${idcol},${relcol},${crcol}|tr '\t' '\n'|sort -n|uniq|tr '\n' ' '|sed 's/ $//')
 
 declare -a sar
 i=1
+newcol_index_start=1
+newcol_index_end=""
 for c in ${classes[@]};do
     echo "Generating file $i/${#classes[@]}" 1>&2
     fname=${prefix}_${i}".txt"
@@ -61,7 +64,7 @@ for c in ${classes[@]};do
     
     read -r -a sar <<<$(head -n 2 $infile|tail -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//'|sed 's/\t/ /g'|awk -v n=$c '$2==n{print $1;}'|tr '\n' ' '|sed 's/ $//')
     str=$(join_by , ${sar[*]})
-    echo $str 1>&2
+#    echo $str 1>&2
     n=${#sar[@]}
     fmt="1.1"
     for (( j=0; j<$n; j++ ));do
@@ -87,8 +90,10 @@ for c in ${classes[@]};do
     fi
 
     if [[ $to_add -gt 0 ]];then
-	cmd2="cat <(seq -w -s' ' 1 $to_add|sed -e 's/^/NEWCOL/g' -e 's/ / NEWCOL/g' -e 's/ /\t/g') <(yes $(seq -s ' ' 1 $to_add|sed 's/[0-9][0-9]*/NEWVAL/g')|head -n $new_total|tr ' ' '\t')"
+	newcol_index_end=$((newcol_index_start+to_add-1))
+	cmd2="cat <(seq -w -s' ' $newcol_index_start $newcol_index_end|sed -e 's/^/NEWCOL_${release}_/g' -e 's/ / NEWCOL_${release}_/g' -e 's/ /\t/g') <(yes $(seq -s ' ' 1 $to_add|sed 's/[0-9][0-9]*/NEWVAL/g')|head -n $new_total|tr ' ' '\t')"
 	cmd="paste <($cmd) <($cmd2)"
+	newcol_index_start=$((newcol_index_end+1))
     fi
     
     eval "$cmd > $fname"
