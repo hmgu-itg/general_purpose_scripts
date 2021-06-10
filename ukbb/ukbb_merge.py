@@ -72,7 +72,10 @@ maxc=max(update_classes.values())
 
 print(update_classes)
 print("Merging update DFs")
-merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid"),updateDF)
+if len(updateDF)==1:
+    merged=updateDF[0]
+else:
+    merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid"),updateDF)
 print(merged)
 affected_classes=set()
 for c in merged.columns.values.tolist():
