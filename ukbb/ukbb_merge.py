@@ -22,9 +22,9 @@ try:
 except:
     sys.exit(1)
 
-mode="right"
+mode="inner"
 if args.keep:
-    mode="outer"
+    mode="right"
 
 infile=args.input
 updates=args.update
@@ -32,7 +32,7 @@ out_prefix=args.output
 logF=open(out_prefix+".log","w")
 datestr=datetime.datetime.now().strftime("%F")
 
-print("input: %s\nupdates: %s\noutput prefix: %s\n" %(infile,",".join(updates),out_prefix),file=logF)
+print("input: %s\nupdates: %s\noutput prefix: %s\nmode: %s\n" %(infile,",".join(updates),out_prefix,mode),file=logF)
 
 inputDF=pd.read_table(infile,sep="\t",header=[0,1],dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False)
 print("Input rows: %d" % len(inputDF),file=logF)
