@@ -12,7 +12,7 @@ parser=argparse.ArgumentParser()
 parser.add_argument('-i','--input',required=True,action='store',help="Input file")
 parser.add_argument('-u','--update',required=True,action='append',help="Update file(s)")
 parser.add_argument('-o','--output',required=True,action='store',help="Output prefix")
-
+parser.add_argument("-k", "--keep",required=False,action='store_true',help="Also include new IDs")
 if len(sys.argv[1:])==0:
     parser.print_help()
     sys.exit(0)
@@ -22,13 +22,17 @@ try:
 except:
     sys.exit(1)
 
+mode="right"
+if args.keep:
+    mode="outer"
+
 infile=args.input
 updates=args.update
 out_prefix=args.output
 logF=open(out_prefix+".log","w")
 datestr=datetime.datetime.now().strftime("%F")
 
-print("input: %s\nupdates: %s\noutput prefix:%s\n" %(infile,",".join(updates),out_prefix),file=logF)
+print("input: %s\nupdates: %s\noutput prefix: %s\n" %(infile,",".join(updates),out_prefix),file=logF)
 
 inputDF=pd.read_table(infile,sep="\t",header=[0,1],dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False)
 print("Input rows: %d" % len(inputDF),file=logF)
@@ -109,7 +113,7 @@ print("IDs in input but not in update (will be removed): %d" %(len(set(inputDF["
 print("IDs in update but not in input: %d" %(len(set(merged["f.eid"]).difference(set(inputDF["f.eid"])))),file=logF)
 df=inputDF.drop(columns=columns_to_remove)
 # keep new IDs in, remove IDs not present in the update
-df2=pd.merge(df,merged,on="f.eid",how="right")
+df2=pd.merge(df,merged,on="f.eid",how=mode)
 df2.replace(np.nan,"NA",inplace=True)
 df2["RELEASE"]=release
 df2["CREATED"]=datestr
@@ -138,4 +142,4 @@ L=[(x,new_classes[x]) for x in df2.columns.values.tolist()]
 df2.columns=pd.MultiIndex.from_tuples(L)
 print("Output rows: %d" % len(df2),file=logF)
 print("Output columns: %d" % len(df2.columns.values.tolist()),file=logF)
-df2.to_csv(out_prefix+".txt",sep="\t",index=False)
+df2.to_csv(out_prefix+".txt.gz",sep="\t",index=False)
