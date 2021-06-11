@@ -17,22 +17,25 @@ function usage () {
     echo "                     -i input2.tab"
     echo "           ...                    "
     echo "                     -i inputN.tab"
+    echo ""
     echo "                     -u update1.tab"
     echo "                     -u update2.tab"
     echo "           ...                    "
     echo "                     -u updateM.tab"
+    echo ""
     echo "                     -o <output prefix>"
-    echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input.meta if updating>"
+    echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input if updating>"
+    echo "                     -k <when updating, also include samples from update file(s) that are ${bold}not${normal} present in input; default: false>"
     echo ""
     echo "All input/update files are tab-separated"
     echo ""
     echo "${underlined}Merge mode${normal}: if no update (-u) files are specified, the script merges all input files."
     echo ""
     echo "${underlined}Update mode${normal}: if at least one update file is given, the script works only with the first input (-i) file" 
-    echo "and ignores the remaining input files. I a field in the input file"
+    echo "and ignores the remaining input files. I a column in the input file"
     echo "is present in an update file, its content in the input file will be updated."
     echo ""
-    echo "Both modes expect all input/update files to have the same IDs in the ID field."
+    echo "All input or update files are supposed to have same IDs."
     echo ""
     exit 0
 }
@@ -58,18 +61,40 @@ id_field="f.eid"
 datestr=$(date +%F)
 out_prefix=""
 release=""
-while getopts "hi:u:f:o:r:" opt; do
+mode="inner"
+while getopts "hi:u:f:o:r:k" opt; do
     case $opt in
         i)input_fnames+=($OPTARG);;
         u)update_fnames+=($OPTARG);;
         f)id_field=($OPTARG);;
         o)out_prefix=($OPTARG);;
         r)release=($OPTARG);;
+        k)mode="right";;
         h)usage;;
         *)usage;;
     esac
 done
 shift "$((OPTIND-1))"
+
+if [[ -z "$out_prefix" ]];then
+    echo "ERROR: no output prefix specified" 1>&2
+    exit 1
+fi
+
+if [[ -d "$out_prefix" ]];then
+    echo "ERROR: output prefix $out_prefix is a directory" 1>&2
+    exit 1
+fi
+
+outfile=$out_prefix".txt"
+logfile=$out_prefix".log"
+
+if [[ -f "$outfile" ]];then
+    echo "ERROR: output file ($outfile) already exists" 1>&2
+    exit 1
+fi
+
+: > "$logfile"
 
 n_input=${#input_fnames[@]}
 n_update=${#update_fnames[@]}
@@ -359,7 +384,7 @@ else # updating the first input file using update files
     # echo "new_update_ID: $new_update_ID" 1>&2
     # echo "format string: $fmtstr" 1>&2
     
-    join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr $tmpfile2 <(awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' $tmpfile1)|awk 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($1==NA){$1=$2;}print $0;}}'| cut -f 2 --complement > $tmpfile3
+    join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr <(sort -k${new_input_ID},${new_input_ID} $tmpfile2) <(awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' $tmpfile1|sort -k${new_update_ID},${new_update_ID})|awk -v m=$mode 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($2!="NA"){if (m=="inner"){if ($1!="NA"){print $0;}} if(m=="right"){if($1=="NA"){$1=$2;}print $0;} } }}'| cut -f 2 --complement > $tmpfile3
     joined_ID=$(getColNum $tmpfile3 $id_field)
 
     # max update class
