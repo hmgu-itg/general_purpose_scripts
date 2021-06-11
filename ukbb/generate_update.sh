@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-source "functions.sh"
+scriptdir=$(dirname $(readlink -f $0))
+source "${scriptdir}/functions.sh"
 
 infile=$1
 prefix=$2
