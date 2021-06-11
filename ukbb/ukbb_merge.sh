@@ -2,6 +2,9 @@
 
 # ALL INPUT FILES ARE TAB SEPARATED
 
+scriptname=$0
+args=("$@")
+
 bold=$(tput bold)
 underlined=$(tput smul)
 normal=$(tput sgr0)
@@ -98,6 +101,11 @@ fi
 
 : > "$logfile"
 
+date "+%F %H-%M-%S" | tee -a $logfile
+echo "Current dir: ${PWD}"  | tee -a $logfile
+echo "Command line: $scriptname ${args[@]}"  | tee -a $logfile
+echo ""  | tee -a $logfile
+
 n_input=${#input_fnames[@]}
 n_update=${#update_fnames[@]}
 
@@ -127,23 +135,31 @@ done
 
 # checking if all rows have the same number of fields
 for i in $(seq 0 $((n_input-1)));do
-    checkFields ${input_fnames[$i]} ${cats[${input_fnames[$i]}]}
+    checkFields ${input_fnames[$i]} ${cats[${input_fnames[$i]}]} "$logfile"
 done
 
 for i in $(seq 0 $((n_update-1)));do
-    checkFields ${update_fnames[$i]} ${cats[${update_fnames[$i]}]}
+    checkFields ${update_fnames[$i]} ${cats[${update_fnames[$i]}]} "$logfile"
 done
 #----------------------------------------------------
 
 # get ID column 
 for i in $(seq 0 $((n_input-1)));do
     x=$(getColNum ${input_fnames[$i]} $id_field ${cats[${input_fnames[$i]}]})
+    if [[ -z $x ]];then
+	echo "ERROR: no \"$id_field\" found in ${input_fnames[$i]}"| tee -a "$logfile"
+	exit 1
+    fi    
     input_ID_column+=($x)
     input_nrows+=($(${cats[${input_fnames[$i]}]} ${input_fnames[$i]} | wc -l))
 done
 
 for i in $(seq 0 $((n_update-1)));do
     x=$(getColNum ${update_fnames[$i]} $id_field ${cats[${update_fnames[$i]}]})
+    if [[ -z $x ]];then
+	echo "ERROR: no \"$id_field\" found in ${update_fnames[$i]}"| tee -a "$logfile"
+	exit 1
+    fi    
     update_ID_column+=($x)
     update_nrows+=($(${cats[${update_fnames[$i]}]} ${update_fnames[$i]} | wc -l))
 done
