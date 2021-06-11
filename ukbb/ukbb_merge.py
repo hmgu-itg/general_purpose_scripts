@@ -109,7 +109,7 @@ for c in input_classes:
         columns_to_remove.append(c)
 inputDF.columns=[x[0] for x in inputDF.columns.values.tolist()]
 print("Common IDs between input and update: %d" %(len(set(inputDF["f.eid"]).intersection(set(merged["f.eid"])))),file=logF)
-print("IDs in input but not in update (will not be included in output): %d" %(len(set(inputDF["f.eid"]).difference(set(merged["f.eid"])))),file=logF)
+print("IDs in input but not in update: %d (will not be included in output)" %(len(set(inputDF["f.eid"]).difference(set(merged["f.eid"])))),file=logF)
 x=len(set(merged["f.eid"]).difference(set(inputDF["f.eid"])))
 s=""
 if x!=0:

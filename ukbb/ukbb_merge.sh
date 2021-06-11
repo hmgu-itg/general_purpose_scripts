@@ -313,7 +313,7 @@ else # updating the first input file using update files
 	release=$((release+1))
     fi
     #----------------------------------------------------------------
-    # merging all update files and saving the result in a temporary file
+    # merging all update files and saving the result in a temporary file, with classes
     # update files have same IDs, so using paste instead of join
     tmpfile1=$(mktemp ${out_prefix}_1_update_XXXXXXXX)
     echo -n "Merging update files ... "|tee -a "$logfile"
@@ -403,17 +403,29 @@ else # updating the first input file using update files
     input_columns_to_exclude+=($release_col)
     echo "Columns to exclude done"|tee -a "$logfile"
 
+    # input without excluded columns, without classes
     tmpfile2=$(mktemp ${out_prefix}_2_input_XXXXXXXX)
     echo -n "Removing columns from input ... "|tee -a "$logfile"
     #str=$(join_by , ${input_columns_to_exclude[*]})
     #echo "columns to exclude: $str"|tee -a "$logfile"
     ${cats[${input_fnames[0]}]} ${input_fnames[0]}|cut -f $(join_by , ${input_columns_to_exclude[*]}) --complement| awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' > "$tmpfile2"
     echo "Done"|tee -a "$logfile"
-
     new_input_ID=$(getColNum $tmpfile2 $id_field "cat")
     echo "New input ID column: $new_input_ID"|tee -a "$logfile"
-    
-    # join input and merged update, without classes
+
+    common_IDs=$(join -1 1 -2 1 <(cut -f $new_update_ID $tmpfile1|tail -n +3|sort) <(cut -f $new_input_ID $tmpfile2|tail -n +2|sort)|wc -l)
+    input_only_IDs=$(join -a 2 -e NULL -o 1.1,2.1 -1 1 -2 1 <(cut -f $new_update_ID $tmpfile1| tail -n +3|sort) <(cut -f $new_input_ID $tmpfile2|tail -n +2|sort)|grep NULL|wc -l)
+    update_only_IDs=$(join -a 1 -e NULL -o 1.1,2.1 -1 1 -2 1 <(cut -f $new_update_ID $tmpfile1| tail -n +3|sort) <(cut -f $new_input_ID $tmpfile2|tail -n +2|sort)|grep NULL|wc -l)
+    echo "INFO: common IDs between input and update: $common_IDs"|tee -a "$logfile"
+    echo "INFO: IDs only in input: $input_only_IDs (not included in output)"|tee -a "$logfile"
+    str=""
+    if [[ $mode == "inner" ]];then
+	str=" (not included in output, mode=$mode)"
+    else
+	str=" (included in output, mode=$mode)"
+    fi
+    echo "INFO: IDs only in update: ${update_only_IDs}$str"|tee -a "$logfile"
+
     fmtstr="1.""${new_input_ID}"",2.""${new_update_ID}"
     input_ncol=$(head -n 1 $tmpfile2|tr '\t' '\n'|wc -l)
     update_ncol=$(head -n 1 $tmpfile1|tr '\t' '\n'|wc -l)
@@ -428,15 +440,11 @@ else # updating the first input file using update files
 	fi
     done
     
+    # join input and merged update, without classes
     tmpfile3=$(mktemp ${out_prefix}_3_joined_XXXXXXXX)
     echo -n "Joining ... "|tee -a "$logfile"
-    # echo "new_input_ID: $new_input_ID"|tee -a "$logfile"
-    # echo "new_update_ID: $new_update_ID"|tee -a "$logfile"
-    # echo "format string: $fmtstr"|tee -a "$logfile"
-    
     join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr $tmpfile2 <(awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' $tmpfile1)|awk -v m=$mode 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($2!="NA"){if (m=="inner"){if ($1!="NA"){print $0;}} if(m=="right"){if($1=="NA"){$1=$2;}print $0;} } }}'| cut -f 2 --complement > $tmpfile3
     echo "Done"|tee -a "$logfile"
-
     joined_ID=$(getColNum $tmpfile3 $id_field "cat")
     echo "Joined file input ID column: $joined_ID"|tee -a "$logfile"
 
