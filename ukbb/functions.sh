@@ -19,8 +19,13 @@ function checkArray {
 # check if all rows in a TSV file have same # fields
 function checkFields {
     local fname=$1
+    local cmd="cat"
+    if [[ $# -ge 2 ]];then
+	cmd=$2
+    fi
+    
     echo -n "Checking # fields in $fname ... " 1>&2
-    local x=$(awk 'BEGIN{FS="\t";}{print NF;}' $fname| sort|uniq| wc -l)
+    local x=$($cmd $fname|awk 'BEGIN{FS="\t";}{print NF;}'| sort|uniq| wc -l)
     if [[ $x -eq 1 ]];then
 	echo "OK" 1>&2
     else
@@ -36,5 +41,18 @@ function join_by { local IFS="$1"; shift; echo "$*"; }
 function getColNum () {
     local fname=$1
     local colname=$2
-    echo $(fgrep -w $colname  <(head -n 1 $fname | tr '\t' '\n'| cat -n | sed 's/^  *//') | cut -f 1)
+    local cmd="cat"
+    if [[ $# -ge 3 ]];then
+	cmd=$2
+    fi
+    echo $(fgrep -w $colname  <($cmd $fname|head -n 1|tr '\t' '\n'|cat -n |sed 's/^  *//')|cut -f 1)
+}
+
+function getCatCmd () {
+    local fname=$1
+    if [[ "$fname"~/gz$/ ]];then
+	echo "zcat"
+    else
+	echo "cat"
+    fi
 }
