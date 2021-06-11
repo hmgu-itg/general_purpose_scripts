@@ -45,17 +45,13 @@ function usage () {
 }
 
 declare -a input_fnames
-declare -a update_filenames
+declare -a update_fnames
 declare -a input_ID_column
 declare -a update_ID_column
 declare -a input_nrows
 declare -a update_nrows
-declare -a fields_to_exclude
 declare -a class_array
 declare -A column_class
-declare -a input_fields
-declare -a input_classes
-declare -A input_field2class
 declare -A cats
 
 if [[ $# -eq 0 ]];then
@@ -95,32 +91,31 @@ outfile="${out_prefix}.txt.gz"
 logfile="${out_prefix}.log"
 
 if [[ -f "$outfile" ]];then
-    echo "ERROR: output file ($outfile) already exists" 1>&2
+    echo "ERROR: output file $outfile already exists" 1>&2
     exit 1
 fi
 
 : > "$logfile"
-
-date "+%F %H-%M-%S" | tee -a $logfile
-echo "Current dir: ${PWD}"  | tee -a $logfile
-echo "Command line: $scriptname ${args[@]}"  | tee -a $logfile
-echo ""  | tee -a $logfile
+date "+%F %H-%M-%S" |tee -a $logfile
+echo "Current dir: ${PWD}"  |tee -a $logfile
+echo "Command line: $scriptname ${args[@]}"  |tee -a $logfile
+echo ""  |tee -a $logfile
 
 n_input=${#input_fnames[@]}
 n_update=${#update_fnames[@]}
 
 if [[ $n_input -eq 0 ]];then
-    echo "ERROR: no input files specified" | tee -a $logfile
+    echo "ERROR: no input files specified" |tee -a $logfile
     exit 1
 fi
 
 if [[ $n_input -lt 2 && $n_update -eq 0 ]];then
-    echo "ERROR: no update files specified, only one input file specified (need at least two input files to merge)"| tee -a "$logfile"
+    echo "ERROR: no update files specified, only one input file specified (need at least two input files to merge)"|tee -a "$logfile"
     exit 1
 fi
 
 if [[ $n_update -gt 0 && $n_input -gt 1 ]];then
-    echo "WARN: $n_update update files and $n_input input files specified; only the first input file (${input_fnames[0]}) will be processed"| tee -a "$logfile"
+    echo "WARN: $n_update update files and $n_input input files specified; only the first input file (${input_fnames[0]}) will be processed"|tee -a "$logfile"
 fi
 
 # get zcat/cat command
@@ -147,7 +142,7 @@ done
 for i in $(seq 0 $((n_input-1)));do
     x=$(getColNum ${input_fnames[$i]} $id_field ${cats[${input_fnames[$i]}]})
     if [[ -z $x ]];then
-	echo "ERROR: no \"$id_field\" found in ${input_fnames[$i]}"| tee -a "$logfile"
+	echo "ERROR: no \"$id_field\" found in ${input_fnames[$i]}"|tee -a "$logfile"
 	exit 1
     fi    
     input_ID_column+=($x)
@@ -157,7 +152,7 @@ done
 for i in $(seq 0 $((n_update-1)));do
     x=$(getColNum ${update_fnames[$i]} $id_field ${cats[${update_fnames[$i]}]})
     if [[ -z $x ]];then
-	echo "ERROR: no \"$id_field\" found in ${update_fnames[$i]}"| tee -a "$logfile"
+	echo "ERROR: no \"$id_field\" found in ${update_fnames[$i]}"|tee -a "$logfile"
 	exit 1
     fi    
     update_ID_column+=($x)
@@ -166,89 +161,93 @@ done
 #----------------------------------------------------
 
 # output info
+echo ""  |tee -a $logfile
 for i in $(seq 0 $((n_input-1)));do
-    echo "INFO: input file: ${input_fnames[$i]}"| tee -a "$logfile"
-    echo "INFO: ID column index: ${input_ID_column[$i]}"| tee -a "$logfile"
-    echo "INFO: rows: ${input_nrows[$i]}"| tee -a "$logfile"
-    echo ""| tee -a "$logfile"
+    echo "INFO: input file: ${input_fnames[$i]}"|tee -a "$logfile"
+    echo "INFO: ID column index: ${input_ID_column[$i]}"|tee -a "$logfile"
+    echo "INFO: rows: ${input_nrows[$i]}"|tee -a "$logfile"
+    echo ""|tee -a "$logfile"
 done
 
 for i in $(seq 0 $((n_update-1)));do
-    echo "INFO: update file: ${update_fnames[$i]}"| tee -a "$logfile"
-    echo "INFO: ID column index: ${update_ID_column[$i]}"| tee -a "$logfile"
-    echo "INFO: rows: ${update_nrows[$i]}"| tee -a "$logfile"
-    echo ""| tee -a "$logfile"
+    echo "INFO: update file: ${update_fnames[$i]}"|tee -a "$logfile"
+    echo "INFO: ID column index: ${update_ID_column[$i]}"|tee -a "$logfile"
+    echo "INFO: rows: ${update_nrows[$i]}"|tee -a "$logfile"
+    echo ""|tee -a "$logfile"
 done
 #----------------------------------------------------
+
+echo "INFO: join mode: $mode"|tee -a "$logfile"
+echo ""|tee -a "$logfile"
 
 #
 # check if all input files have same IDs
 #
-echo -n "Checking if input files have same IDs ... "| tee -a "$logfile"
+echo -n "Checking if input files have same IDs ... "|tee -a "$logfile"
 for i in $(seq 1 $((n_input-1)));do
     x=$(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|cut -f ${input_ID_column[0]}) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|cut -f ${input_ID_column[$i]})|sort|uniq -u|wc -l)
     if [[ $x -ne 0 ]];then
-	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs"| tee -a "$logfile"
+	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs"|tee -a "$logfile"
 	exit 1
     fi
 done
-echo "OK"| tee -a "$logfile"
+echo "OK"|tee -a "$logfile"
 #----------------------------------------------------
 
 #
 # check if all update files have same IDs
 #
-echo -n "Checking if update files have same IDs ... "| tee -a "$logfile"
+echo -n "Checking if update files have same IDs ... "|tee -a "$logfile"
 for i in $(seq 1 $((n_update-1)));do
     x=$(cat <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|cut -f ${update_ID_column[0]}) <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|cut -f ${update_ID_column[$i]})|sort|uniq -u|wc -l)
     if [[ $x -ne 0 ]];then
-	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs"| tee -a "$logfile"
+	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs"|tee -a "$logfile"
 	exit 1
     fi
 done
-echo "OK"| tee -a "$logfile"
+echo "OK"|tee -a "$logfile"
 #----------------------------------------------------
 
 #
 # check if column names (excepth for ID field) in input files are disjoint
 #
-echo -n "Checking if column names in input files are disjoint ... "| tee -a "$logfile"
+echo -n "Checking if column names in input files are disjoint ... "|tee -a "$logfile"
 if [[ $n_input -gt 1 ]];then
     for i in $(seq 0 $((n_input-1)));do
 	for j in $(seq $((i+1)) $((n_input-1)));do
 	    x=$(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1|cut --complement -f ${input_ID_column[$i]}) <(${cats[${input_fnames[$j]}]} ${input_fnames[$j]}|head -n 1|cut --complement -f ${input_ID_column[$j]})|sort|uniq -d|wc -l)
 	    if [[ $x -ne 0 ]];then
-		echo "ERROR: input files ${input_fnames[$i]} and ${input_fnames[$j]} have columns in common"| tee -a "$logfile"
+		echo "ERROR: input files ${input_fnames[$i]} and ${input_fnames[$j]} have columns in common"|tee -a "$logfile"
 		exit 1
 	    fi	    
 	done
     done
 fi
-echo "OK"| tee -a "$logfile"
+echo "OK"|tee -a "$logfile"
 #----------------------------------------------------
 
 #
 # check if column names (excepth for ID field) in update files are disjoint
 #
-echo -n "Checking if column names in update files are disjoint ... "| tee -a "$logfile"
+echo -n "Checking if column names in update files are disjoint ... "|tee -a "$logfile"
 if [[ $n_update -gt 1 ]];then
     for i in $(seq 0 $((n_update-1)));do
 	for j in $(seq $((i+1)) $((n_update-1)));do
 	    x=$(cat <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1|cut --complement -f ${update_ID_column[$i]}) <(${cats[${update_fnames[$j]}]} ${update_fnames[$j]}|head -n 1|cut --complement -f ${update_ID_column[$j]})|sort|uniq -d|wc -l)
 	    if [[ $x -ne 0 ]];then
-		echo "ERROR: update files ${update_fnames[$i]} and ${update_fnames[$j]} have columns in common"| tee -a "$logfile"
+		echo "ERROR: update files ${update_fnames[$i]} and ${update_fnames[$j]} have columns in common"|tee -a "$logfile"
 		exit 1
 	    fi	    
 	done
     done
 fi
-echo "OK"| tee -a "$logfile"
-echo ""| tee -a "$logfile"
+echo "OK"|tee -a "$logfile"
+echo ""|tee -a "$logfile"
 
 #-------------------------------------- OUTPUT -------------------------------------------------
 
 if [[ $n_update -eq 0 ]];then # just merging input files
-    echo "Merging input files ... "| tee -a "$logfile"
+    echo "Merging input files ... "|tee -a "$logfile"
 
     # column classes of input columns are based on source input files
     for i in $(seq 0 $((n_input-1)));do
@@ -262,6 +261,7 @@ if [[ $n_update -eq 0 ]];then # just merging input files
     if [[ -z "$release" ]];then
 	release="1"
     fi
+    echo "Output release: $release"|tee -a "$logfile"
 
     # HEADER
     command1="paste <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1)"
@@ -290,22 +290,22 @@ if [[ $n_update -eq 0 ]];then # just merging input files
     x=$((x-1))
     command2=${command2}" <(yes $release $datestr| tr ' ' '\t'| head -n $x)"
 
-    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) | gzip - > ${outfile}"
+    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) | gzip - -c > ${outfile}"
     
-    echo "Done"| tee -a "$logfile"
-    echo ""| tee -a "$logfile"
+    echo "Done"|tee -a "$logfile"
+    echo ""|tee -a "$logfile"
 else # updating the first input file using update files
-    echo "Updating input ... "| tee -a "$logfile"
+    echo "Updating input ... "|tee -a "$logfile"
 
     # if no release specified, read previous release and increment it
     release_col=$(getColNum ${input_fnames[0]} "RELEASE" ${cats[${input_fnames[0]}]})
     if [[ -z "$release_col" ]];then
-	echo "ERROR: no RELEASE column found in the input file ${input_fnames[0]}"| tee -a "$logfile"
+	echo "ERROR: no RELEASE column found in the input file ${input_fnames[0]}"|tee -a "$logfile"
 	exit 1
     fi
     created_col=$(getColNum ${input_fnames[0]} "CREATED" ${cats[${input_fnames[0]}]})
     if [[ -z "$created_col" ]];then
-	echo "ERROR: no CREATED column found in the input file ${input_fnames[0]}"| tee -a "$logfile"
+	echo "ERROR: no CREATED column found in the input file ${input_fnames[0]}"|tee -a "$logfile"
 	exit 1
     fi
     if [[ -z "$release" ]];then
@@ -316,7 +316,7 @@ else # updating the first input file using update files
     # merging all update files and saving the result in a temporary file
     # update files have same IDs, so using paste instead of join
     tmpfile1=$(mktemp ${out_prefix}_1_update_XXXXXXXX)
-    echo -n "Merging update files ... "| tee -a "$logfile"
+    echo -n "Merging update files ... "|tee -a "$logfile"
     # column classes of input columns are based on source update files
     for i in $(seq 0 $((n_update-1)));do
     	for c in $(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1|cut --complement -f ${update_ID_column[$i]});do
@@ -325,12 +325,12 @@ else # updating the first input file using update files
     done
     column_class[$id_field]="NA"
     # HEADER
-    command1="paste <(head -n 1 ${update_fnames[0]})"
+    command1="paste <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|head -n 1)"
     for i in $(seq 1 $((n_update-1)));do
 	command1=${command1}" <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1|cut --complement -f ${update_ID_column[$i]})"
     done
     # CLASS ROW
-    for c in $(head -n 1 ${update_fnames[0]});do
+    for c in $(${cats[${update_fnames[0]}]} ${update_fnames[0]}|head -n 1);do
 	class_array+=(${column_class[$c]})
     done
     for i in $(seq 1 $((n_update-1)));do
@@ -346,26 +346,33 @@ else # updating the first input file using update files
     done
     eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) > $tmpfile1"
     
-    echo "Done"| tee -a "$logfile"
-    echo "Release: $release"| tee -a "$logfile"
-    echo ""| tee -a "$logfile"
+    echo "Done"|tee -a "$logfile"
+    echo "Output release: $release"|tee -a "$logfile"
     #----------------------------------------------------------------
     # input fields (except for ID column) and their classes, from the input file
+    declare -a input_fields
+    declare -a input_classes
+    declare -A input_field2class
     for c in $(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1|cut --complement -f ${input_ID_column[0]},${release_col},${created_col});do
 	input_fields+=($c)
     done
     for c in $(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 2|tail -n 1|cut --complement -f ${input_ID_column[0]},${release_col},${created_col});do
 	input_classes+=($c)
     done
+    echo "Input classes done"|tee -a "$logfile"
     for (( i=0; i<${#input_fields[@]}; i++ )); do input_field2class[${input_fields[$i]}]=${input_classes[$i]};done
     new_update_ID=$(getColNum $tmpfile1 $id_field "cat")
+    echo "New update ID column: $new_update_ID"|tee -a "$logfile"
     # update fields (except for ID column) and their classes, from the merged update file
     declare -a update_fields
     declare -a update_classes
     declare -A update_field2class
     for c in $(head -n 1 $tmpfile1|cut --complement -f $new_update_ID);do update_fields+=($c);done
+    echo "Update fields done"|tee -a "$logfile"
     for c in $(head -n 2 $tmpfile1|tail -n 1|cut --complement -f $new_update_ID);do update_classes+=($c);done
+    echo "Update classes done"|tee -a "$logfile"
     for (( i=0; i<${#update_fields[@]}; i++ )); do update_field2class[${update_fields[$i]}]=${update_classes[$i]};done
+    
     # input classes intersecting with update fields: all input fields from these will be excluded from input before merging
     declare -A intersecting_classes
     # new fields in update that will be added
@@ -379,6 +386,8 @@ else # updating the first input file using update files
 	    new_fields[$c]=1
 	fi
     done
+    echo "Intersecting classes done"|tee -a "$logfile"
+    
     # all column numbers from input intersecting_classes
     declare -a input_columns_to_exclude
     for (( i=0; i<${#input_fields[@]}; i++ )); do
@@ -386,18 +395,23 @@ else # updating the first input file using update files
 	x=${input_field2class[$c]}
 	status=$(checkArray "$x" "${!intersecting_classes[@]}")
 	if [[ $status == "YES" ]];then
-	    n=$(getColNum ${input_fnames[0]} $c)
+	    n=$(getColNum ${input_fnames[0]} $c ${cats[${input_fnames[0]}]})
 	    input_columns_to_exclude+=($n)
 	fi
     done
     input_columns_to_exclude+=($created_col)
     input_columns_to_exclude+=($release_col)
-    
+    echo "Columns to exclude done"|tee -a "$logfile"
+
     tmpfile2=$(mktemp ${out_prefix}_2_input_XXXXXXXX)
+    echo -n "Removing columns from input ... "|tee -a "$logfile"
     #str=$(join_by , ${input_columns_to_exclude[*]})
-    #echo "columns to exclude: $str"| tee -a "$logfile"
+    #echo "columns to exclude: $str"|tee -a "$logfile"
     ${cats[${input_fnames[0]}]} ${input_fnames[0]}|cut -f $(join_by , ${input_columns_to_exclude[*]}) --complement| awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' > "$tmpfile2"
-    new_input_ID=$(getColNum $tmpfile2 $id_field)
+    echo "Done"|tee -a "$logfile"
+
+    new_input_ID=$(getColNum $tmpfile2 $id_field "cat")
+    echo "New input ID column: $new_input_ID"|tee -a "$logfile"
     
     # join input and merged update, without classes
     fmtstr="1.""${new_input_ID}"",2.""${new_update_ID}"
@@ -413,14 +427,18 @@ else # updating the first input file using update files
 	    fmtstr=$fmtstr",2.$i"
 	fi
     done
-    tmpfile3=$(mktemp ${out_prefix}_3_joined_XXXXXXXX)
-
-    # echo "new_input_ID: $new_input_ID"| tee -a "$logfile"
-    # echo "new_update_ID: $new_update_ID"| tee -a "$logfile"
-    # echo "format string: $fmtstr"| tee -a "$logfile"
     
-    join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr <(sort -k${new_input_ID},${new_input_ID} $tmpfile2) <(awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' $tmpfile1|sort -k${new_update_ID},${new_update_ID})|awk -v m=$mode 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($2!="NA"){if (m=="inner"){if ($1!="NA"){print $0;}} if(m=="right"){if($1=="NA"){$1=$2;}print $0;} } }}'| cut -f 2 --complement > $tmpfile3
+    tmpfile3=$(mktemp ${out_prefix}_3_joined_XXXXXXXX)
+    echo -n "Joining ... "|tee -a "$logfile"
+    # echo "new_input_ID: $new_input_ID"|tee -a "$logfile"
+    # echo "new_update_ID: $new_update_ID"|tee -a "$logfile"
+    # echo "format string: $fmtstr"|tee -a "$logfile"
+    
+    join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr $tmpfile2 <(awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' $tmpfile1)|awk -v m=$mode 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($2!="NA"){if (m=="inner"){if ($1!="NA"){print $0;}} if(m=="right"){if($1=="NA"){$1=$2;}print $0;} } }}'| cut -f 2 --complement > $tmpfile3
+    echo "Done"|tee -a "$logfile"
+
     joined_ID=$(getColNum $tmpfile3 $id_field "cat")
+    echo "Joined file input ID column: $joined_ID"|tee -a "$logfile"
 
     # max update class
     maxc=0
@@ -449,13 +467,15 @@ else # updating the first input file using update files
 		    cur_add=$((cur_add+1))
 		fi
 	    else
-		echo "ERROR: could not find class for $c"| tee -a "$logfile"
+		echo "ERROR: could not find class for $c"|tee -a "$logfile"
 		exit 1
 	    fi
 	fi
     done
+    echo "New classes done"|tee -a "$logfile"
 
     # FINAL OUTPUT
+    echo -n "Creating output file ... "|tee -a "$logfile"
     command1="paste <(head -n 1 $tmpfile3) <(echo RELEASE CREATED|tr ' ' '\t')"
 
     declare -a temp
@@ -474,14 +494,15 @@ else # updating the first input file using update files
     x=$(tail -n +2 $tmpfile3| wc -l)
     command2=${command2}" <(yes $release $datestr| tr ' ' '\t'| head -n $x)"
 
-    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) | gzip - > ${outfile}"
-    
+    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) | gzip - -c > ${outfile}"
+    echo "Done"|tee -a "$logfile"
+
     rm $tmpfile1
     rm $tmpfile2
     rm $tmpfile3
     
-    echo "Done"| tee -a "$logfile"
-    echo ""| tee -a "$logfile"    
+    echo "Done"|tee -a "$logfile"
+    date "+%F %H-%M-%S" |tee -a $logfile
 fi
 
 exit 0
