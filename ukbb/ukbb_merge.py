@@ -109,8 +109,15 @@ for c in input_classes:
         columns_to_remove.append(c)
 inputDF.columns=[x[0] for x in inputDF.columns.values.tolist()]
 print("Common IDs between input and update: %d" %(len(set(inputDF["f.eid"]).intersection(set(merged["f.eid"])))),file=logF)
-print("IDs in input but not in update (will be removed): %d" %(len(set(inputDF["f.eid"]).difference(set(merged["f.eid"])))),file=logF)
-print("IDs in update but not in input: %d" %(len(set(merged["f.eid"]).difference(set(inputDF["f.eid"])))),file=logF)
+print("IDs in input but not in update (will not be included in output): %d" %(len(set(inputDF["f.eid"]).difference(set(merged["f.eid"])))),file=logF)
+x=len(set(merged["f.eid"]).difference(set(inputDF["f.eid"])))
+s=""
+if x!=0:
+    if mode=="inner":
+        s=" (will not be included in output)"
+    else:
+        s=" (will be included in output)"
+print("IDs in update but not in input: %d%s" %(x,s),file=logF)
 df=inputDF.drop(columns=columns_to_remove)
 # keep new IDs in, remove IDs not present in the update
 df2=pd.merge(df,merged,on="f.eid",how=mode)
