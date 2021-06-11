@@ -362,6 +362,10 @@ else # updating the first input file using update files
     echo "Input classes done"|tee -a "$logfile"
     for (( i=0; i<${#input_fields[@]}; i++ )); do input_field2class[${input_fields[$i]}]=${input_classes[$i]};done
     new_update_ID=$(getColNum $tmpfile1 $id_field "cat")
+    if [[ -z $new_update_ID ]];then
+	echo "ERROR: no \"$id_field\" found in $tmpfile1"|tee -a "$logfile"
+	exit 1
+    fi    
     echo "New update ID column: $new_update_ID"|tee -a "$logfile"
     # update fields (except for ID column) and their classes, from the merged update file
     declare -a update_fields
@@ -411,6 +415,10 @@ else # updating the first input file using update files
     ${cats[${input_fnames[0]}]} ${input_fnames[0]}|cut -f $(join_by , ${input_columns_to_exclude[*]}) --complement| awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' > "$tmpfile2"
     echo "Done"|tee -a "$logfile"
     new_input_ID=$(getColNum $tmpfile2 $id_field "cat")
+    if [[ -z $new_input_ID ]];then
+	echo "ERROR: no \"$id_field\" found in $tmpfile2"|tee -a "$logfile"
+	exit 1
+    fi    
     echo "New input ID column: $new_input_ID"|tee -a "$logfile"
 
     common_IDs=$(join -1 1 -2 1 <(cut -f $new_update_ID $tmpfile1|tail -n +3|sort) <(cut -f $new_input_ID $tmpfile2|tail -n +2|sort)|wc -l)
@@ -446,6 +454,10 @@ else # updating the first input file using update files
     join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr $tmpfile2 <(awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' $tmpfile1)|awk -v m=$mode 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($2!="NA"){if (m=="inner"){if ($1!="NA"){print $0;}} if(m=="right"){if($1=="NA"){$1=$2;}print $0;} } }}'| cut -f 2 --complement > $tmpfile3
     echo "Done"|tee -a "$logfile"
     joined_ID=$(getColNum $tmpfile3 $id_field "cat")
+    if [[ -z $joined_ID ]];then
+	echo "ERROR: no \"$id_field\" found in $tmpfile3"|tee -a "$logfile"
+	exit 1
+    fi    
     echo "Joined file input ID column: $joined_ID"|tee -a "$logfile"
 
     # max update class
