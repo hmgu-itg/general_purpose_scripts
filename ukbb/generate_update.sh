@@ -56,7 +56,7 @@ newcol_index_start=1
 newcol_index_end=""
 for c in ${classes[@]};do
     echo "Generating file $i/${#classes[@]}" 1>&2
-    fname=${prefix}_${i}".txt"
+    fname=${prefix}_${i}".txt.gz"
     echo "Output file: $fname" 1>&2
     
     read -r -a sar <<<$($catcmd $infile|head -n 2|tail -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//'|sed 's/\t/ /g'|awk -v n=$c '$2==n{print $1;}'|tr '\n' ' '|sed 's/ $//')
@@ -93,7 +93,7 @@ for c in ${classes[@]};do
 	newcol_index_start=$((newcol_index_end+1))
     fi
     
-    eval "$cmd > $fname"
+    eval "$cmd | gzip - -c > $fname"
     
     i=$((i+1))
 done
