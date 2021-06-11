@@ -6,10 +6,12 @@ source "${scriptdir}/functions.sh"
 infile=$1
 prefix=$2
 
+catcmd=$(getCatCmd $infile)
+
 declare -a classes
 
-ns=$(tail -n +3 $infile| wc -l)
-ncols=$(head -n 1 $infile|tr '\t' '\n'|wc -l)
+ns=$($catcmd $infile|tail -n +3| wc -l)
+ncols=$($catcmd $infile|head -n 1|tr '\t' '\n'|wc -l)
 ncols=$((ncols-3))
 
 max_mod=$((ns/100))
@@ -20,18 +22,18 @@ rem=$((ns-to_mod))
 del=$((RANDOM%2))
 
 if [[ $to_mod -eq 0 ]];then
-    id_cmd='cut -f 1 $infile|tail -n +3'
+    id_cmd='$catcmd $infile|cut -f 1|tail -n +3'
     new_total=$ns
     echo "Keeping same IDs"
 else
     if [[ $del -eq 1 ]];then
 	echo "Deleting $to_mod row(s)" 1>&2
-	tmp=$(cut -f 1 $infile|tail -n +3|shuf|head -n $rem|sort|tr '\n' ',')
+	tmp=$($catcmd $infile|cut -f 1|tail -n +3|shuf|head -n $rem|sort|tr '\n' ',')
 	id_cmd='echo -n '$tmp'|sed "s/,/\n/g"'
 	new_total=$((ns-to_mod))
     else
 	echo "Adding $to_mod row(s)" 1>&2
-	id_cmd='cat <(cut -f 1 '$infile'|tail -n +3) <(for i in $(seq -w 1 '$to_mod');do echo ADD$i;done)|sort'
+	id_cmd='cat <($catcmd $infile|cut -f 1|tail -n +3) <(for i in $(seq -w 1 '$to_mod');do echo ADD$i;done)|sort'
 	new_total=$((ns+to_mod))
     fi
 fi
@@ -39,14 +41,14 @@ fi
 del_col_lim=3
 add_col_lim=3
 
-idcol=$(getColNum $infile "f.eid")
-relcol=$(getColNum $infile "RELEASE")
-crcol=$(getColNum $infile "CREATED")
-release=$(cut -f $relcol $infile|head -n 3|tail -n 1)
+idcol=$(getColNum $infile "f.eid" $catcmd)
+relcol=$(getColNum $infile "RELEASE" $catcmd)
+crcol=$(getColNum $infile "CREATED" $catcmd)
+release=$($catcmd $infile|cut -f $relcol|head -n 3|tail -n 1)
 echo "Release: $release"
 echo ""
 
-read -r -a classes <<<$(head -n 2 $infile|tail -n 1|cut --complement -f ${idcol},${relcol},${crcol}|tr '\t' '\n'|sort -n|uniq|tr '\n' ' '|sed 's/ $//')
+read -r -a classes <<<$($catcmd $infile|head -n 2|tail -n 1|cut --complement -f ${idcol},${relcol},${crcol}|tr '\t' '\n'|sort -n|uniq|tr '\n' ' '|sed 's/ $//')
 
 declare -a sar
 i=1
@@ -57,7 +59,7 @@ for c in ${classes[@]};do
     fname=${prefix}_${i}".txt"
     echo "Output file: $fname" 1>&2
     
-    read -r -a sar <<<$(head -n 2 $infile|tail -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//'|sed 's/\t/ /g'|awk -v n=$c '$2==n{print $1;}'|tr '\n' ' '|sed 's/ $//')
+    read -r -a sar <<<$($catcmd $infile|head -n 2|tail -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//'|sed 's/\t/ /g'|awk -v n=$c '$2==n{print $1;}'|tr '\n' ' '|sed 's/ $//')
     str=$(join_by , ${sar[*]})
 #    echo $str 1>&2
     n=${#sar[@]}
@@ -79,9 +81,9 @@ for c in ${classes[@]};do
 
     cmd=""
     if [[ -z "${to_del_str}" ]];then
-	cmd="join -t $'\t' --header -1 1 -2 1 -a 1 -a 2 -e NULL -o $fmt <(cat <(echo f.eid) <(eval $id_cmd)) <(cat <(head -n 1 $infile|cut -f $idcol,$str) <(tail -n +3 $infile|cut -f $idcol,$str|sort -k1,1)) | grep -v ^NULL"
+	cmd="join -t $'\t' --header -1 1 -2 1 -a 1 -a 2 -e NULL -o $fmt <(cat <(echo f.eid) <(eval $id_cmd)) <(cat <($catcmd $infile|head -n 1|cut -f $idcol,$str) <($catcmd $infile|tail -n +3|cut -f $idcol,$str|sort -k1,1)) | grep -v ^NULL"
     else
-	cmd="join -t $'\t' --header -1 1 -2 1 -a 1 -a 2 -e NULL -o $fmt <(cat <(echo f.eid) <(eval $id_cmd)) <(cat <(head -n 1 $infile|cut -f $idcol,$str) <(tail -n +3 $infile|cut -f $idcol,$str|sort -k1,1)) | grep -v ^NULL|cut --complement -f ${to_del_str}"
+	cmd="join -t $'\t' --header -1 1 -2 1 -a 1 -a 2 -e NULL -o $fmt <(cat <(echo f.eid) <(eval $id_cmd)) <(cat <($catcmd $infile|head -n 1|cut -f $idcol,$str) <($catcmd $infile|tail -n +3|cut -f $idcol,$str|sort -k1,1)) | grep -v ^NULL|cut --complement -f ${to_del_str}"
     fi
 
     if [[ $to_add -gt 0 ]];then
