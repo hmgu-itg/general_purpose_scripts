@@ -60,7 +60,7 @@ for c in ${classes[@]};do
     fname=${prefix}_r${release}_${i}".txt.gz"
     echo "Output file: $fname" 1>&2
     
-    read -r -a sar <<<$($catcmd $infile|head -n 2|tail -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//'|sed 's/\t/ /g'|awk -v n=$c '$2==n{print $1;}'|tr '\n' ' '|sed 's/ $//')
+    read -r -a sar <<<$($catcmd $infile|head -n 2|tail -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//'|sed 's/\t/ /g'|gawk -v n=$c '$2==n{print $1;}'|tr '\n' ' '|sed 's/ $//')
     str=$(join_by , ${sar[*]})
 #    echo $str 1>&2
     n=${#sar[@]}
