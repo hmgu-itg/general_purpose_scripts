@@ -1,4 +1,19 @@
 
+# check if necessary commands are present
+function checkCommands {
+    local cmds=("gawk")
+    s="0"
+
+    for c in ${cmds[@]};do
+	command -v $c > /dev/null
+	if [[ $? -ne 0 ]];then
+	    echo "ERROR: command $c not found"
+	    s="1"
+	fi
+    done
+    echo "$s"    
+}
+
 # check if key is in array
 function checkArray {
     local k=$1
