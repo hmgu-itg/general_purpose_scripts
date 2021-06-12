@@ -27,7 +27,7 @@ function usage () {
     echo "           ...                    "
     echo "                     -u updateM.tab"
     echo ""
-    echo "                     -o <output prefix>"
+    echo "                     -o <output dir>"
     echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input if updating>"
     echo "                     -k <when updating, also include samples from update file(s) that are ${bold}not${normal} present in input; default: false>"
     echo ""
@@ -50,6 +50,8 @@ declare -a input_ID_column
 declare -a update_ID_column
 declare -a input_nrows
 declare -a update_nrows
+declare -a input_ncols
+declare -a update_ncols
 declare -a class_array
 declare -A column_class
 declare -A cats
@@ -60,7 +62,7 @@ fi
 
 id_field="f.eid"
 datestr=$(date +%F)
-out_prefix=""
+out_dir=""
 release=""
 mode="inner"
 while getopts "hi:u:f:o:r:k" opt; do
@@ -68,7 +70,7 @@ while getopts "hi:u:f:o:r:k" opt; do
         i)input_fnames+=($OPTARG);;
         u)update_fnames+=($OPTARG);;
         f)id_field=($OPTARG);;
-        o)out_prefix=($OPTARG);;
+        o)out_dir=($OPTARG);;
         r)release=($OPTARG);;
         k)mode="right";;
         h)usage;;
@@ -77,62 +79,100 @@ while getopts "hi:u:f:o:r:k" opt; do
 done
 shift "$((OPTIND-1))"
 
-if [[ -z "$out_prefix" ]];then
-    echo "ERROR: no output prefix specified" 1>&2
+if [[ -z "$out_dir" ]];then
+    echo "ERROR: no output dir specified" 1>&2
     exit 1
 fi
 
-if [[ -d "$out_prefix" ]];then
-    echo "ERROR: output prefix $out_prefix is a directory" 1>&2
+if [[ ! -d "$out_dir" ]];then
+    echo "ERROR: output dir $out_dir is not a directory" 1>&2
     exit 1
 fi
 
-outfile="${out_prefix}.txt.gz"
-logfile="${out_prefix}.log"
-
-if [[ -f "$outfile" ]];then
-    echo "ERROR: output file $outfile already exists" 1>&2
+if [[ ! -w "$out_dir" ]];then
+    echo "ERROR: output dir $out_dir is not writable" 1>&2
     exit 1
 fi
 
-: > "$logfile"
-date "+%F %H-%M-%S" |tee -a $logfile
-echo "Current dir: ${PWD}"  |tee -a $logfile
-echo "Command line: $scriptname ${args[@]}"  |tee -a $logfile
-echo ""  |tee -a $logfile
+out_dir=${out_dir%/}
 
 n_input=${#input_fnames[@]}
 n_update=${#update_fnames[@]}
 
 if [[ $n_input -eq 0 ]];then
-    echo "ERROR: no input files specified" |tee -a $logfile
+    echo "ERROR: no input files specified" 1>&2
     exit 1
 fi
 
 if [[ $n_input -lt 2 && $n_update -eq 0 ]];then
-    echo "ERROR: no update files specified, only one input file specified (need at least two input files to merge)"|tee -a "$logfile"
+    echo "ERROR: no update files specified, only one input file specified (need at least two input files to merge)" 1>&2
+    exit 1
+fi
+
+if [[ $n_input -eq 0 && $n_update -gt 0 ]];then
+    echo "ERROR: update file(s) specified but no input files specified" 1>&2
     exit 1
 fi
 
 if [[ $n_update -gt 0 && $n_input -gt 1 ]];then
-    echo "WARN: $n_update update files and $n_input input files specified; only the first input file (${input_fnames[0]}) will be processed"|tee -a "$logfile"
+    echo "WARN: $n_update update files and $n_input input files specified; only the first input file (${input_fnames[0]}) will be processed" 1>&2
 fi
 
 # get zcat/cat command
 for i in $(seq 0 $((n_input-1)));do
     cats["${input_fnames[$i]}"]=$(getCatCmd ${input_fnames[$i]})
 done
-
 for i in $(seq 0 $((n_update-1)));do
     cats["${update_fnames[$i]}"]=$(getCatCmd ${update_fnames[$i]})
 done
+
+# get release, either from command line or from input file, in case of update
+
+if [[ $n_update -eq 0 ]];then
+    # if no release specified, set it to "1"
+    if [[ -z "$release" ]];then
+	release="1"
+    fi
+else
+    # read previous release from input[0]
+    release_col=$(getColNum ${input_fnames[0]} "RELEASE" ${cats[${input_fnames[0]}]})
+    if [[ -z "$release_col" ]];then
+	echo "ERROR: no RELEASE column found in the input file ${input_fnames[0]}" 1>&2
+	exit 1
+    fi
+    created_col=$(getColNum ${input_fnames[0]} "CREATED" ${cats[${input_fnames[0]}]})
+    if [[ -z "$created_col" ]];then
+	echo "ERROR: no CREATED column found in the input file ${input_fnames[0]}" 1>&2
+	exit 1
+    fi
+    if [[ -z "$release" ]];then
+	release=$(${cats[${input_fnames[0]}]} ${input_fnames[0]}|cut -f ${release_col}|head -n 3|tail -n 1)
+	release=$((release+1))
+    fi
+fi
+
+outfile="${out_dir}/phenotypes_r${release}.txt.gz"
+if [[ -f "$outfile" ]];then
+    echo "ERROR: output file $outfile already exists" 1>&2
+    exit 1
+fi
+logfile="${out_dir}/phenotypes_r${release}.log"
+
+: > "$logfile"
+date "+%F %H-%M-%S"|tee -a $logfile
+echo "Current dir: ${PWD}"|tee -a $logfile
+echo "Command line: $scriptname ${args[@]}"|tee -a $logfile
+echo ""|tee -a $logfile
+echo "Output release: $release"|tee -a "$logfile"
+echo "Output file: $outfile"|tee -a "$logfile"
+echo "INFO: join mode: $mode"|tee -a "$logfile"
+echo ""|tee -a "$logfile"
 #----------------------------------------------------
 
 # checking if all rows have the same number of fields
 for i in $(seq 0 $((n_input-1)));do
     checkFields ${input_fnames[$i]} ${cats[${input_fnames[$i]}]} "$logfile"
 done
-
 for i in $(seq 0 $((n_update-1)));do
     checkFields ${update_fnames[$i]} ${cats[${update_fnames[$i]}]} "$logfile"
 done
@@ -146,9 +186,9 @@ for i in $(seq 0 $((n_input-1)));do
 	exit 1
     fi    
     input_ID_column+=($x)
-    input_nrows+=($(${cats[${input_fnames[$i]}]} ${input_fnames[$i]} | wc -l))
+    input_nrows+=($(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|wc -l))
+    input_ncols+=($(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1|tr '\t' '\n'|wc -l))
 done
-
 for i in $(seq 0 $((n_update-1)));do
     x=$(getColNum ${update_fnames[$i]} $id_field ${cats[${update_fnames[$i]}]})
     if [[ -z $x ]];then
@@ -156,7 +196,8 @@ for i in $(seq 0 $((n_update-1)));do
 	exit 1
     fi    
     update_ID_column+=($x)
-    update_nrows+=($(${cats[${update_fnames[$i]}]} ${update_fnames[$i]} | wc -l))
+    update_nrows+=($(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|wc -l))
+    update_ncols+=($(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1|tr '\t' '\n'|wc -l))
 done
 #----------------------------------------------------
 
@@ -166,6 +207,7 @@ for i in $(seq 0 $((n_input-1)));do
     echo "INFO: input file: ${input_fnames[$i]}"|tee -a "$logfile"
     echo "INFO: ID column index: ${input_ID_column[$i]}"|tee -a "$logfile"
     echo "INFO: rows: ${input_nrows[$i]}"|tee -a "$logfile"
+    echo "INFO: columns: ${input_ncols[$i]}"|tee -a "$logfile"
     echo ""|tee -a "$logfile"
 done
 
@@ -173,12 +215,10 @@ for i in $(seq 0 $((n_update-1)));do
     echo "INFO: update file: ${update_fnames[$i]}"|tee -a "$logfile"
     echo "INFO: ID column index: ${update_ID_column[$i]}"|tee -a "$logfile"
     echo "INFO: rows: ${update_nrows[$i]}"|tee -a "$logfile"
+    echo "INFO: columns: ${update_ncols[$i]}"|tee -a "$logfile"
     echo ""|tee -a "$logfile"
 done
 #----------------------------------------------------
-
-echo "INFO: join mode: $mode"|tee -a "$logfile"
-echo ""|tee -a "$logfile"
 
 #
 # check if all input files have same IDs
@@ -246,7 +286,9 @@ echo ""|tee -a "$logfile"
 
 #-------------------------------------- OUTPUT -------------------------------------------------
 
-if [[ $n_update -eq 0 ]];then # just merging input files
+if [[ $n_update -eq 0 ]];then
+    # just merging input files
+    
     echo "Merging input files ... "|tee -a "$logfile"
 
     # column classes of input columns are based on source input files
@@ -256,12 +298,6 @@ if [[ $n_update -eq 0 ]];then # just merging input files
     	done
     done
     column_class[$id_field]="NA"
-
-    # if no release specified, set it to "1"
-    if [[ -z "$release" ]];then
-	release="1"
-    fi
-    echo "Output release: $release"|tee -a "$logfile"
 
     # HEADER
     command1="paste <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1)"
@@ -294,28 +330,20 @@ if [[ $n_update -eq 0 ]];then # just merging input files
     
     echo "Done"|tee -a "$logfile"
     echo ""|tee -a "$logfile"
-else # updating the first input file using update files
+else
+    # updating the first input file using update files
+    
     echo "Updating input ... "|tee -a "$logfile"
 
-    # if no release specified, read previous release and increment it
-    release_col=$(getColNum ${input_fnames[0]} "RELEASE" ${cats[${input_fnames[0]}]})
-    if [[ -z "$release_col" ]];then
-	echo "ERROR: no RELEASE column found in the input file ${input_fnames[0]}"|tee -a "$logfile"
-	exit 1
-    fi
-    created_col=$(getColNum ${input_fnames[0]} "CREATED" ${cats[${input_fnames[0]}]})
-    if [[ -z "$created_col" ]];then
-	echo "ERROR: no CREATED column found in the input file ${input_fnames[0]}"|tee -a "$logfile"
-	exit 1
-    fi
-    if [[ -z "$release" ]];then
-	release=$(${cats[${input_fnames[0]}]} ${input_fnames[0]}|cut -f ${release_col}|head -n 3|tail -n 1)
-	release=$((release+1))
-    fi
     #----------------------------------------------------------------
     # merging all update files and saving the result in a temporary file, with classes
     # update files have same IDs, so using paste instead of join
-    tmpfile1=$(mktemp ${out_prefix}_1_update_XXXXXXXX)
+    tmpfile1=$(mktemp -p $out_dir temp_1_update_XXXXXXXX)
+    if [[ $? -ne 0 ]];then
+	echo "ERROR: could not create tmpfile1 "|tee -a "$logfile"
+	exit 1
+    fi
+    
     echo -n "Merging update files ... "|tee -a "$logfile"
     # column classes of input columns are based on source update files
     for i in $(seq 0 $((n_update-1)));do
@@ -347,7 +375,6 @@ else # updating the first input file using update files
     eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) > $tmpfile1"
     
     echo "Done"|tee -a "$logfile"
-    echo "Output release: $release"|tee -a "$logfile"
     #----------------------------------------------------------------
     # input fields (except for ID column) and their classes, from the input file
     declare -a input_fields
@@ -408,7 +435,12 @@ else # updating the first input file using update files
     echo "Columns to exclude done"|tee -a "$logfile"
 
     # input without excluded columns, without classes
-    tmpfile2=$(mktemp ${out_prefix}_2_input_XXXXXXXX)
+    tmpfile2=$(mktemp -p $out_dir temp_2_input_XXXXXXXX)
+    if [[ $? -ne 0 ]];then
+	echo "ERROR: could not create tmpfile2 "|tee -a "$logfile"
+	exit 1
+    fi
+    
     echo -n "Removing columns from input ... "|tee -a "$logfile"
     #str=$(join_by , ${input_columns_to_exclude[*]})
     #echo "columns to exclude: $str"|tee -a "$logfile"
@@ -449,7 +481,12 @@ else # updating the first input file using update files
     done
     
     # join input and merged update, without classes
-    tmpfile3=$(mktemp ${out_prefix}_3_joined_XXXXXXXX)
+    tmpfile3=$(mktemp -p $out_dir temp_3_joined_XXXXXXXX)
+    if [[ $? -ne 0 ]];then
+	echo "ERROR: could not create tmpfile3 "|tee -a "$logfile"
+	exit 1
+    fi
+    
     echo -n "Joining ... "|tee -a "$logfile"
     join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr $tmpfile2 <(awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' $tmpfile1)|awk -v m=$mode 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($2!="NA"){if (m=="inner"){if ($1!="NA"){print $0;}} if(m=="right"){if($1=="NA"){$1=$2;}print $0;} } }}'| cut -f 2 --complement > $tmpfile3
     echo "Done"|tee -a "$logfile"
