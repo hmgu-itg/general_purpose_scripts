@@ -45,7 +45,8 @@ idcol=$(getColNum $infile "f.eid" $catcmd)
 relcol=$(getColNum $infile "RELEASE" $catcmd)
 crcol=$(getColNum $infile "CREATED" $catcmd)
 release=$($catcmd $infile|cut -f $relcol|head -n 3|tail -n 1)
-echo "Release: $release"
+release=$((release+1))
+echo "New release: $release"
 echo ""
 
 read -r -a classes <<<$($catcmd $infile|head -n 2|tail -n 1|cut --complement -f ${idcol},${relcol},${crcol}|tr '\t' '\n'|sort -n|uniq|tr '\n' ' '|sed 's/ $//')
@@ -56,7 +57,7 @@ newcol_index_start=1
 newcol_index_end=""
 for c in ${classes[@]};do
     echo "Generating file $i/${#classes[@]}" 1>&2
-    fname=${prefix}_${i}".txt.gz"
+    fname=${prefix}_r${release}_${i}".txt.gz"
     echo "Output file: $fname" 1>&2
     
     read -r -a sar <<<$($catcmd $infile|head -n 2|tail -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//'|sed 's/\t/ /g'|awk -v n=$c '$2==n{print $1;}'|tr '\n' ' '|sed 's/ $//')

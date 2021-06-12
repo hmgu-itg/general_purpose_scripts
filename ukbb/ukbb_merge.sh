@@ -289,7 +289,7 @@ echo ""|tee -a "$logfile"
 if [[ $n_update -eq 0 ]];then
     # just merging input files
     
-    echo "Merging input files ... "|tee -a "$logfile"
+    echo -n "Merging input files ... "|tee -a "$logfile"
 
     # column classes of input columns are based on source input files
     for i in $(seq 0 $((n_input-1)));do
@@ -329,7 +329,7 @@ if [[ $n_update -eq 0 ]];then
     eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) | gzip - -c > ${outfile}"
     
     echo "Done"|tee -a "$logfile"
-    echo ""|tee -a "$logfile"
+    date "+%F %H-%M-%S" |tee -a $logfile
 else
     # updating the first input file using update files
     
@@ -444,7 +444,7 @@ else
     echo -n "Removing columns from input ... "|tee -a "$logfile"
     #str=$(join_by , ${input_columns_to_exclude[*]})
     #echo "columns to exclude: $str"|tee -a "$logfile"
-    ${cats[${input_fnames[0]}]} ${input_fnames[0]}|cut -f $(join_by , ${input_columns_to_exclude[*]}) --complement| awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' > "$tmpfile2"
+    ${cats[${input_fnames[0]}]} ${input_fnames[0]}|cut -f $(join_by , ${input_columns_to_exclude[*]}) --complement| gawk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' > "$tmpfile2"
     echo "Done"|tee -a "$logfile"
     new_input_ID=$(getColNum $tmpfile2 $id_field "cat")
     if [[ -z $new_input_ID ]];then
@@ -488,7 +488,7 @@ else
     fi
     
     echo -n "Joining ... "|tee -a "$logfile"
-    join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr $tmpfile2 <(awk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' $tmpfile1)|awk -v m=$mode 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($2!="NA"){if (m=="inner"){if ($1!="NA"){print $0;}} if(m=="right"){if($1=="NA"){$1=$2;}print $0;} } }}'| cut -f 2 --complement > $tmpfile3
+    join --header -1 $new_input_ID -2 $new_update_ID -a 1 -a 2 -t $'\t' -e NA -o $fmtstr $tmpfile2 <(gawk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' $tmpfile1)|gawk -v m=$mode 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0;}else{if ($2!="NA"){if (m=="inner"){if ($1!="NA"){print $0;}} if(m=="right"){if($1=="NA"){$1=$2;}print $0;} } }}'| cut -f 2 --complement > $tmpfile3
     echo "Done"|tee -a "$logfile"
     joined_ID=$(getColNum $tmpfile3 $id_field "cat")
     if [[ -z $joined_ID ]];then

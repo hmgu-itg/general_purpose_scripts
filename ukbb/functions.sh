@@ -36,7 +36,7 @@ function checkFields {
 	echo -n "Checking # fields in $fname ... " | tee -a "$logfile"
     fi
     
-    local x=$($cmd $fname|awk 'BEGIN{FS="\t";}{print NF;}'| sort|uniq| wc -l)
+    local x=$($cmd $fname|gawk 'BEGIN{FS="\t";}{print NF;}'| sort|uniq| wc -l)
     if [[ $x -eq 1 ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "OK" 1>&2
