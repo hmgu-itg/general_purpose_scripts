@@ -409,8 +409,10 @@ else
     # new fields in update that will be added
     declare -A new_fields
     for c in $(head -n 1 $tmpfile1|cut --complement -f $new_update_ID);do
-	status=$(checkArray "$c" "${!input_field2class[@]}")
-	if [[ $status == "YES" ]];then
+	# status=$(checkArray "$c" "${!input_field2class[@]}")
+	# if [[ $status == "YES" ]];then
+	status=${input_field2class[$c]}
+	if [[ ! -z "$status" ]];then
 	    x=${input_field2class[$c]}
 	    intersecting_classes[$x]=1
 	else
@@ -424,8 +426,10 @@ else
     for (( i=0; i<${#input_fields[@]}; i++ )); do
 	c=${input_fields[$i]}
 	x=${input_field2class[$c]}
-	status=$(checkArray "$x" "${!intersecting_classes[@]}")
-	if [[ $status == "YES" ]];then
+	# status=$(checkArray "$x" "${!intersecting_classes[@]}")
+	# if [[ $status == "YES" ]];then
+	status=${intersecting_classes[$x]}
+	if [[ ! -z "$status" ]];then
 	    n=$(getColNum ${input_fnames[0]} $c ${cats[${input_fnames[0]}]})
 	    input_columns_to_exclude+=($n)
 	fi
@@ -508,15 +512,21 @@ else
     declare -A tmp_ar
     cur_add=1
     for c in $(head -n 1 $tmpfile3|cut -f $joined_ID --complement);do
-	s=$(checkArray "$c" "${!update_field2class[@]}")
-	if [[ $s == "YES" ]];then
+	# s=$(checkArray "$c" "${!update_field2class[@]}")
+	# if [[ $s == "YES" ]];then
+	s=${update_field2class[$c]}
+	if [[ ! -z "$s" ]];then
 	    new_classes[$c]=${update_field2class[$c]}
 	else
-	    t=$(checkArray "$c" "${!input_field2class[@]}")
-	    if [[ $t == "YES" ]];then
+	    # t=$(checkArray "$c" "${!input_field2class[@]}")
+	    # if [[ $t == "YES" ]];then
+	    t=${input_field2class[$c]}
+	    if [[ ! -z "$t" ]];then
 		d=${input_field2class[$c]}
-		u=$(checkArray "$d" "${!tmp_ar[@]}")
-		if [[ $u == "YES" ]];then
+		# u=$(checkArray "$d" "${!tmp_ar[@]}")
+		# if [[ $u == "YES" ]];then
+		u=${tmp_ar[$d]}
+		if [[ ! -z "$u" ]];then
 		    new_classes[$c]=${tmp_ar[$d]}
 		else
 		    tmp_ar[$d]=$((maxc+cur_add))
