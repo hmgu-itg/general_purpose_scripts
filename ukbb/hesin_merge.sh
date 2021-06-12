@@ -65,18 +65,18 @@ fi
 : > $logfile
 
 date | tee -a $logfile
-echo "MAIN TABLE: $main_fname" | tee -a $logfile
-echo "DIAG TABLE: $diag_fname" | tee -a $logfile
-echo "OPER TABLE: $oper_fname" | tee -a $logfile
-echo "RELEASE: $release" | tee -a $logfile
-echo "OUTPUT DIR: $outdir" | tee -a $logfile
-echo "OUTPUT FILE: $outfile" | tee -a $logfile
-echo "" | tee -a $logfile
+echo "MAIN TABLE: $main_fname" | tee -a "$logfile"
+echo "DIAG TABLE: $diag_fname" | tee -a "$logfile"
+echo "OPER TABLE: $oper_fname" | tee -a "$logfile"
+echo "RELEASE: $release" | tee -a "$logfile"
+echo "OUTPUT DIR: $outdir" | tee -a "$logfile"
+echo "OUTPUT FILE: $outfile" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
 
-checkFields $main_fname
-checkFields $diag_fname
-checkFields $oper_fname
-echo "" | tee -a $logfile
+checkFields $main_fname "$logfile"
+checkFields $diag_fname "$logfile"
+checkFields $oper_fname "$logfile"
+echo "" | tee -a "$logfile"
 
 main_eid_col=$(getColNum $main_fname "eid")
 if [[ -z $main_eid_col ]];then
@@ -153,4 +153,4 @@ done
 
 datestr=$(date +%F)
 
-join --header -t $'\t' -1 1 -2 1 -e NA -a 1 -a 2 -o ${main_str},${diag_str} <(cat <(head -n 1 $main_fname|awk -v n=$main_eid_col -v m=$main_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}') <(tail -n +2 $main_fname|awk -v n=$main_eid_col -v m=$main_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}'|sort -k1,1)) <(cat <(head -n 1 $diag_fname|sed 's/level/diag_level/'|sed 's/arr_index/diag_arr_index/'|awk -v n=$diag_eid_col -v m=$diag_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}') <(tail -n +2 $diag_fname|awk -v n=$diag_eid_col -v m=$diag_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}'|sort -k1,1))| join --header -t $'\t' -1 1 -2 1 -e NA -a 1 -a 2 -o ${join_str},${oper_str} - <(cat <(head -n 1 $oper_fname|sed 's/level/oper_level/'|sed 's/arr_index/oper_arr_index/'|awk -v n=$oper_eid_col -v m=$oper_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}') <(tail -n +2 $oper_fname|awk -v n=$oper_eid_col -v m=$oper_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}'|sort -k1,1))|sed 's/\./\t/'|awk -v d=$datestr -v r=$release 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0,"CREATED","RELEASE";}else{print $0,d,r;}}' | gzip - > "$outfile"
+join --header -t $'\t' -1 1 -2 1 -e NA -a 1 -a 2 -o ${main_str},${diag_str} <(cat <(head -n 1 $main_fname|awk -v n=$main_eid_col -v m=$main_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}') <(tail -n +2 $main_fname|awk -v n=$main_eid_col -v m=$main_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}'|sort -k1,1)) <(cat <(head -n 1 $diag_fname|sed 's/level/diag_level/'|sed 's/arr_index/diag_arr_index/'|awk -v n=$diag_eid_col -v m=$diag_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}') <(tail -n +2 $diag_fname|awk -v n=$diag_eid_col -v m=$diag_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}'|sort -k1,1))| join --header -t $'\t' -1 1 -2 1 -e NA -a 1 -a 2 -o ${join_str},${oper_str} - <(cat <(head -n 1 $oper_fname|sed 's/level/oper_level/'|sed 's/arr_index/oper_arr_index/'|awk -v n=$oper_eid_col -v m=$oper_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}') <(tail -n +2 $oper_fname|awk -v n=$oper_eid_col -v m=$oper_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}'|sort -k1,1))|sed 's/\./\t/'|awk -v d=$datestr -v r=$release 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0,"CREATED","RELEASE";}else{print $0,d,r;}}' | gzip - -c > "$outfile"
