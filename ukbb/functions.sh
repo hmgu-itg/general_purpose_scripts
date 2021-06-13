@@ -30,6 +30,91 @@ function checkArray {
     echo $x
 }
 
+# check for duplicate fields in a column
+function checkDuplicatesColumn {
+    local fname=$1
+    local column=$2
+
+    local cmd="cat"
+    if [[ $# -ge 3 ]];then
+	cmd=$3
+    fi
+
+    local logfile=""
+    if [[ $# -ge 4 ]];then
+	logfile=$4
+    fi
+
+    totcols=$($cmd $fname|awk -F'\t' '{print NF; exit}')
+    if [[ $column -gt $totcols ]];then
+	if [[ -z "$logfile" ]];then
+	    echo "WARN: checkDuplicatesColumn: column specified ($column) is greater than the total number of columns ($totcols) in $fname" 1>&2
+	else
+	    echo "WARN: checkDuplicatesColumn: column specified ($column) is greater than the total number of columns ($totcols) in $fname"|tee -a "$logfile"
+	fi
+	return 1
+    fi
+    
+    if [[ -z "$logfile" ]];then
+	echo -n "Checking for duplicates in column $column in $fname ... " 1>&2
+    else
+	echo -n "Checking for duplicates in column $column in $fname ... "|tee -a "$logfile"
+    fi
+
+    local x=$($cmd $fname|cut -f $column|sort|uniq -d|wc -l)
+    if [[ $x -eq 0 ]];then
+	if [[ -z "$logfile" ]];then
+	    echo "OK" 1>&2
+	else
+	    echo "OK" | tee -a "$logfile"
+	fi    
+    else
+	if [[ -z "$logfile" ]];then
+	    echo "ERROR: column $column in $fname contains duplicates" 1>&2
+	else
+	    echo "ERROR: column $column in $fname contains duplicates"|tee -a "$logfile"
+	fi
+	exit 1
+    fi
+}
+
+# check for duplicate fields in the header row
+function checkDuplicatesHeader {
+    local fname=$1
+
+    local cmd="cat"
+    if [[ $# -ge 2 ]];then
+	cmd=$2
+    fi
+
+    local logfile=""
+    if [[ $# -ge 3 ]];then
+	logfile=$3
+    fi
+
+    if [[ -z "$logfile" ]];then
+	echo -n "Checking for duplicates in the header row in $fname ... " 1>&2
+    else
+	echo -n "Checking for duplicates in the header row in $fname ... "|tee -a "$logfile"
+    fi
+
+    local x=$($cmd $fname|head -n 1|tr '\t' '\n'|sort|uniq -d|wc -l)
+    if [[ $x -eq 0 ]];then
+	if [[ -z "$logfile" ]];then
+	    echo "OK" 1>&2
+	else
+	    echo "OK" | tee -a "$logfile"
+	fi    
+    else
+	if [[ -z "$logfile" ]];then
+	    echo "ERROR: header in $fname contains duplicate field(s)" 1>&2
+	else
+	    echo "ERROR: header in $fname contains duplicate field(s)"|tee -a "$logfile"
+	fi
+	exit 1
+    fi
+}
+
 # check for empty fields in a row
 function checkRow {
     local fname=$1
@@ -48,9 +133,9 @@ function checkRow {
     totrows=$($cmd$fname|wc -l)
     if [[ $row -gt $totrows ]];then
 	if [[ -z "$logfile" ]];then
-	    echo "WARN: row specified ($row) is greater than the total number of rows ($totrows) in $fname" 1>&2
+	    echo "WARN: checkRow: row specified ($row) is greater than the total number of rows ($totrows) in $fname" 1>&2
 	else
-	    echo "WARN: row specified ($row) is greater than the total number of rows ($totrows) in $fname"|tee -a "$logfile"
+	    echo "WARN: checkRow: row specified ($row) is greater than the total number of rows ($totrows) in $fname"|tee -a "$logfile"
 	fi
 	return 1
     fi
@@ -96,9 +181,9 @@ function checkColumn {
     totcols=$($cmd $fname|awk -F'\t' '{print NF; exit}')
     if [[ $column -gt $totcols ]];then
 	if [[ -z "$logfile" ]];then
-	    echo "WARN: column specified ($column) is greater than the total number of columns ($totcols) in $fname" 1>&2
+	    echo "WARN: checkColumn: column specified ($column) is greater than the total number of columns ($totcols) in $fname" 1>&2
 	else
-	    echo "WARN: column specified ($column) is greater than the total number of columns ($totcols) in $fname"|tee -a "$logfile"
+	    echo "WARN: checkColumn: column specified ($column) is greater than the total number of columns ($totcols) in $fname"|tee -a "$logfile"
 	fi
 	return 1
     fi
