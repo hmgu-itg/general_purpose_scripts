@@ -3,7 +3,6 @@
 function checkCommands {
     local cmds=("gawk")
     s="0"
-
     for c in ${cmds[@]};do
 	command -v $c > /dev/null
 	if [[ $? -ne 0 ]];then
@@ -29,6 +28,102 @@ function checkArray {
     done
     
     echo $x
+}
+
+# check for empty fields in a row
+function checkRow {
+    local fname=$1
+    local row=$2
+
+    local cmd="cat"
+    if [[ $# -ge 3 ]];then
+	cmd=$3
+    fi
+
+    local logfile=""
+    if [[ $# -ge 4 ]];then
+	logfile=$4
+    fi
+
+    totrows=$($cmd$fname|wc -l)
+    if [[ $row -gt $totrows ]];then
+	if [[ -z "$logfile" ]];then
+	    echo "WARN: row specified ($row) is greater than the total number of rows ($totrows) in $fname" 1>&2
+	else
+	    echo "WARN: row specified ($row) is greater than the total number of rows ($totrows) in $fname"|tee -a "$logfile"
+	fi
+	return 1
+    fi
+        
+    if [[ -z "$logfile" ]];then
+	echo -n "Checking for empty fields in row $row in $fname ... " 1>&2
+    else
+	echo -n "Checking for empty fields in row $row in $fname ... "|tee -a "$logfile"
+    fi
+
+    local x=$($cmd $fname|head -n $row|tail -n 1|gawk 'BEGIN{FS="\t";r=0;}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){c=i;exit;}}END{print c;}')
+    if [[ $x -eq 0 ]];then
+	if [[ -z "$logfile" ]];then
+	    echo "OK" 1>&2
+	else
+	    echo "OK" | tee -a "$logfile"
+	fi    
+    else
+	if [[ -z "$logfile" ]];then
+	    echo "ERROR: row $row in $fname contains empty field(s)" 1>&2
+	else
+	    echo "ERROR: row $row in $fname contains empty field(s)"|tee -a "$logfile"
+	fi
+	exit 1
+    fi
+}
+
+# check for empty fields in a column
+function checkColumn {
+    local fname=$1
+    local column=$2
+
+    local cmd="cat"
+    if [[ $# -ge 3 ]];then
+	cmd=$3
+    fi
+
+    local logfile=""
+    if [[ $# -ge 4 ]];then
+	logfile=$4
+    fi
+
+    totcols=$($cmd $fname|awk -F'\t' '{print NF; exit}')
+    if [[ $column -gt $totcols ]];then
+	if [[ -z "$logfile" ]];then
+	    echo "WARN: column specified ($column) is greater than the total number of columns ($totcols) in $fname" 1>&2
+	else
+	    echo "WARN: column specified ($column) is greater than the total number of columns ($totcols) in $fname"|tee -a "$logfile"
+	fi
+	return 1
+    fi
+    
+    if [[ -z "$logfile" ]];then
+	echo -n "Checking for empty fields in column $column in $fname ... " 1>&2
+    else
+	echo -n "Checking for empty fields in column $column in $fname ... "|tee -a "$logfile"
+    fi
+
+    local x=$($cmd $fname|cut -f $column|tr '\n' '\t'|sed 's/\t$//'|gawk 'BEGIN{FS="\t";r=0;}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){c=i;exit;}}END{print c;}')
+    if [[ $x -eq 0 ]];then
+	if [[ -z "$logfile" ]];then
+	    echo "OK" 1>&2
+	else
+	    echo "OK" | tee -a "$logfile"
+	fi    
+    else
+	if [[ -z "$logfile" ]];then
+	    echo "ERROR: column $column in $fname contains empty field(s)" 1>&2
+	else
+	    echo "ERROR: column $column in $fname contains empty field(s)"|tee -a "$logfile"
+	fi
+	exit 1
+    fi
 }
 
 # check if all rows in a TSV file have same # fields
