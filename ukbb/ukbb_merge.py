@@ -149,4 +149,4 @@ L=[(x,new_classes[x]) for x in df2.columns.values.tolist()]
 df2.columns=pd.MultiIndex.from_tuples(L)
 print("Output rows: %d" % len(df2),file=logF)
 print("Output columns: %d" % len(df2.columns.values.tolist()),file=logF)
-df2.to_csv(out_prefix+".txt.gz",sep="\t",index=False)
+df2.to_csv(out_prefix+".txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE)

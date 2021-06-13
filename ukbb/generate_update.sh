@@ -7,6 +7,7 @@ infile=$1
 prefix=$2
 
 catcmd=$(getCatCmd $infile)
+checkFields $infile $catcmd
 
 declare -a classes
 
@@ -44,6 +45,23 @@ add_col_lim=3
 idcol=$(getColNum $infile "f.eid" $catcmd)
 relcol=$(getColNum $infile "RELEASE" $catcmd)
 crcol=$(getColNum $infile "CREATED" $catcmd)
+if [[ -z "$idcol" ]];then
+    echo "ERROR: ID column not found in $infile"
+    exit 1
+fi
+if [[ -z "$relcol" ]];then
+    echo "ERROR: RELEASE column not found in $infile"
+    exit 1
+fi
+if [[ -z "$crcol" ]];then
+    echo "ERROR: CREATED column not found in $infile"
+    exit 1
+fi
+
+echo "ID column: $idcol"
+echo "RELEASE column: $relcol"
+echo "CREATED column: $crcol"
+
 release=$($catcmd $infile|cut -f $relcol|head -n 3|tail -n 1)
 release=$((release+1))
 echo "New release: $release"
