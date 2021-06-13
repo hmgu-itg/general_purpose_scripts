@@ -1,13 +1,15 @@
 
 # check if necessary commands are present
-function checkCommands {
+function checkInstalledCommands {
     local cmds=("gawk")
     s="0"
     for c in ${cmds[@]};do
 	command -v $c > /dev/null
 	if [[ $? -ne 0 ]];then
-	    echo "ERROR: command $c not found"
+	    echo "ERROR: command $c not found" 1>&2
 	    s="1"
+	else
+	    echo "INFO: check $c: OK" 1>&2
 	fi
     done
     echo "$s"    
@@ -130,7 +132,7 @@ function checkRow {
 	logfile=$4
     fi
 
-    totrows=$($cmd$fname|wc -l)
+    totrows=$($cmd $fname|wc -l)
     if [[ $row -gt $totrows ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "WARN: checkRow: row specified ($row) is greater than the total number of rows ($totrows) in $fname" 1>&2
@@ -146,7 +148,7 @@ function checkRow {
 	echo -n "Checking for empty fields in row $row in $fname ... "|tee -a "$logfile"
     fi
 
-    local x=$($cmd $fname|head -n $row|tail -n 1|gawk 'BEGIN{FS="\t";r=0;}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){c=i;exit;}}END{print c;}')
+    local x=$($cmd $fname|head -n $row|tail -n 1|gawk 'BEGIN{FS="\t";c=0;}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){c=i;exit;}}}END{print c;}')
     if [[ $x -eq 0 ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "OK" 1>&2
@@ -194,7 +196,7 @@ function checkColumn {
 	echo -n "Checking for empty fields in column $column in $fname ... "|tee -a "$logfile"
     fi
 
-    local x=$($cmd $fname|cut -f $column|tr '\n' '\t'|sed 's/\t$//'|gawk 'BEGIN{FS="\t";r=0;}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){c=i;exit;}}END{print c;}')
+    local x=$($cmd $fname|cut -f $column|tr '\n' '\t'|sed 's/\t$//'|gawk 'BEGIN{FS="\t";c=0;}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){c=i;exit;}}}END{print c;}')
     if [[ $x -eq 0 ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "OK" 1>&2

@@ -79,6 +79,11 @@ while getopts "hi:u:f:o:r:k" opt; do
 done
 shift "$((OPTIND-1))"
 
+ret=$(checkInstalledCommands)
+if [[ $ret -ne 0 ]];then
+    exit 1
+fi
+
 if [[ -z "$out_dir" ]];then
     echo "ERROR: no output dir specified" 1>&2
     exit 1
@@ -172,9 +177,15 @@ echo ""|tee -a "$logfile"
 # checking if all rows have the same number of fields
 for i in $(seq 0 $((n_input-1)));do
     checkFields ${input_fnames[$i]} ${cats[${input_fnames[$i]}]} "$logfile"
+    checkDuplicatesHeader ${input_fnames[$i]} ${cats[${input_fnames[$i]}]} "$logfile"
+    checkRow ${input_fnames[$i]} 1 ${cats[${input_fnames[$i]}]} "$logfile"
+    echo ""|tee -a "$logfile"
 done
 for i in $(seq 0 $((n_update-1)));do
     checkFields ${update_fnames[$i]} ${cats[${update_fnames[$i]}]} "$logfile"
+    checkDuplicatesHeader ${update_fnames[$i]} ${cats[${update_fnames[$i]}]} "$logfile"
+    checkRow ${update_fnames[$i]} 1 ${cats[${update_fnames[$i]}]} "$logfile"
+    echo ""|tee -a "$logfile"
 done
 #----------------------------------------------------
 
@@ -188,6 +199,9 @@ for i in $(seq 0 $((n_input-1)));do
     input_ID_column+=($x)
     input_nrows+=($(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|wc -l))
     input_ncols+=($(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1|tr '\t' '\n'|wc -l))
+    checkColumn ${input_fnames[$i]} $input_ID_column ${cats[${input_fnames[$i]}]} "$logfile"
+    checkDuplicatesColumn ${input_fnames[$i]} $input_ID_column ${cats[${input_fnames[$i]}]} "$logfile"
+    echo ""  |tee -a $logfile
 done
 for i in $(seq 0 $((n_update-1)));do
     x=$(getColNum ${update_fnames[$i]} $id_field ${cats[${update_fnames[$i]}]})
@@ -198,11 +212,13 @@ for i in $(seq 0 $((n_update-1)));do
     update_ID_column+=($x)
     update_nrows+=($(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|wc -l))
     update_ncols+=($(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1|tr '\t' '\n'|wc -l))
+    checkColumn ${update_fnames[$i]} $update_ID_column ${cats[${update_fnames[$i]}]} "$logfile"
+    checkDuplicatesColumn ${update_fnames[$i]} $update_ID_column ${cats[${update_fnames[$i]}]} "$logfile"
+    echo ""  |tee -a $logfile
 done
 #----------------------------------------------------
 
 # output info
-echo ""  |tee -a $logfile
 for i in $(seq 0 $((n_input-1)));do
     echo "INFO: input file: ${input_fnames[$i]}"|tee -a "$logfile"
     echo "INFO: ID column index: ${input_ID_column[$i]}"|tee -a "$logfile"
