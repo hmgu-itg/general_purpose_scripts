@@ -47,7 +47,7 @@ function checkDuplicatesColumn {
 	logfile=$4
     fi
 
-    totcols=$($cmd $fname|awk -F'\t' '{print NF; exit}')
+    totcols=$($cmd "$fname"|awk -F'\t' '{print NF; exit}')
     if [[ $column -gt $totcols ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "WARN: checkDuplicatesColumn: column specified ($column) is greater than the total number of columns ($totcols) in $fname" 1>&2
@@ -63,7 +63,7 @@ function checkDuplicatesColumn {
 	echo -n "Checking for duplicates in column $column in $fname ... "|tee -a "$logfile"
     fi
 
-    local x=$($cmd $fname|cut -f $column|sort|uniq -d|wc -l)
+    local x=$($cmd "$fname"|cut -f $column|sort|uniq -d|wc -l)
     if [[ $x -eq 0 ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "OK" 1>&2
@@ -100,7 +100,7 @@ function checkDuplicatesHeader {
 	echo -n "Checking for duplicates in the header row in $fname ... "|tee -a "$logfile"
     fi
 
-    local x=$($cmd $fname|head -n 1|tr '\t' '\n'|sort|uniq -d|wc -l)
+    local x=$($cmd "$fname"|head -n 1|tr '\t' '\n'|sort|uniq -d|wc -l)
     if [[ $x -eq 0 ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "OK" 1>&2
@@ -132,7 +132,7 @@ function checkRow {
 	logfile=$4
     fi
 
-    totrows=$($cmd $fname|wc -l)
+    totrows=$($cmd "$fname"|wc -l)
     if [[ $row -gt $totrows ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "WARN: checkRow: row specified ($row) is greater than the total number of rows ($totrows) in $fname" 1>&2
@@ -148,7 +148,7 @@ function checkRow {
 	echo -n "Checking for empty fields in row $row in $fname ... "|tee -a "$logfile"
     fi
 
-    local x=$($cmd $fname|head -n $row|tail -n 1|gawk 'BEGIN{FS="\t";c=0;}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){c=i;exit;}}}END{print c;}')
+    local x=$($cmd "$fname"|head -n $row|tail -n 1|gawk 'BEGIN{FS="\t";c=0;}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){c=i;exit;}}}END{print c;}')
     if [[ $x -eq 0 ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "OK" 1>&2
@@ -180,7 +180,7 @@ function checkColumn {
 	logfile=$4
     fi
 
-    totcols=$($cmd $fname|awk -F'\t' '{print NF; exit}')
+    totcols=$($cmd "$fname"|awk -F'\t' '{print NF; exit}')
     if [[ $column -gt $totcols ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "WARN: checkColumn: column specified ($column) is greater than the total number of columns ($totcols) in $fname" 1>&2
@@ -233,7 +233,7 @@ function checkFields {
 	echo -n "Checking # fields in $fname ... " | tee -a "$logfile"
     fi
     
-    local x=$($cmd $fname|gawk 'BEGIN{FS="\t";}{print NF;}'| sort|uniq| wc -l)
+    local x=$($cmd "$fname"|gawk 'BEGIN{FS="\t";}{print NF;}'|sort|uniq|wc -l)
     if [[ $x -eq 1 ]];then
 	if [[ -z "$logfile" ]];then
 	    echo "OK" 1>&2
@@ -261,7 +261,7 @@ function getColNum () {
     if [[ $# -ge 3 ]];then
 	cmd=$3
     fi
-    echo $(fgrep -w $colname  <($cmd $fname|head -n 1|tr '\t' '\n'|cat -n |sed 's/^  *//')|cut -f 1)
+    echo $(fgrep -w "$colname"  <($cmd "$fname"|head -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//')|cut -f 1)
 }
 
 function getCatCmd () {
