@@ -128,6 +128,7 @@ if [[ -z $oper_idx_col ]];then
     echo "ERROR: could not find \"ins_index\" column in $oper_fname"  | tee -a $logfile
     exit 1
 fi
+echo "" | tee -a "$logfile"
 
 echo -n "Checking if all samples in DIAG TABLE are present in MAIN TABLE ... " | tee -a $logfile
 x=$(join -1 1 -2 1 -a 1 -a 2 -e NA -o 1.1,1.2 <(cut -f $main_eid_col $main_fname|tail -n +2|sort) <(cut -f $diag_eid_col $diag_fname|tail -n +2|sort)|grep "^NA"|wc -l)
