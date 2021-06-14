@@ -83,7 +83,6 @@ function checkDuplicatesColumn {
 # check for duplicate fields in the header row
 function checkDuplicatesHeader {
     local fname=$1
-
     local cmd="cat"
     if [[ $# -ge 2 ]];then
 	cmd=$2

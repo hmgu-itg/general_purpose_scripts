@@ -2,9 +2,8 @@
 
 # ALL INPUT FILES ARE TAB SEPARATED
 
-bold=$(tput bold)
-underlined=$(tput smul)
-normal=$(tput sgr0)
+scriptname=$0
+args=("$@")
 
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
@@ -49,7 +48,7 @@ if [[ -z "$outdir" ]];then
     exit 1
 fi
 
-if [[ ! -d $outdir ]];then
+if [[ ! -d "$outdir" ]];then
     echo "ERROR: output dir ($outdir) does not exist" 1>&2
     exit 1
 fi
@@ -57,58 +56,80 @@ fi
 outdir=${outdir%/}
 outfile="${outdir}/hesin_r${release}.txt.gz"
 logfile="${outdir}/hesin_r${release}.log"
-if [[ -f $outfile ]];then
+if [[ -f "$outfile" ]];then
     echo "ERROR: output file $outfile already exists" 1>&2
     exit 1
 fi
 
 : > $logfile
 
-date | tee -a $logfile
+date "+%F %H-%M-%S"|tee -a "$logfile"
+echo "Current dir: ${PWD}"|tee -a "$logfile"
+echo "Command line: $scriptname ${args[@]}"|tee -a "$logfile"
+echo "Output release: $release"|tee -a "$logfile"
+echo ""|tee -a "$logfile"
 echo "MAIN TABLE: $main_fname" | tee -a "$logfile"
 echo "DIAG TABLE: $diag_fname" | tee -a "$logfile"
 echo "OPER TABLE: $oper_fname" | tee -a "$logfile"
-echo "RELEASE: $release" | tee -a "$logfile"
 echo "OUTPUT DIR: $outdir" | tee -a "$logfile"
 echo "OUTPUT FILE: $outfile" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
 
-checkFields $main_fname "$logfile"
-checkFields $diag_fname "$logfile"
-checkFields $oper_fname "$logfile"
+checkFields "$main_fname" "cat" "$logfile"
+checkFields "$diag_fname" "cat" "$logfile"
+checkFields "$oper_fname" "cat" "$logfile"
 echo "" | tee -a "$logfile"
 
-main_eid_col=$(getColNum $main_fname "eid")
+checkDuplicatesHeader "$main_fname" "cat" "$logfile"
+checkDuplicatesHeader "$diag_fname" "cat" "$logfile"
+checkDuplicatesHeader "$oper_fname" "cat" "$logfile"
+echo "" | tee -a "$logfile"
+
+checkRow "$main_fname" 1 "cat" "$logfile"
+checkRow "$diag_fname" 1 "cat" "$logfile"
+checkRow "$oper_fname" 1 "cat" "$logfile"
+echo "" | tee -a "$logfile"
+
+main_eid_col=$(getColNum "$main_fname" "eid")
 if [[ -z $main_eid_col ]];then
     echo "ERROR: could not find \"eid\" column in $main_fname" 1>&2
     exit 1
 fi
-main_idx_col=$(getColNum $main_fname "ins_index")
+checkColumn "$main_fname" $main_eid_col "cat" "$logfile"
+
+main_idx_col=$(getColNum "$main_fname" "ins_index")
 if [[ -z $main_idx_col ]];then
     echo "ERROR: could not find \"ins_index\" column in $main_fname" 1>&2
     exit 1
 fi
-diag_eid_col=$(getColNum $diag_fname "eid")
+
+diag_eid_col=$(getColNum "$diag_fname" "eid")
 if [[ -z $diag_eid_col ]];then
     echo "ERROR: could not find \"eid\" column in $diag_fname" 1>&2
     exit 1
 fi
-diag_idx_col=$(getColNum $diag_fname "ins_index")
+checkColumn "$diag_fname" $diag_eid_col "cat" "$logfile"
+
+diag_idx_col=$(getColNum "$diag_fname" "ins_index")
 if [[ -z $diag_idx_col ]];then
     echo "ERROR: could not find \"ins_index\" column in $diag_fname" 1>&2
     exit 1
 fi
-oper_eid_col=$(getColNum $oper_fname "eid")
+
+oper_eid_col=$(getColNum "$oper_fname" "eid")
 if [[ -z $oper_eid_col ]];then
     echo "ERROR: could not find \"eid\" column in $oper_fname" 1>&2
     exit 1
 fi
-oper_idx_col=$(getColNum $oper_fname "ins_index")
+checkColumn "$oper_fname" $oper_eid_col "cat" "$logfile"
+
+oper_idx_col=$(getColNum "$oper_fname" "ins_index")
 if [[ -z $oper_idx_col ]];then
     echo "ERROR: could not find \"ins_index\" column in $oper_fname" 1>&2
     exit 1
 fi
 
+echo "" | tee -a "$logfile"
 echo "MAIN TABLE eid COLUMN: $main_eid_col" | tee -a $logfile
 echo "MAIN TABLE ins_index COLUMN: $main_idx_col" | tee -a $logfile
 echo "DIAG TABLE eid COLUMN: $diag_eid_col" | tee -a $logfile
@@ -117,9 +138,9 @@ echo "OPER TABLE eid COLUMN: $oper_eid_col" | tee -a $logfile
 echo "OPER TABLE ins_index COLUMN: $oper_idx_col" | tee -a $logfile
 echo "" | tee -a $logfile
 
-main_cols=$(head -n 1 $main_fname|tr '\t' '\n'|wc -l)
-diag_cols=$(head -n 1 $diag_fname|tr '\t' '\n'|wc -l)
-oper_cols=$(head -n 1 $oper_fname|tr '\t' '\n'|wc -l)
+main_cols=$(head -n 1 "$main_fname"|tr '\t' '\n'|wc -l)
+diag_cols=$(head -n 1 "$diag_fname"|tr '\t' '\n'|wc -l)
+oper_cols=$(head -n 1 "$oper_fname"|tr '\t' '\n'|wc -l)
 
 echo "COLUMNS IN MAIN TABLE: $main_cols" | tee -a $logfile
 echo "COLUMNS IN DIAG TABLE: $diag_cols" | tee -a $logfile
@@ -154,3 +175,5 @@ done
 datestr=$(date +%F)
 
 join --header -t $'\t' -1 1 -2 1 -e NA -a 1 -a 2 -o ${main_str},${diag_str} <(cat <(head -n 1 $main_fname|gawk -v n=$main_eid_col -v m=$main_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}') <(tail -n +2 $main_fname|gawk -v n=$main_eid_col -v m=$main_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}'|sort -k1,1)) <(cat <(head -n 1 $diag_fname|sed 's/level/diag_level/'|sed 's/arr_index/diag_arr_index/'|gawk -v n=$diag_eid_col -v m=$diag_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}') <(tail -n +2 $diag_fname|gawk -v n=$diag_eid_col -v m=$diag_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}'|sort -k1,1))| join --header -t $'\t' -1 1 -2 1 -e NA -a 1 -a 2 -o ${join_str},${oper_str} - <(cat <(head -n 1 $oper_fname|sed 's/level/oper_level/'|sed 's/arr_index/oper_arr_index/'|gawk -v n=$oper_eid_col -v m=$oper_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}') <(tail -n +2 $oper_fname|gawk -v n=$oper_eid_col -v m=$oper_idx_col 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i ~ /^ *$/){$i="NA";}}print $n"."$m,$0;}'|sort -k1,1))|sed 's/\./\t/'|gawk -v d=$datestr -v r=$release 'BEGIN{FS=OFS="\t";}{if (NR==1){print $0,"CREATED","RELEASE";}else{print $0,d,r;}}' | gzip - -c > "$outfile"
+
+date "+%F %H-%M-%S"|tee -a "$logfile"

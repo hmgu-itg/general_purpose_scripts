@@ -179,15 +179,20 @@ echo ""|tee -a "$logfile"
 for i in $(seq 0 $((n_input-1)));do
     checkFields "${input_fnames[$i]}" "${cats[${input_fnames[$i]}]}" "$logfile"
     checkDuplicatesHeader "${input_fnames[$i]}" "${cats[${input_fnames[$i]}]}" "$logfile"
-    checkRow "${input_fnames[$i]}" 1 "${cats[${input_fnames[$i]}]}" "$logfile"
+    checkRow "${input_fnames[%i]}" 1 "${cats[${input_fnames[$i]}]}" "$logfile"
     echo ""|tee -a "$logfile"
 done
 for i in $(seq 0 $((n_update-1)));do
     checkFields "${update_fnames[$i]}" "${cats[${update_fnames[$i]}]}" "$logfile"
     checkDuplicatesHeader "${update_fnames[$i]}" "${cats[${update_fnames[$i]}]}" "$logfile"
-    checkRow "${update_fnames[$i]}" 1 "${cats[${update_fnames[$i]}]}" "$logfile"
+    checkRow "${update_fnames[%i]}" 1 "${cats[${update_fnames[$i]}]}" "$logfile"
     echo ""|tee -a "$logfile"
 done
+
+# check classes row if we're updating
+if [[ $n_update -gt 0 ]];then
+    checkRow "${input_fnames[0]}" 2 "${cats[${input_fnames[0]}]}" "$logfile"
+fi
 #----------------------------------------------------
 
 # get ID column 
