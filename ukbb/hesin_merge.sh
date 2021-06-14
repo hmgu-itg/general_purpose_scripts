@@ -92,42 +92,58 @@ echo "" | tee -a "$logfile"
 
 main_eid_col=$(getColNum "$main_fname" "eid")
 if [[ -z $main_eid_col ]];then
-    echo "ERROR: could not find \"eid\" column in $main_fname" 1>&2
+    echo "ERROR: could not find \"eid\" column in $main_fname"  | tee -a $logfile
     exit 1
 fi
 checkColumn "$main_fname" $main_eid_col "cat" "$logfile"
 
 main_idx_col=$(getColNum "$main_fname" "ins_index")
 if [[ -z $main_idx_col ]];then
-    echo "ERROR: could not find \"ins_index\" column in $main_fname" 1>&2
+    echo "ERROR: could not find \"ins_index\" column in $main_fname"  | tee -a $logfile
     exit 1
 fi
 
 diag_eid_col=$(getColNum "$diag_fname" "eid")
 if [[ -z $diag_eid_col ]];then
-    echo "ERROR: could not find \"eid\" column in $diag_fname" 1>&2
+    echo "ERROR: could not find \"eid\" column in $diag_fname"  | tee -a $logfile
     exit 1
 fi
 checkColumn "$diag_fname" $diag_eid_col "cat" "$logfile"
 
 diag_idx_col=$(getColNum "$diag_fname" "ins_index")
 if [[ -z $diag_idx_col ]];then
-    echo "ERROR: could not find \"ins_index\" column in $diag_fname" 1>&2
+    echo "ERROR: could not find \"ins_index\" column in $diag_fname"  | tee -a $logfile
     exit 1
 fi
 
 oper_eid_col=$(getColNum "$oper_fname" "eid")
 if [[ -z $oper_eid_col ]];then
-    echo "ERROR: could not find \"eid\" column in $oper_fname" 1>&2
+    echo "ERROR: could not find \"eid\" column in $oper_fname"  | tee -a $logfile
     exit 1
 fi
 checkColumn "$oper_fname" $oper_eid_col "cat" "$logfile"
 
 oper_idx_col=$(getColNum "$oper_fname" "ins_index")
 if [[ -z $oper_idx_col ]];then
-    echo "ERROR: could not find \"ins_index\" column in $oper_fname" 1>&2
+    echo "ERROR: could not find \"ins_index\" column in $oper_fname"  | tee -a $logfile
     exit 1
 fi
+
+echo -n "Checking if all samples in DIAG TABLE are present in MAIN TABLE ... " | tee -a $logfile
+x=$(join -1 1 -2 1 -a 1 -a 2 -e NA -o 1.1,1.2 <(cut -f $main_eid_col $main_fname|tail -n +2|sort) <(cut -f $diag_eid_col $diag_fname|tail -n +2|sort)|grep "^NA"|wc -l)
+if [[ $x -ne 0 ]];then
+    echo "ERROR: $x sample(s) in DIAG TABLE are not in MAIN TABLE" | tee -a $logfile
+    exit 1
+fi
+echo "OK" | tee -a "$logfile"
+
+echo -n "Checking if all samples in OPER TABLE are present in MAIN TABLE ... " | tee -a $logfile
+x=$(join -1 1 -2 1 -a 1 -a 2 -e NA -o 1.1,1.2 <(cut -f $main_eid_col $main_fname|tail -n +2|sort) <(cut -f $oper_eid_col $oper_fname|tail -n +2|sort)|grep "^NA"|wc -l)
+if [[ $x -ne 0 ]];then
+    echo "ERROR: $x sample(s) in OPER TABLE are not in MAIN TABLE" | tee -a $logfile
+    exit 1
+fi
+echo "OK" | tee -a "$logfile"
 
 echo "" | tee -a "$logfile"
 echo "MAIN TABLE eid COLUMN: $main_eid_col" | tee -a $logfile
@@ -146,6 +162,8 @@ echo "COLUMNS IN MAIN TABLE: $main_cols" | tee -a $logfile
 echo "COLUMNS IN DIAG TABLE: $diag_cols" | tee -a $logfile
 echo "COLUMNS IN OPER TABLE: $oper_cols" | tee -a $logfile
 echo "" | tee -a $logfile
+
+#------------------------------------------------------ OUTPUT ---------------------------------------------------------------
 
 main_str="1.1"
 for i in $(seq 4 $((main_cols+1)));do
