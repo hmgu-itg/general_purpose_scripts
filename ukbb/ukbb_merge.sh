@@ -474,22 +474,22 @@ else
     for c in $("${cats[${input_fnames[0]}]}" "${input_fnames[0]}"|head -n 2|tail -n 1|cut --complement -f ${input_ID_column[0]},${release_col},${created_col});do
 	input_classes+=($c)
     done
-    echo "Input classes done"|tee -a "$logfile"
+    #echo "Input classes done"|tee -a "$logfile"
     for (( i=0; i<"${#input_fields[@]}"; i++ )); do input_field2class[${input_fields[$i]}]=${input_classes[$i]};done
     new_update_ID=$(getColNum "$tmpfile1" "$id_field" "cat")
     if [[ -z $new_update_ID ]];then
 	echo "ERROR: no \"$id_field\" found in $tmpfile1"|tee -a "$logfile"
 	exit 1
     fi    
-    echo "New update ID column: $new_update_ID"|tee -a "$logfile"
+    #echo "New update ID column: $new_update_ID"|tee -a "$logfile"
     # update fields (except for ID column) and their classes, from the merged update file
     declare -a update_fields
     declare -a update_classes
     declare -A update_field2class
     for c in $(head -n 1 "$tmpfile1"|cut --complement -f $new_update_ID);do update_fields+=($c);done
-    echo "Update fields done"|tee -a "$logfile"
+    #echo "Update fields done"|tee -a "$logfile"
     for c in $(head -n 2 "$tmpfile1"|tail -n 1|cut --complement -f $new_update_ID);do update_classes+=($c);done
-    echo "Update classes done"|tee -a "$logfile"
+    #echo "Update classes done"|tee -a "$logfile"
     for (( i=0; i<"${#update_fields[@]}"; i++ )); do update_field2class[${update_fields[$i]}]=${update_classes[$i]};done
     
     # input classes intersecting with update fields: all input fields from these will be excluded from input before merging
@@ -507,7 +507,7 @@ else
 	    new_fields[$c]=1
 	fi
     done
-    echo "Intersecting classes done"|tee -a "$logfile"
+    #echo "Intersecting classes done"|tee -a "$logfile"
     
     # all column numbers from input intersecting_classes
     declare -a input_columns_to_exclude
@@ -524,7 +524,7 @@ else
     done
     input_columns_to_exclude+=($created_col)
     input_columns_to_exclude+=($release_col)
-    echo "Columns to exclude done"|tee -a "$logfile"
+    #echo "Columns to exclude done"|tee -a "$logfile"
 
     # input without excluded columns, without classes
     tmpfile2=$(mktemp -p "$out_dir" temp_2_input_XXXXXXXX)
@@ -543,7 +543,7 @@ else
 	echo "ERROR: no \"$id_field\" found in $tmpfile2"|tee -a "$logfile"
 	exit 1
     fi    
-    echo "New input ID column: $new_input_ID"|tee -a "$logfile"
+    #echo "New input ID column: $new_input_ID"|tee -a "$logfile"
 
     common_IDs=$(join -1 1 -2 1 <(cut -f $new_update_ID "$tmpfile1"|tail -n +3|sort) <(cut -f $new_input_ID "$tmpfile2"|tail -n +2|sort)|wc -l)
     input_only_IDs=$(join -a 2 -e NULL -o 1.1,2.1 -1 1 -2 1 <(cut -f $new_update_ID "$tmpfile1"| tail -n +3|sort) <(cut -f $new_input_ID $tmpfile2|tail -n +2|sort)|grep NULL|wc -l)
@@ -589,7 +589,7 @@ else
 	echo "ERROR: no \"$id_field\" found in $tmpfile3"|tee -a "$logfile"
 	exit 1
     fi    
-    echo "Joined file input ID column: $joined_ID"|tee -a "$logfile"
+    #echo "Joined file input ID column: $joined_ID"|tee -a "$logfile"
 
     # max update class
     maxc=0
@@ -629,7 +629,7 @@ else
 	    fi
 	fi
     done
-    echo "New classes done"|tee -a "$logfile"
+    #echo "New classes done"|tee -a "$logfile"
 
     # FINAL OUTPUT
     echo -n "Creating output file ... "|tee -a "$logfile"
