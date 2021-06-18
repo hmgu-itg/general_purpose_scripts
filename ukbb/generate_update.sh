@@ -73,7 +73,7 @@ declare -a sar
 i=1
 newcol_index_start=1
 newcol_index_end=""
-for c in ${classes[@]};do
+for c in "${classes[@]}";do
     echo "Generating file $i/${#classes[@]}" 1>&2
     fname=${prefix}_r${release}_${i}".txt.gz"
     echo "Output file: $fname" 1>&2
@@ -81,7 +81,7 @@ for c in ${classes[@]};do
     read -r -a sar <<<$($catcmd $infile|head -n 2|tail -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//'|sed 's/\t/ /g'|gawk -v n=$c '$2==n{print $1;}'|tr '\n' ' '|sed 's/ $//')
     str=$(join_by , ${sar[*]})
 #    echo $str 1>&2
-    n=${#sar[@]}
+    n="${#sar[@]}"
     fmt="1.1"
     for (( j=0; j<$n; j++ ));do
 	fmt=$fmt",2.$((j+2))"

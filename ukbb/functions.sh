@@ -3,7 +3,7 @@
 function checkInstalledCommands {
     local cmds=("gawk")
     s="0"
-    for c in ${cmds[@]};do
+    for c in "${cmds[@]}";do
 	command -v $c > /dev/null
 	if [[ $? -ne 0 ]];then
 	    echo "ERROR: command $c not found" 1>&2

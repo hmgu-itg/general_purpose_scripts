@@ -102,8 +102,8 @@ fi
 
 out_dir=${out_dir%/}
 
-n_input=${#input_fnames[@]}
-n_update=${#update_fnames[@]}
+n_input="${#input_fnames[@]}"
+n_update="${#update_fnames[@]}"
 
 if [[ $n_input -eq 0 ]];then
     echo "ERROR: no input files specified" 1>&2
@@ -310,8 +310,6 @@ echo ""|tee -a "$logfile"
 if [[ $n_update -eq 0 ]];then
     # just merging input files
     
-    echo -n "Merging input files ... "|tee -a "$logfile"
-
     # column classes of input columns are based on source input files
     for i in $(seq 0 $((n_input-1)));do
     	for c in $("${cats[${input_fnames[$i]}]}" "${input_fnames[$i]}"|head -n 1|cut --complement -f ${input_ID_column[$i]});do
@@ -320,6 +318,14 @@ if [[ $n_update -eq 0 ]];then
     done
     column_class[$id_field]="NA"
 
+    cmd="cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}| tail -n +2|cut -f ${input_ID_column[0]})"
+    for i in $(seq 1 $((n_input-1)));do
+	cmd=$cmd" <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}| tail -n +2|cut -f ${input_ID_column[$i]})"
+    done
+    cmn=$(eval $cmd | sort|uniq -c|sed 's/^  *//'|gawk -v n=$n_input '$1==n{print $0;}'| wc -l)
+    echo "INFO: output $cmn common IDs between $n_input input files"|tee -a "$logfile"
+    echo -n "Merging input files ... "|tee -a "$logfile"
+    
     # # HEADER
     # command1="paste <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1)"
     # for i in $(seq 1 $((n_input-1)));do
@@ -434,7 +440,7 @@ else
 	input_classes+=($c)
     done
     echo "Input classes done"|tee -a "$logfile"
-    for (( i=0; i<${#input_fields[@]}; i++ )); do input_field2class[${input_fields[$i]}]=${input_classes[$i]};done
+    for (( i=0; i<"${#input_fields[@]}"; i++ )); do input_field2class[${input_fields[$i]}]=${input_classes[$i]};done
     new_update_ID=$(getColNum "$tmpfile1" $id_field "cat")
     if [[ -z $new_update_ID ]];then
 	echo "ERROR: no \"$id_field\" found in $tmpfile1"|tee -a "$logfile"
@@ -449,7 +455,7 @@ else
     echo "Update fields done"|tee -a "$logfile"
     for c in $(head -n 2 "$tmpfile1"|tail -n 1|cut --complement -f $new_update_ID);do update_classes+=($c);done
     echo "Update classes done"|tee -a "$logfile"
-    for (( i=0; i<${#update_fields[@]}; i++ )); do update_field2class[${update_fields[$i]}]=${update_classes[$i]};done
+    for (( i=0; i<"${#update_fields[@]}"; i++ )); do update_field2class[${update_fields[$i]}]=${update_classes[$i]};done
     
     # input classes intersecting with update fields: all input fields from these will be excluded from input before merging
     declare -A intersecting_classes
@@ -470,7 +476,7 @@ else
     
     # all column numbers from input intersecting_classes
     declare -a input_columns_to_exclude
-    for (( i=0; i<${#input_fields[@]}; i++ )); do
+    for (( i=0; i<"${#input_fields[@]}"; i++ )); do
 	c=${input_fields[$i]}
 	x=${input_field2class[$c]}
 	# status=$(checkArray "$x" "${!intersecting_classes[@]}")
