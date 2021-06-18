@@ -133,7 +133,6 @@ for i in $(seq 0 $((n_update-1)));do
 done
 
 # get release, either from command line or from input file, in case of update
-
 if [[ $n_update -eq 0 ]];then
     # if no release specified, set it to "1"
     if [[ -z "$release" ]];then
@@ -245,29 +244,29 @@ done
 #
 # check if all input files have same IDs
 #
-echo -n "Checking if input files have same IDs ... "|tee -a "$logfile"
-for i in $(seq 1 $((n_input-1)));do
-    x=$(cat <(${cats[${input_fnames[0]}]} "${input_fnames[0]}"|cut -f ${input_ID_column[0]}) <(${cats[${input_fnames[$i]}]} "${input_fnames[$i]}"|cut -f ${input_ID_column[$i]})|sort|uniq -u|wc -l)
-    if [[ $x -ne 0 ]];then
-	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs"|tee -a "$logfile"
-	exit 1
-    fi
-done
-echo "OK"|tee -a "$logfile"
+# echo -n "Checking if input files have same IDs ... "|tee -a "$logfile"
+# for i in $(seq 1 $((n_input-1)));do
+#     x=$(cat <(${cats[${input_fnames[0]}]} "${input_fnames[0]}"|cut -f ${input_ID_column[0]}) <(${cats[${input_fnames[$i]}]} "${input_fnames[$i]}"|cut -f ${input_ID_column[$i]})|sort|uniq -u|wc -l)
+#     if [[ $x -ne 0 ]];then
+# 	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs"|tee -a "$logfile"
+# 	exit 1
+#     fi
+# done
+# echo "OK"|tee -a "$logfile"
 #----------------------------------------------------
 
 #
 # check if all update files have same IDs
 #
-echo -n "Checking if update files have same IDs ... "|tee -a "$logfile"
-for i in $(seq 1 $((n_update-1)));do
-    x=$(cat <("${cats[${update_fnames[0]}]}" "${update_fnames[0]}"|cut -f ${update_ID_column[0]}) <("${cats[${update_fnames[$i]}]}" "${update_fnames[$i]}"|cut -f ${update_ID_column[$i]})|sort|uniq -u|wc -l)
-    if [[ $x -ne 0 ]];then
-	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs"|tee -a "$logfile"
-	exit 1
-    fi
-done
-echo "OK"|tee -a "$logfile"
+# echo -n "Checking if update files have same IDs ... "|tee -a "$logfile"
+# for i in $(seq 1 $((n_update-1)));do
+#     x=$(cat <("${cats[${update_fnames[0]}]}" "${update_fnames[0]}"|cut -f ${update_ID_column[0]}) <("${cats[${update_fnames[$i]}]}" "${update_fnames[$i]}"|cut -f ${update_ID_column[$i]})|sort|uniq -u|wc -l)
+#     if [[ $x -ne 0 ]];then
+# 	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs"|tee -a "$logfile"
+# 	exit 1
+#     fi
+# done
+# echo "OK"|tee -a "$logfile"
 #----------------------------------------------------
 
 #
@@ -321,34 +320,60 @@ if [[ $n_update -eq 0 ]];then
     done
     column_class[$id_field]="NA"
 
-    # HEADER
-    command1="paste <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1)"
-    for i in $(seq 1 $((n_input-1)));do
-	command1=${command1}" <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1|cut --complement -f ${input_ID_column[$i]})"
-    done
-    command1=${command1}" <(echo RELEASE CREATED| tr ' ' '\t')"
+    # # HEADER
+    # command1="paste <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1)"
+    # for i in $(seq 1 $((n_input-1)));do
+    # 	command1=${command1}" <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1|cut --complement -f ${input_ID_column[$i]})"
+    # done
+    # command1=${command1}" <(echo RELEASE CREATED| tr ' ' '\t')"
 
-    for c in $(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1);do
+    # for c in $(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1);do
+    # 	class_array+=(${column_class[$c]})
+    # done
+    # for i in $(seq 1 $((n_input-1)));do
+    # 	for c in $(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1|cut --complement -f ${input_ID_column[$i]});do
+    # 	    class_array+=(${column_class[$c]})
+    # 	done
+    # done
+    # class_array+=("NA")
+    # class_array+=("NA")
+    # header2=$(join_by , ${class_array[*]})
+    
+    # command2="paste <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})"
+    # for i in $(seq 1 $((n_input-1)));do
+    # 	command2=${command2}" <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]}|cut --complement -f ${input_ID_column[$i]})"
+    # done
+    # x=${input_nrows[0]}
+    # x=$((x-1))
+    # command2=${command2}" <(yes $release $datestr| tr ' ' '\t'| head -n $x)"
+
+    # eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) | gzip - -c > ${outfile}"
+
+    # only keeping commong IDs between input files
+    tmpfile1=$(mktemp -p "$out_dir" temp_1_join_XXXXXXXX)
+    if [[ $? -ne 0 ]];then
+	echo "ERROR: could not create tmpfile1 "|tee -a "$logfile"
+	exit 1
+    fi
+    
+    join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|tail -n +2|sort -k${input_ID_column[1]},${input_ID_column[1]}))"
+    for i in $(seq 2 $((n_input-1)));do
+	join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]}))"
+    done
+    eval "$join_cmd > $tmpfile1"
+
+    # adding class line
+    paste <(head -n 1 "$tmpfile1") <(echo RELEASE CREATED|tr ' ' '\t')|gzip - -c > "${outfile}"
+    for c in $(head -n 1 "$tmpfile1");do
 	class_array+=(${column_class[$c]})
     done
-    for i in $(seq 1 $((n_input-1)));do
-	for c in $(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1|cut --complement -f ${input_ID_column[$i]});do
-	    class_array+=(${column_class[$c]})
-	done
-    done
-    class_array+=("NA")
-    class_array+=("NA")
-    header2=$(join_by , ${class_array[*]})
-    
-    command2="paste <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})"
-    for i in $(seq 1 $((n_input-1)));do
-	command2=${command2}" <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]}|cut --complement -f ${input_ID_column[$i]})"
-    done
-    x=${input_nrows[0]}
+    class_array+=("NA" "NA")
+    cline=$(join_by , ${class_array[*]})
+    eval "cat <(echo $cline|tr ',' '\t')|gzip - -c >> ${outfile}"    
+    x=$(cat $tmpfile1|wc -l)
     x=$((x-1))
-    command2=${command2}" <(yes $release $datestr| tr ' ' '\t'| head -n $x)"
-
-    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) | gzip - -c > ${outfile}"
+    paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr|tr ' ' '\t'|head -n $x)|gzip - -c >> "${outfile}"    
+    rm -f "$tmpfile1"
     
     echo "Done"|tee -a "$logfile"
     date "+%F %H-%M-%S" |tee -a "$logfile"
