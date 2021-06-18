@@ -18,26 +18,6 @@ ncols=$((ncols-3))
 max_mod=$((ns/100))
 
 if [[ $max_mod -eq 0 ]];then max_mod=1;fi
-to_mod=$((RANDOM%max_mod))
-rem=$((ns-to_mod))
-del=$((RANDOM%2))
-
-if [[ $to_mod -eq 0 ]];then
-    id_cmd='$catcmd $infile|cut -f 1|tail -n +3'
-    new_total=$ns
-    echo "Keeping same IDs"
-else
-    if [[ $del -eq 1 ]];then
-	echo "Deleting $to_mod row(s)" 1>&2
-	tmp=$($catcmd $infile|cut -f 1|tail -n +3|shuf|head -n $rem|sort|tr '\n' ',')
-	id_cmd='echo -n '$tmp'|sed "s/,/\n/g"'
-	new_total=$((ns-to_mod))
-    else
-	echo "Adding $to_mod row(s)" 1>&2
-	id_cmd='cat <($catcmd $infile|cut -f 1|tail -n +3) <(for i in $(seq -w 1 '$to_mod');do echo ADD$i;done)|sort'
-	new_total=$((ns+to_mod))
-    fi
-fi
 
 del_col_lim=3
 add_col_lim=3
@@ -77,9 +57,30 @@ for c in "${classes[@]}";do
     echo "Generating file $i/${#classes[@]}" 1>&2
     fname=${prefix}_r${release}_${i}".txt.gz"
     echo "Output file: $fname" 1>&2
+
+    to_mod=$((RANDOM%max_mod))
+    rem=$((ns-to_mod))
+    del=$((RANDOM%2))
+
+    if [[ $to_mod -eq 0 ]];then
+	id_cmd='$catcmd $infile|cut -f 1|tail -n +3'
+	new_total=$ns
+	echo "Keeping same IDs"
+    else
+	if [[ $del -eq 1 ]];then
+	    echo "Deleting $to_mod row(s)" 1>&2
+	    tmp=$($catcmd $infile|cut -f 1|tail -n +3|shuf|head -n $rem|sort|tr '\n' ',')
+	    id_cmd='echo -n '$tmp'|sed "s/,/\n/g"'
+	    new_total=$((ns-to_mod))
+	else
+	    echo "Adding $to_mod row(s)" 1>&2
+	    id_cmd='cat <($catcmd $infile|cut -f 1|tail -n +3) <(for i in $(seq -w 1 '$to_mod');do echo ADD$i;done)|sort'
+	    new_total=$((ns+to_mod))
+	fi
+    fi
     
     read -r -a sar <<<$($catcmd $infile|head -n 2|tail -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//'|sed 's/\t/ /g'|gawk -v n=$c '$2==n{print $1;}'|tr '\n' ' '|sed 's/ $//')
-    str=$(join_by , ${sar[*]})
+    str=$(join_by , "${sar[@]}")
 #    echo $str 1>&2
     n="${#sar[@]}"
     fmt="1.1"

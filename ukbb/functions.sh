@@ -9,7 +9,7 @@ function checkInstalledCommands {
 	    echo "ERROR: command $c not found" 1>&2
 	    s="1"
 	else
-	    echo "INFO: check $c: OK" 1>&2
+	    echo "INFO: check if $c is installed: OK" 1>&2
 	fi
     done
     echo "$s"    

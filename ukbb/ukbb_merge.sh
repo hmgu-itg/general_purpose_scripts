@@ -324,6 +324,7 @@ if [[ $n_update -eq 0 ]];then
     done
     cmn=$(eval $cmd | sort|uniq -c|sed 's/^  *//'|gawk -v n=$n_input '$1==n{print $0;}'| wc -l)
     echo "INFO: output $cmn common IDs between $n_input input files"|tee -a "$logfile"
+    echo ""|tee -a "$logfile"
     echo -n "Merging input files ... "|tee -a "$logfile"
     
     # # HEADER
@@ -401,6 +402,15 @@ else
 	echo "ERROR: could not create tmpfile1 "|tee -a "$logfile"
 	exit 1
     fi
+
+    cmd="cat <(${cats[${update_fnames[0]}]} ${update_fnames[0]}| tail -n +2|cut -f ${update_ID_column[0]})"
+    for i in $(seq 1 $((n_update-1)));do
+	cmd=$cmd" <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}| tail -n +2|cut -f ${update_ID_column[$i]})"
+    done
+    cmn=$(eval $cmd | sort|uniq -c|sed 's/^  *//'|gawk -v n=$n_update '$1==n{print $0;}'| wc -l)
+    echo "INFO: output $cmn common IDs between $n_update update files"|tee -a "$logfile"
+    echo ""|tee -a "$logfile"
+
     echo -n "Merging update files ... "|tee -a "$logfile"
 
     # column classes of input columns are based on source update files
@@ -538,6 +548,7 @@ else
     common_IDs=$(join -1 1 -2 1 <(cut -f $new_update_ID "$tmpfile1"|tail -n +3|sort) <(cut -f $new_input_ID "$tmpfile2"|tail -n +2|sort)|wc -l)
     input_only_IDs=$(join -a 2 -e NULL -o 1.1,2.1 -1 1 -2 1 <(cut -f $new_update_ID "$tmpfile1"| tail -n +3|sort) <(cut -f $new_input_ID $tmpfile2|tail -n +2|sort)|grep NULL|wc -l)
     update_only_IDs=$(join -a 1 -e NULL -o 1.1,2.1 -1 1 -2 1 <(cut -f $new_update_ID "$tmpfile1"| tail -n +3|sort) <(cut -f $new_input_ID $tmpfile2|tail -n +2|sort)|grep NULL|wc -l)
+    echo ""|tee -a "$logfile"
     echo "INFO: common IDs between input and update: $common_IDs"|tee -a "$logfile"
     echo "INFO: IDs only in input: $input_only_IDs (not included in output)"|tee -a "$logfile"
     str=""
@@ -547,6 +558,7 @@ else
 	str=" (included in output, mode=$mode)"
     fi
     echo "INFO: IDs only in update: ${update_only_IDs}$str"|tee -a "$logfile"
+    echo ""|tee -a "$logfile"
 
     fmtstr="1.""${new_input_ID}"",2.""${new_update_ID}"
     input_ncol=$(head -n 1 "$tmpfile2"|tr '\t' '\n'|wc -l)
