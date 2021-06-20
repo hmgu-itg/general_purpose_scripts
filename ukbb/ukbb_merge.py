@@ -76,6 +76,8 @@ if len(infiles)>1:
         output_classes[c]="NA"
     print("Merging input DFs",file=logF)
     merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid",how="inner"),inputDF)
+    merged["RELEASE"]=release
+    merged["CREATED"]=datestr
     print("Done\n",file=logF)
     L=[(x,output_classes[x]) for x in merged.columns.values.tolist()]
     merged.columns=pd.MultiIndex.from_tuples(L)
