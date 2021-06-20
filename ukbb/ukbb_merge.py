@@ -9,10 +9,11 @@ import datetime
 from functools import reduce
 
 parser=argparse.ArgumentParser()
-parser.add_argument('-i','--input',required=True,action='store',help="Input file")
-parser.add_argument('-u','--update',required=True,action='append',help="Update file(s)")
+parser.add_argument('-i','--input',required=True,action='append',help="Input file(s)")
+parser.add_argument('-u','--update',required=False,action='append',help="Update file(s)")
 parser.add_argument('-o','--output',required=True,action='store',help="Output prefix")
-parser.add_argument("-k", "--keep",required=False,action='store_true',help="Also include new IDs")
+parser.add_argument("-k", "--keep",required=False,action='store_true',help="Also include new IDs in update file(s)")
+
 if len(sys.argv[1:])==0:
     parser.print_help()
     sys.exit(0)
@@ -26,15 +27,65 @@ mode="inner"
 if args.keep:
     mode="right"
 
-infile=args.input
+infiles=args.input
 updates=args.update
 out_prefix=args.output
 logF=open(out_prefix+".log","w")
 datestr=datetime.datetime.now().strftime("%F")
 
-print("input: %s\nupdates: %s\noutput prefix: %s\nmode: %s\n" %(infile,",".join(updates),out_prefix,mode),file=logF)
+if updates is None:
+    updates=list()
 
-inputDF=pd.read_table(infile,sep="\t",header=[0,1],dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False)
+print("input: %s\nupdates: %s\noutput prefix: %s\nmode: %s\n" %(",".join(infiles),",".join(updates),out_prefix,mode),file=logF)
+
+#-----------------------------------------------------------------------------------------------------------------------------
+if len(infiles)>1:
+    release="1"
+    inputDF=list()
+    for f in infiles:
+        inputDF.append(pd.read_table(f,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False))
+    print("Checking IDs in input DFs\n",file=logF)
+    for i in range(len(inputDF)):
+        print("Input %d rows: %d" % (i,len(inputDF[i])),file=logF)
+        print("Input %d columns: %d\n" % (i,len(inputDF[i].columns.values.tolist())),file=logF)
+    print("Done\n",file=logF)
+
+    print("Checking if columns in input DFs are disjoint",file=logF)
+    for i in range(len(inputDF)):
+        for j in range(len(inputDF)):
+            if i<j:
+                L=[x for x in inputDF[i].columns.values.tolist() if x in inputDF[j].columns.values.tolist()]
+                if len(L)>1:
+                    print("ERROR: %d,%d have common columns:" %(i,j),file=logF)
+                    for c in L:
+                        if c!="f.eid":
+                            print("%s" % c,file=logF)
+                    print("",file=logF)        
+                    sys.exit(1)
+    print("Done\n",file=logF)
+    output_classes=dict()
+    cur_c=0
+    for df in inputDF:
+        for c in df.columns.values.tolist():
+            if c=="f.eid":
+                continue
+            output_classes[c]=cur_c
+        cur_c+=1
+    maxc=max(output_classes.values())
+    for c in ["f.eid","RELEASE","CREATED"]:
+        output_classes[c]="NA"
+    print("Merging input DFs",file=logF)
+    merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid",how="inner"),inputDF)
+    print("Done\n",file=logF)
+    L=[(x,output_classes[x]) for x in merged.columns.values.tolist()]
+    merged.columns=pd.MultiIndex.from_tuples(L)
+    print("Output rows: %d" % len(merged),file=logF)
+    print("Output columns: %d" % len(merged.columns.values.tolist()),file=logF)
+    merged.to_csv(out_prefix+".txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    sys.exit(0)
+#-----------------------------------------------------------------------------------------------------------------------------
+
+inputDF=pd.read_table(infiles[0],sep="\t",header=[0,1],dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False)
 print("Input rows: %d" % len(inputDF),file=logF)
 print("Input columns: %d" % len(inputDF.columns.values.tolist()),file=logF)
 
@@ -60,11 +111,11 @@ print("Checking IDs in update DFs\n",file=logF)
 for i in range(len(updateDF)):
     print("Update %d rows: %d" % (i,len(updateDF[i])),file=logF)
     print("Update %d columns: %d\n" % (i,len(updateDF[i].columns.values.tolist())),file=logF)
-    for j in range(len(updateDF)):
-        if i<j:
-            if not updateDF[i]["f.eid"].equals(updateDF[j]["f.eid"]):
-                print("ERROR: IDs in %d,%d not equal" %(i,j),file=logF)
-                sys.exit(1)
+    # for j in range(len(updateDF)):
+    #     if i<j:
+    #         if not updateDF[i]["f.eid"].equals(updateDF[j]["f.eid"]):
+    #             print("ERROR: IDs in %d,%d not equal" %(i,j),file=logF)
+    #             sys.exit(1)
 print("Done\n",file=logF)
 
 print("Checking if columns in update DFs are disjoint",file=logF)
@@ -95,7 +146,7 @@ print("Merging update DFs",file=logF)
 if len(updateDF)==1:
     merged=updateDF[0]
 else:
-    merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid"),updateDF)
+    merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid",how="inner"),updateDF)
 print("Done\n",file=logF)
 affected_classes=set()
 for c in merged.columns.values.tolist():
