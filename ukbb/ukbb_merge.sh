@@ -32,15 +32,13 @@ function usage () {
     echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input if updating>"
     echo "                     -k <when updating, also include samples from update file(s) that are ${bold}not${normal} present in input; default: false>"
     echo ""
-    echo "All input/update files are tab-separated"
+    echo "All input/update/output files are tab-separated"
     echo ""
     echo "${underlined}Merge mode${normal}: if no update (-u) files are specified, the script merges all input files."
     echo ""
     echo "${underlined}Update mode${normal}: if at least one update file is given, the script works only with the first input (-i) file" 
-    echo "and ignores the remaining input files. I a column in the input file"
+    echo "and ignores the remaining input files. If a column in the input file"
     echo "is present in an update file, its content in the input file will be updated."
-    echo ""
-    echo "All input or update files are supposed to have same IDs."
     echo ""
     exit 0
 }
