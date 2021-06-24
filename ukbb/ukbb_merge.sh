@@ -31,12 +31,13 @@ function usage () {
     echo "                     -o <output dir>"
     echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input if updating>"
     echo "                     -k <when updating, also include samples from update file(s) that are ${bold}not${normal} present in input; default: false>"
+    echo "                     -x <list of IDs to exclude>"
     echo ""
     echo "All input/update/output files are tab-separated"
     echo ""
     echo "${underlined}Merge mode${normal}: if no update (-u) files are specified, the script merges all input files."
     echo ""
-    echo "${underlined}Update mode${normal}: if at least one update file is given, the script works only with the first input (-i) file" 
+    echo "${underlined}Update mode${normal}: if at least one update (-u) file is given, the script only uses the first input (-i) file" 
     echo "and ignores the remaining input files. If a column in the input file"
     echo "is present in an update file, its content in the input file will be updated."
     echo ""
@@ -63,14 +64,16 @@ id_field="f.eid"
 datestr=$(date +%F)
 out_dir=""
 release=""
+exclude_list=""
 mode="inner"
-while getopts "hi:u:f:o:r:k" opt; do
+while getopts "hi:u:f:o:r:x:k" opt; do
     case $opt in
         i)input_fnames+=($OPTARG);;
         u)update_fnames+=($OPTARG);;
         f)id_field=($OPTARG);;
         o)out_dir=($OPTARG);;
         r)release=($OPTARG);;
+        r)exclude_list=($OPTARG);;
         k)mode="right";;
         h)usage;;
         *)usage;;
