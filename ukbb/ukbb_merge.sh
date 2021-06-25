@@ -31,7 +31,7 @@ function usage () {
     echo "                     -o <output dir>"
     echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input if updating>"
     echo "                     -k <when updating, also include samples from update file(s) that are ${bold}not${normal} present in input; default: false>"
-    echo "                     -x <list of IDs to exclude>"
+    echo "                     -x <list of individual IDs to exclude>"
     echo ""
     echo "All input/update/output files are tab-separated"
     echo ""
@@ -309,7 +309,15 @@ echo ""|tee -a "$logfile"
 #-------------------------------------- OUTPUT -------------------------------------------------
 
 if [[ $n_update -eq 0 ]];then
-    # just merging input files
+    # JUST MERGING INPUT FILES IF MORE THAN ONE SPECIFIED
+    # OR
+    # EXCLUDE IDS IN -x LIST IF ONLY ONE INPUT FILE SPECIFIED
+
+    if [[ $n_input -eq 1 ]];then # check n_input==1 and exclude_list=="" beforehand
+	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | perl -snle 'BEGIN{%h=();open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c="${input_ID_column[0]}" | gzip - -c > "${outfile}"
+    else
+
+	
     
     # column classes of input columns are based on source input files
     for i in $(seq 0 $((n_input-1)));do
@@ -382,6 +390,8 @@ if [[ $n_update -eq 0 ]];then
     x=$((x-1))
     paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr|tr ' ' '\t'|head -n $x)|gzip - -c >> "${outfile}"    
     rm -f "$tmpfile1"
+
+    fi
     
     echo "Done"|tee -a "$logfile"
     date "+%F %H-%M-%S" |tee -a "$logfile"
