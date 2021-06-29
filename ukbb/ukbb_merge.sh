@@ -365,16 +365,37 @@ if [[ $n_update -eq 0 ]];then
 
     # eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) | gzip - -c > ${outfile}"
 
-    # only keeping commong IDs between input files
+    # outer join on IDs
     tmpfile1=$(mktemp -p "$out_dir" temp_1_join_XXXXXXXX)
     if [[ $? -ne 0 ]];then
 	echo "ERROR: could not create tmpfile1 "|tee -a "$logfile"
 	exit 1
     fi
+
+    fmt="1.${input_ID_column[0]},2.${input_ID_column[1]}"
+    for i in $(seq 2 ${input_ncols[0]});do
+	fmt=$fmt",1.$i"
+    done
+    for i in $(seq 2 ${input_ncols[1]});do
+	fmt=$fmt",2.$i"
+    done
     
-    join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|tail -n +2|sort -k${input_ID_column[1]},${input_ID_column[1]}))"
+    join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|tail -n +2|sort -k${input_ID_column[1]},${input_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
+    n=${input_ncols[0]}
+    m=${input_ncols[1]}
+    n=$((n+m-1))
     for i in $(seq 2 $((n_input-1)));do
-	join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]}))"
+	fmt="1.1,2.${input_ID_column[$i]}"
+	for j in $(seq 2 $n);do
+	    fmt=$fmt",1.$j"
+	done	
+	for j in $(seq 2 ${input_ncols[$i]});do
+	    fmt=$fmt",2.$j"
+	done
+	
+	join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
+	m=${input_ncols[$i]}
+	n=$((n+m-1))
     done
     eval "$join_cmd > $tmpfile1"
 
