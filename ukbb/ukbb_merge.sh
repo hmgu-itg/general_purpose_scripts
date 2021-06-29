@@ -32,6 +32,7 @@ function usage () {
     echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input if updating>"
     echo "                     -k <when updating, also include samples from update file(s) that are ${bold}not${normal} present in input; default: false>"
     echo "                     -x <list of individual IDs to exclude>"
+    echo "                     -d <debug mode: do not remove temp files; default: false>"
     echo ""
     echo "All input/update/output files are tab-separated"
     echo ""
@@ -66,7 +67,8 @@ out_dir=""
 release=""
 exclude_list=""
 mode="inner"
-while getopts "hi:u:f:o:r:x:k" opt; do
+debug="NO"
+while getopts "hi:u:f:o:r:x:kd" opt; do
     case $opt in
         i)input_fnames+=($OPTARG);;
         u)update_fnames+=($OPTARG);;
@@ -75,6 +77,7 @@ while getopts "hi:u:f:o:r:x:k" opt; do
         r)release=($OPTARG);;
         r)exclude_list=($OPTARG);;
         k)mode="right";;
+        d)debug="YES";;
         h)usage;;
         *)usage;;
     esac
@@ -101,6 +104,13 @@ if [[ ! -w "$out_dir" ]];then
     exit 1
 fi
 
+if [[ ! -z "$exclude_list" ]];then
+    if [[ ! -f "$exclude_list" ]];then
+	echo "ERROR: exclude list $exclude_list is not a file" 1>&2
+	exit 1
+    fi
+fi
+
 out_dir=${out_dir%/}
 
 n_input="${#input_fnames[@]}"
@@ -111,8 +121,8 @@ if [[ $n_input -eq 0 ]];then
     exit 1
 fi
 
-if [[ $n_input -lt 2 && $n_update -eq 0 ]];then
-    echo "ERROR: no update files specified, only one input file specified (need at least two input files to merge)" 1>&2
+if [[ $n_input -eq 1 && $n_update -eq 0 && -z "$exclude_list" ]];then
+    echo "ERROR: no update files, only one input file specified, no exclude ID list; nothing to do" 1>&2
     exit 1
 fi
 
@@ -243,34 +253,6 @@ done
 #----------------------------------------------------
 
 #
-# check if all input files have same IDs
-#
-# echo -n "Checking if input files have same IDs ... "|tee -a "$logfile"
-# for i in $(seq 1 $((n_input-1)));do
-#     x=$(cat <(${cats[${input_fnames[0]}]} "${input_fnames[0]}"|cut -f ${input_ID_column[0]}) <(${cats[${input_fnames[$i]}]} "${input_fnames[$i]}"|cut -f ${input_ID_column[$i]})|sort|uniq -u|wc -l)
-#     if [[ $x -ne 0 ]];then
-# 	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs"|tee -a "$logfile"
-# 	exit 1
-#     fi
-# done
-# echo "OK"|tee -a "$logfile"
-#----------------------------------------------------
-
-#
-# check if all update files have same IDs
-#
-# echo -n "Checking if update files have same IDs ... "|tee -a "$logfile"
-# for i in $(seq 1 $((n_update-1)));do
-#     x=$(cat <("${cats[${update_fnames[0]}]}" "${update_fnames[0]}"|cut -f ${update_ID_column[0]}) <("${cats[${update_fnames[$i]}]}" "${update_fnames[$i]}"|cut -f ${update_ID_column[$i]})|sort|uniq -u|wc -l)
-#     if [[ $x -ne 0 ]];then
-# 	echo "ERROR: files ${input_fnames[0]} and ${input_fnames[$i]} have different sets of IDs"|tee -a "$logfile"
-# 	exit 1
-#     fi
-# done
-# echo "OK"|tee -a "$logfile"
-#----------------------------------------------------
-
-#
 # check if column names (excepth for ID field) in input files are disjoint
 #
 echo -n "Checking if column names in input files are disjoint ... "|tee -a "$logfile"
@@ -313,105 +295,66 @@ if [[ $n_update -eq 0 ]];then
     # OR
     # EXCLUDE IDS IN -x LIST IF ONLY ONE INPUT FILE SPECIFIED
 
-    if [[ $n_input -eq 1 ]];then # check n_input==1 and exclude_list=="" beforehand
-	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | perl -snle 'BEGIN{%h=();open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c="${input_ID_column[0]}" | gzip - -c > "${outfile}"
-    else
+    if [[ $n_input -eq 1 ]];then
+	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c="${input_ID_column[0]}" | gzip - -c > "${outfile}"
+    else	
+	# column classes of input columns are based on source input files
+	for i in $(seq 0 $((n_input-1)));do
+    	    for c in $("${cats[${input_fnames[$i]}]}" "${input_fnames[$i]}"|head -n 1|cut --complement -f ${input_ID_column[$i]});do
+    		column_class[$c]=$i
+    	    done
+	done
+	column_class["$id_field"]="NA"
 
-	
-    
-    # column classes of input columns are based on source input files
-    for i in $(seq 0 $((n_input-1)));do
-    	for c in $("${cats[${input_fnames[$i]}]}" "${input_fnames[$i]}"|head -n 1|cut --complement -f ${input_ID_column[$i]});do
-    	    column_class[$c]=$i
-    	done
-    done
-    column_class["$id_field"]="NA"
+	# OUTER JOIN on IDs
+	tmpfile1=$(mktemp -p "$out_dir" temp_1_join_XXXXXXXX)
+	if [[ $? -ne 0 ]];then
+	    echo "ERROR: could not create tmpfile1 "|tee -a "$logfile"
+	    exit 1
+	fi
 
-    cmd="cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}| tail -n +2|cut -f ${input_ID_column[0]})"
-    for i in $(seq 1 $((n_input-1)));do
-	cmd=$cmd" <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}| tail -n +2|cut -f ${input_ID_column[$i]})"
-    done
-    cmn=$(eval $cmd | sort|uniq -c|sed 's/^  *//'|gawk -v n=$n_input '$1==n{print $0;}'| wc -l)
-    echo "INFO: output $cmn common IDs between $n_input input files"|tee -a "$logfile"
-    echo ""|tee -a "$logfile"
-    echo -n "Merging input files ... "|tee -a "$logfile"
-    
-    # # HEADER
-    # command1="paste <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1)"
-    # for i in $(seq 1 $((n_input-1)));do
-    # 	command1=${command1}" <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1|cut --complement -f ${input_ID_column[$i]})"
-    # done
-    # command1=${command1}" <(echo RELEASE CREATED| tr ' ' '\t')"
-
-    # for c in $(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1);do
-    # 	class_array+=(${column_class[$c]})
-    # done
-    # for i in $(seq 1 $((n_input-1)));do
-    # 	for c in $(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1|cut --complement -f ${input_ID_column[$i]});do
-    # 	    class_array+=(${column_class[$c]})
-    # 	done
-    # done
-    # class_array+=("NA")
-    # class_array+=("NA")
-    # header2=$(join_by , ${class_array[*]})
-    
-    # command2="paste <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})"
-    # for i in $(seq 1 $((n_input-1)));do
-    # 	command2=${command2}" <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]}|cut --complement -f ${input_ID_column[$i]})"
-    # done
-    # x=${input_nrows[0]}
-    # x=$((x-1))
-    # command2=${command2}" <(yes $release $datestr| tr ' ' '\t'| head -n $x)"
-
-    # eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) | gzip - -c > ${outfile}"
-
-    # outer join on IDs
-    tmpfile1=$(mktemp -p "$out_dir" temp_1_join_XXXXXXXX)
-    if [[ $? -ne 0 ]];then
-	echo "ERROR: could not create tmpfile1 "|tee -a "$logfile"
-	exit 1
-    fi
-
-    fmt="1.${input_ID_column[0]},2.${input_ID_column[1]}"
-    for i in $(seq 2 ${input_ncols[0]});do
-	fmt=$fmt",1.$i"
-    done
-    for i in $(seq 2 ${input_ncols[1]});do
-	fmt=$fmt",2.$i"
-    done
-    
-    join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|tail -n +2|sort -k${input_ID_column[1]},${input_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
-    n=${input_ncols[0]}
-    m=${input_ncols[1]}
-    n=$((n+m-1))
-    for i in $(seq 2 $((n_input-1)));do
-	fmt="1.1,2.${input_ID_column[$i]}"
-	for j in $(seq 2 $n);do
-	    fmt=$fmt",1.$j"
-	done	
-	for j in $(seq 2 ${input_ncols[$i]});do
-	    fmt=$fmt",2.$j"
+	fmt="1.${input_ID_column[0]},2.${input_ID_column[1]}"
+	for i in $(seq 2 ${input_ncols[0]});do
+	    fmt=$fmt",1.$i"
+	done
+	for i in $(seq 2 ${input_ncols[1]});do
+	    fmt=$fmt",2.$i"
 	done
 	
-	join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
-	m=${input_ncols[$i]}
+	join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|tail -n +2|sort -k${input_ID_column[1]},${input_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
+	n=${input_ncols[0]}
+	m=${input_ncols[1]}
 	n=$((n+m-1))
-    done
-    eval "$join_cmd > $tmpfile1"
+	for i in $(seq 2 $((n_input-1)));do
+	    fmt="1.1,2.${input_ID_column[$i]}"
+	    for j in $(seq 2 $n);do
+		fmt=$fmt",1.$j"
+	    done	
+	    for j in $(seq 2 ${input_ncols[$i]});do
+		fmt=$fmt",2.$j"
+	    done
+	    
+	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
+	    m=${input_ncols[$i]}
+	    n=$((n+m-1))
+	done
+	eval "$join_cmd > $tmpfile1"
 
-    # adding class line
-    paste <(head -n 1 "$tmpfile1") <(echo RELEASE CREATED|tr ' ' '\t')|gzip - -c > "${outfile}"
-    for c in $(head -n 1 "$tmpfile1");do
-	class_array+=(${column_class[$c]})
-    done
-    class_array+=("NA" "NA")
-    cline=$(join_by , "${class_array[@]}")
-    eval "cat <(echo $cline|tr ',' '\t')|gzip - -c >> ${outfile}"    
-    x=$(cat $tmpfile1|wc -l)
-    x=$((x-1))
-    paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr|tr ' ' '\t'|head -n $x)|gzip - -c >> "${outfile}"    
-    rm -f "$tmpfile1"
-
+	# adding class line
+	paste <(head -n 1 "$tmpfile1") <(echo RELEASE CREATED|tr ' ' '\t')|gzip - -c > "${outfile}"
+	for c in $(head -n 1 "$tmpfile1");do
+	    class_array+=(${column_class[$c]})
+	done
+	class_array+=("NA" "NA")
+	cline=$(join_by , "${class_array[@]}")
+	eval "cat <(echo $cline|tr ',' '\t')|gzip - -c >> ${outfile}"
+	# adding body, excluding IDs from exclude list
+	x=$(cat $tmpfile1|wc -l)
+	x=$((x-1))
+	paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr | tr ' ' '\t' | head -n $x) | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c=1|gzip - -c >> "${outfile}"
+	if [[ $debug == "NO" ]];then
+	    rm -f "$tmpfile1"
+	fi
     fi
     
     echo "Done"|tee -a "$logfile"
@@ -422,8 +365,7 @@ else
     echo "Updating input ... "|tee -a "$logfile"
 
     #----------------------------------------------------------------
-    # merging all update files and saving the result in a temporary file, with classes
-    # update files have same IDs, so using paste instead of join
+    # merging all update files using OUTER JOIN and saving the result in a temporary file, with classes
     tmpfile0=$(mktemp -p "$out_dir" temp_0_join_XXXXXXXX)
     if [[ $? -ne 0 ]];then
 	echo "ERROR: could not create tmpfile0 "|tee -a "$logfile"
@@ -435,17 +377,9 @@ else
 	exit 1
     fi
 
-    cmd="cat <(${cats[${update_fnames[0]}]} ${update_fnames[0]}| tail -n +2|cut -f ${update_ID_column[0]})"
-    for i in $(seq 1 $((n_update-1)));do
-	cmd=$cmd" <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}| tail -n +2|cut -f ${update_ID_column[$i]})"
-    done
-    cmn=$(eval $cmd | sort|uniq -c|sed 's/^  *//'|gawk -v n=$n_update '$1==n{print $0;}'| wc -l)
-    echo "INFO: output $cmn common IDs between $n_update update files"|tee -a "$logfile"
-    echo ""|tee -a "$logfile"
-
     echo -n "Merging update files ... "|tee -a "$logfile"
 
-    # column classes of input columns are based on source update files
+    # column classes of update files
     for i in $(seq 0 $((n_update-1)));do
     	for c in $("${cats[${update_fnames[$i]}]}" "${update_fnames[$i]}"|head -n 1|cut --complement -f ${update_ID_column[$i]});do
     	    column_class[$c]=$i
@@ -454,13 +388,34 @@ else
     column_class["$id_field"]="NA"
 
     if [[ $n_update -gt 1 ]];then
-	join_cmd="join --header -t$'\t' -1 ${update_ID_column[0]} -2 ${update_ID_column[1]} <(cat <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|head -n 1) <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|tail -n +2|sort -k${update_ID_column[0]},${update_ID_column[0]})) <(cat <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|head -n 1) <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|tail -n +2|sort -k${update_ID_column[1]},${update_ID_column[1]}))"
+	fmt="1.${update_ID_column[0]},2.${update_ID_column[1]}"
+	for i in $(seq 2 ${update_ncols[0]});do
+	    fmt=$fmt",1.$i"
+	done
+	for i in $(seq 2 ${update_ncols[1]});do
+	    fmt=$fmt",2.$i"
+	done
+	
+	join_cmd="join --header -t$'\t' -1 ${update_ID_column[0]} -2 ${update_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|head -n 1) <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|tail -n +2|sort -k${update_ID_column[0]},${update_ID_column[0]})) <(cat <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|head -n 1) <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|tail -n +2|sort -k${update_ID_column[1]},${update_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
+	n=${update_ncols[0]}
+	m=${update_ncols[1]}
+	n=$((n+m-1))
 	for i in $(seq 2 $((n_update-1)));do
-    	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${update_ID_column[$i]} - <(cat <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1) <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|tail -n +2|sort -k${update_ID_column[$i]},${update_ID_column[$i]}))"
+	    fmt="1.1,2.${update_ID_column[$i]}"
+	    for j in $(seq 2 $n);do
+		fmt=$fmt",1.$j"
+	    done	
+	    for j in $(seq 2 ${update_ncols[$i]});do
+		fmt=$fmt",2.$j"
+	    done
+	    
+	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${update_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1) <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|tail -n +2|sort -k${update_ID_column[$i]},${update_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
+	    m=${update_ncols[$i]}
+	    n=$((n+m-1))
 	done
 	eval "$join_cmd > $tmpfile0"
     else
-	cp "${update_fnames[$i]}" "$tmpfile0"
+	cp "${update_fnames[0]}" "$tmpfile0"
     fi
     
     head -n 1 "$tmpfile0" > "$tmpfile1"
@@ -470,30 +425,10 @@ else
     cline=$(join_by , "${class_array[@]}")
     echo $cline|tr ',' '\t' >> "$tmpfile1"
     tail -n +2 "$tmpfile0" >> "$tmpfile1"    
-    rm -f "$tmpfile0"
-
-    # # HEADER
-    # command1="paste <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|head -n 1)"
-    # for i in $(seq 1 $((n_update-1)));do
-    # 	command1=${command1}" <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1|cut --complement -f ${update_ID_column[$i]})"
-    # done
-    # # CLASS ROW
-    # for c in $("${cats[${update_fnames[0]}]}" "${update_fnames[0]}"|head -n 1);do
-    # 	class_array+=(${column_class[$c]})
-    # done
-    # for i in $(seq 1 $((n_update-1)));do
-    # 	for c in $("${cats[${update_fnames[$i]}]}" "${update_fnames[$i]}"|head -n 1|cut --complement -f ${update_ID_column[$i]});do
-    # 	    class_array+=(${column_class[$c]})
-    # 	done
-    # done
-    # header2=$(join_by , "${class_array[@]}")
-    # # BODY
-    # command2="paste <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|tail -n +2|sort -k${update_ID_column[0]},${update_ID_column[0]})"
-    # for i in $(seq 1 $((n_update-1)));do
-    # 	command2=${command2}" <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|tail -n +2|sort -k${update_ID_column[$i]},${update_ID_column[$i]}|cut --complement -f ${update_ID_column[$i]})"
-    # done
-    # eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) > $tmpfile1"
-    
+    if [[ $debug == "NO" ]];then
+	rm -f "$tmpfile0"
+    fi
+	
     echo "Done"|tee -a "$logfile"
     #----------------------------------------------------------------
     # input fields (except for ID column) and their classes, from the input file
@@ -506,22 +441,18 @@ else
     for c in $("${cats[${input_fnames[0]}]}" "${input_fnames[0]}"|head -n 2|tail -n 1|cut --complement -f ${input_ID_column[0]},${release_col},${created_col});do
 	input_classes+=($c)
     done
-    #echo "Input classes done"|tee -a "$logfile"
     for (( i=0; i<"${#input_fields[@]}"; i++ )); do input_field2class[${input_fields[$i]}]=${input_classes[$i]};done
     new_update_ID=$(getColNum "$tmpfile1" "$id_field" "cat")
     if [[ -z $new_update_ID ]];then
 	echo "ERROR: no \"$id_field\" found in $tmpfile1"|tee -a "$logfile"
 	exit 1
     fi    
-    #echo "New update ID column: $new_update_ID"|tee -a "$logfile"
     # update fields (except for ID column) and their classes, from the merged update file
     declare -a update_fields
     declare -a update_classes
     declare -A update_field2class
     for c in $(head -n 1 "$tmpfile1"|cut --complement -f $new_update_ID);do update_fields+=($c);done
-    #echo "Update fields done"|tee -a "$logfile"
     for c in $(head -n 2 "$tmpfile1"|tail -n 1|cut --complement -f $new_update_ID);do update_classes+=($c);done
-    #echo "Update classes done"|tee -a "$logfile"
     for (( i=0; i<"${#update_fields[@]}"; i++ )); do update_field2class[${update_fields[$i]}]=${update_classes[$i]};done
     
     # input classes intersecting with update fields: all input fields from these will be excluded from input before merging
@@ -529,8 +460,6 @@ else
     # new fields in update that will be added
     declare -A new_fields
     for c in $(head -n 1 "$tmpfile1"|cut --complement -f $new_update_ID);do
-	# status=$(checkArray "$c" "${!input_field2class[@]}")
-	# if [[ $status == "YES" ]];then
 	status=${input_field2class[$c]}
 	if [[ ! -z "$status" ]];then
 	    x=${input_field2class[$c]}
@@ -539,15 +468,12 @@ else
 	    new_fields[$c]=1
 	fi
     done
-    #echo "Intersecting classes done"|tee -a "$logfile"
     
     # all column numbers from input intersecting_classes
     declare -a input_columns_to_exclude
     for (( i=0; i<"${#input_fields[@]}"; i++ )); do
 	c=${input_fields[$i]}
 	x=${input_field2class[$c]}
-	# status=$(checkArray "$x" "${!intersecting_classes[@]}")
-	# if [[ $status == "YES" ]];then
 	status=${intersecting_classes[$x]}
 	if [[ ! -z "$status" ]];then
 	    n=$(getColNum ${input_fnames[0]} $c ${cats[${input_fnames[0]}]})
@@ -556,7 +482,6 @@ else
     done
     input_columns_to_exclude+=($created_col)
     input_columns_to_exclude+=($release_col)
-    #echo "Columns to exclude done"|tee -a "$logfile"
 
     # input without excluded columns, without classes
     tmpfile2=$(mktemp -p "$out_dir" temp_2_input_XXXXXXXX)
@@ -566,8 +491,6 @@ else
     fi
     
     echo -n "Removing columns from input ... "|tee -a "$logfile"
-    #str=$(join_by , ${input_columns_to_exclude[*]})
-    #echo "columns to exclude: $str"|tee -a "$logfile"
     "${cats[${input_fnames[0]}]}" "${input_fnames[0]}"|cut -f $(join_by , "${input_columns_to_exclude[@]}") --complement| gawk 'BEGIN{FS=OFS="\t";}NR!=2{print $0;}' > "$tmpfile2"
     echo "Done"|tee -a "$logfile"
     new_input_ID=$(getColNum "$tmpfile2" "$id_field" "cat")
@@ -575,7 +498,6 @@ else
 	echo "ERROR: no \"$id_field\" found in $tmpfile2"|tee -a "$logfile"
 	exit 1
     fi    
-    #echo "New input ID column: $new_input_ID"|tee -a "$logfile"
 
     common_IDs=$(join -1 1 -2 1 <(cut -f $new_update_ID "$tmpfile1"|tail -n +3|sort) <(cut -f $new_input_ID "$tmpfile2"|tail -n +2|sort)|wc -l)
     input_only_IDs=$(join -a 2 -e NULL -o 1.1,2.1 -1 1 -2 1 <(cut -f $new_update_ID "$tmpfile1"| tail -n +3|sort) <(cut -f $new_input_ID $tmpfile2|tail -n +2|sort)|grep NULL|wc -l)
@@ -585,11 +507,11 @@ else
     echo "INFO: IDs only in input: $input_only_IDs (not included in output)"|tee -a "$logfile"
     str=""
     if [[ $mode == "inner" ]];then
-	str=" (not included in output, mode=$mode)"
+	str="(not included in output, mode=$mode)"
     else
-	str=" (included in output, mode=$mode)"
+	str="(included in output, mode=$mode)"
     fi
-    echo "INFO: IDs only in update: ${update_only_IDs}$str"|tee -a "$logfile"
+    echo "INFO: IDs only in update: ${update_only_IDs} $str"|tee -a "$logfile"
     echo ""|tee -a "$logfile"
 
     fmtstr="1.""${new_input_ID}"",2.""${new_update_ID}"
@@ -621,7 +543,6 @@ else
 	echo "ERROR: no \"$id_field\" found in $tmpfile3"|tee -a "$logfile"
 	exit 1
     fi    
-    #echo "Joined file input ID column: $joined_ID"|tee -a "$logfile"
 
     # max update class
     maxc=0
@@ -634,19 +555,13 @@ else
     declare -A tmp_ar
     cur_add=1
     for c in $(head -n 1 "$tmpfile3"|cut -f $joined_ID --complement);do
-	# s=$(checkArray "$c" "${!update_field2class[@]}")
-	# if [[ $s == "YES" ]];then
 	s=${update_field2class[$c]}
 	if [[ ! -z "$s" ]];then
 	    new_classes[$c]=${update_field2class[$c]}
 	else
-	    # t=$(checkArray "$c" "${!input_field2class[@]}")
-	    # if [[ $t == "YES" ]];then
 	    t=${input_field2class[$c]}
 	    if [[ ! -z "$t" ]];then
 		d=${input_field2class[$c]}
-		# u=$(checkArray "$d" "${!tmp_ar[@]}")
-		# if [[ $u == "YES" ]];then
 		u=${tmp_ar[$d]}
 		if [[ ! -z "$u" ]];then
 		    new_classes[$c]=${tmp_ar[$d]}
@@ -661,9 +576,9 @@ else
 	    fi
 	fi
     done
-    #echo "New classes done"|tee -a "$logfile"
 
     # FINAL OUTPUT
+    # excluding IDs in exclude list
     echo -n "Creating output file ... "|tee -a "$logfile"
     command1="paste <(head -n 1 $tmpfile3) <(echo RELEASE CREATED|tr ' ' '\t')"
 
@@ -675,21 +590,22 @@ else
 	    temp+=(${new_classes[$c]})
 	fi
     done
-    temp+=("NA")
-    temp+=("NA")
+    temp+=("NA" "NA")
     header2=$(join_by , "${temp[@]}")
 
     command2="paste <(tail -n +2 $tmpfile3)"
     x=$(tail -n +2 "$tmpfile3"| wc -l)
     command2=${command2}" <(yes $release $datestr| tr ' ' '\t'| head -n $x)"
 
-    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2) | gzip - -c > ${outfile}"
+    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2)" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c="$joined_ID" | gzip - -c > "${outfile}"
     echo "Done"|tee -a "$logfile"
 
-    rm -f "$tmpfile1"
-    rm -f "$tmpfile2"
-    rm -f "$tmpfile3"
-    
+    if [[ $debug == "NO" ]];then
+	rm -f "$tmpfile1"
+	rm -f "$tmpfile2"
+	rm -f "$tmpfile3"
+    fi
+	
     echo "Done"|tee -a "$logfile"
     date "+%F %H-%M-%S" |tee -a "$logfile"
 fi
