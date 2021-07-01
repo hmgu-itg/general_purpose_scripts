@@ -296,7 +296,19 @@ if [[ $n_update -eq 0 ]];then
     # EXCLUDE IDS IN -x LIST IF ONLY ONE INPUT FILE SPECIFIED
 
     if [[ $n_input -eq 1 ]];then
-	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c="${input_ID_column[0]}" | gzip - -c > "${outfile}"
+	paste <(${cats["${input_fnames[0]}"]} "${input_fnames[0]}"|head -n 1) <(echo RELEASE CREATED|tr ' ' '\t')|gzip - -c > "${outfile}"
+    	for c in $("${cats[${input_fnames[0]}]}" "${input_fnames[0]}"|head -n 1|cut --complement -f ${input_ID_column[0]});do
+    	    column_class[$c]="0"
+    	done
+	column_class["$id_field"]="NA"
+	for c in $(${cats["${input_fnames[0]}"]} "${input_fnames[0]}"|head -n 1);do
+	    class_array+=(${column_class[$c]})
+	done
+	class_array+=("NA" "NA")
+	cline=$(join_by , "${class_array[@]}")
+	eval "cat <(echo $cline|tr ',' '\t')|gzip - -c >> ${outfile}"
+
+	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c="${input_ID_column[0]}" | gzip - -c >> "${outfile}"
     else	
 	# column classes of input columns are based on source input files
 	for i in $(seq 0 $((n_input-1)));do
