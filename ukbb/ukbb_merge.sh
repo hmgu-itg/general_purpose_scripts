@@ -75,7 +75,7 @@ while getopts "hi:u:f:o:r:x:kd" opt; do
         f)id_field=($OPTARG);;
         o)out_dir=($OPTARG);;
         r)release=($OPTARG);;
-        r)exclude_list=($OPTARG);;
+        x)exclude_list=($OPTARG);;
         k)mode="right";;
         d)debug="YES";;
         h)usage;;

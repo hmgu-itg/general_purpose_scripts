@@ -1,4 +1,73 @@
 
+function getCols {
+    local fname=$1
+    local cmd=$2
+    local field=$3
+    local -n arname=$4
+
+    while read i x;do
+	arname[$i]=$x
+    done < <(eval "$cmd $fname" | head -n 1 | gawk -v v="$field" 'BEGIN{FS="\t";}{for (i=1;i<=NF;i++){if (match($i,"f."v".[[:digit:]]+.[[:digit:]]+")){print i,$i;}}}')
+}
+
+# read variable from a tab separated file
+# 1st field: key
+# 2nd field:value
+#
+# arguments: filename,key,variable name
+function readValue {
+    local fname=$1
+    local key=$2
+    local -n name=$3
+    
+    name=(grep "$key" "$fname"|cut -f 2)
+}
+
+# read associative array from a tab separated file
+# 1st field: key
+# 2nd field: encoded associative array k1:v1,k2:v2,k3:v3, ...
+#
+# arguments: filename,key,array name
+function readAArray {
+    local fname=$1
+    local key=$2
+    local -n arname=$3
+
+    while read x z;do
+	arname["$x"]="$z"
+    done < <(grep "$key" "$fname"|cut -f 2|tr ',' '\n'|tr ':' ' ')
+}
+
+# print error message and exit if the first argument is empty
+function exitIfEmpty {
+    local x=$1
+    local msg=$2
+    if [[ -z "$x" ]];then
+	echo $msg
+	exit 1
+    fi
+}
+
+# print error message and exit if the first argument is not a file
+function exitIfNotFile {
+    local fname=$1
+    local msg=$2
+    if [[ ! -f "$fname" ]];then
+	echo $msg
+	exit 1
+    fi
+}
+
+# print error message and exit if the first argument is not a directory
+function exitIfNotDir {
+    local dname=$1
+    local msg=$2
+    if [[ ! -d "$dname" ]];then
+	echo $msg
+	exit 1
+    fi
+}
+
 # check if necessary commands are present
 function checkInstalledCommands {
     local cmds=("gawk")
