@@ -1,10 +1,14 @@
 
+# for a given field, return an associative array "column index" --> "column name" for columns with names matching the field
+# 12345 matches f.12345.0.1
 function getCols {
     local fname=$1
     local cmd=$2
     local field=$3
     local -n arname=$4
 
+    arname=()
+    
     while read i x;do
 	arname[$i]=$x
     done < <(eval "$cmd $fname" | head -n 1 | gawk -v v="$field" 'BEGIN{FS="\t";}{for (i=1;i<=NF;i++){if (match($i,"f."v".[[:digit:]]+.[[:digit:]]+")){print i,$i;}}}')
@@ -19,8 +23,8 @@ function readValue {
     local fname=$1
     local key=$2
     local -n name=$3
-    
-    name=(grep "$key" "$fname"|cut -f 2)
+
+    name=$(grep "$key" "$fname"|cut -f 2)
 }
 
 # read associative array from a tab separated file
@@ -33,6 +37,8 @@ function readAArray {
     local key=$2
     local -n arname=$3
 
+    arname=()
+    
     while read x z;do
 	arname["$x"]="$z"
     done < <(grep "$key" "$fname"|cut -f 2|tr ',' '\n'|tr ':' ' ')
