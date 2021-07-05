@@ -64,6 +64,16 @@ function exitIfNotFile {
     fi
 }
 
+# print error message and exit if the first argument is an existing dir or file
+function exitIfExists {
+    local fname=$1
+    local msg=$2
+    if [[ -f "$fname" || -d "$fname" ]];then
+	echo $msg
+	exit 1
+    fi
+}
+
 # print error message and exit if the first argument is not a directory
 function exitIfNotDir {
     local dname=$1
