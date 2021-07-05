@@ -34,11 +34,11 @@ fi
 exitIfEmpty "$outdir" "ERROR: output dir (-o) not specified"
 exitIfEmpty "$keyfile" "ERROR: key file (-k) not specified"
 exitIfEmpty "$infile" "ERROR: input (-i) not specified"
-exitIfNotDir "$outdir" "ERROR: $outdir is not a directory"
+exitIfNotDir "$outdir" "ERROR: output dir $outdir is not a directory"
 exitIfNotFile "$config" "ERROR: config file $config does not exist"
-readValue "$config" EXEC_PATH execdir
+readValue "$config" EXEC_DIR execdir
 execdir=${execdir%/}
-exitIfNotDir "$execdir" "ERROR: $execdir is not a directory"
+exitIfNotDir "$execdir" "ERROR: EXEC_DIR $execdir is not a directory"
 unpack_exe="$execdir"/ukbunpack
 exitIfNotFile "$unpack_exe" "ERROR: $unpack_exe does not exist"
 conv_exe="$execdir"/ukbconv
@@ -62,8 +62,15 @@ if [[ $? -ne 0 ]];then
     exit 1
 fi
 
-cp "$unpack_exe" "$tmpd" && cp "$infile" "$tmpd" && cp "$keyfile" "$tmpd" && cd "$tmpd"
-eval "./$unpack_exe $(basename $infile) $(basename $keyfile)"
+cp "$encoding" "$tmpd" && cp "$unpack_exe" "$tmpd" && cp "$conv_exe" "$tmpd" && cp "$infile" "$tmpd" && cp "$keyfile" "$tmpd" && cd "$tmpd"
+eval "./$(basename $unpack_exe) $(basename $infile) $(basename $keyfile)"
+outfile1="$(basename $infile)"_"ukb"
+exitIfNotFile "$outfile1" "ERROR: unpacked file $outfile1 does not exist"
+eval "./$(basename $conv_exe) $outfile1 r"
+outname=${outfile1/%enc_ukb/tab_dec}
+rname=${outfile1/%enc_ukb/r}
+Rscript <(cat "$rname" <(echo "write.table(bd,file=\"$outname\",quote=F,row.names=F,sep=\"\t\")"))
+cp "$outname" "$outdir"
 
 #rm -rf "$tmpd"
 
