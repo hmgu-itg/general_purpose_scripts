@@ -72,6 +72,6 @@ rname=${outfile1/%enc_ukb/r}
 Rscript <(cat "$rname" <(echo "write.table(bd,file=\"$outname\",quote=F,row.names=F,sep=\"\t\")"))
 cp "$outname" "$outdir"
 
-#rm -rf "$tmpd"
+rm -rf "$tmpd"
 
 exit 0
