@@ -13,6 +13,7 @@ parser.add_argument('-i','--input',required=True,action='append',help="Input fil
 parser.add_argument('-u','--update',required=False,action='append',help="Update file(s)")
 parser.add_argument('-o','--output',required=True,action='store',help="Output prefix")
 parser.add_argument("-k", "--keep",required=False,action='store_true',help="Also include new IDs in update file(s)")
+parser.add_argument("-x", "--exclude",required=False,action='store',help="List of IDs to exclude")
 
 if len(sys.argv[1:])==0:
     parser.print_help()
@@ -36,6 +37,11 @@ datestr=datetime.datetime.now().strftime("%F")
 if updates is None:
     updates=list()
 
+exlist=list()
+if args.exclude:
+    with open(args.exclude) as f:
+        exlist=[line.rstrip() for line in f]
+    
 print("input: %s\nupdates: %s\noutput prefix: %s\nmode: %s\n" %(",".join(infiles),",".join(updates),out_prefix,mode),file=logF)
 
 #-----------------------------------------------------------------------------------------------------------------------------
