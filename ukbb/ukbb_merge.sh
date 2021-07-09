@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# ALL INPUT FILES ARE TAB SEPARATED
+# ALL FILES ARE TAB SEPARATED
 
 scriptname=$0
 args=("$@")
@@ -12,6 +12,10 @@ normal=$(tput sgr0)
 
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
+collectstats="${scriptdir}/collectStats.pl"
+collectstats2="${scriptdir}/collectStats2.pl"
+
+# TODO: check if scripts exist
 
 function usage () {
     echo ""
@@ -32,7 +36,8 @@ function usage () {
     echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input if updating>"
     echo "                     -k <when updating, also include samples from update file(s) that are ${bold}not${normal} present in input; default: false>"
     echo "                     -x <list of individual IDs to exclude>"
-    echo "                     -d <debug mode: do not remove temp files; default: false>"
+    echo "                     -d <debug mode: do not remove temporary files>"
+    echo "                     -s <skip creating missingness summary file>"
     echo ""
     echo "All input/update/output files are tab-separated"
     echo ""
@@ -68,7 +73,8 @@ release=""
 exclude_list=""
 mode="inner"
 debug="NO"
-while getopts "hi:u:f:o:r:x:kd" opt; do
+skipmiss="NO"
+while getopts "hi:u:f:o:r:x:kds" opt; do
     case $opt in
         i)input_fnames+=($OPTARG);;
         u)update_fnames+=($OPTARG);;
@@ -78,6 +84,7 @@ while getopts "hi:u:f:o:r:x:kd" opt; do
         x)exclude_list=($OPTARG);;
         k)mode="right";;
         d)debug="YES";;
+        s)skipmiss="YES";;
         h)usage;;
         *)usage;;
     esac
@@ -168,6 +175,8 @@ else
 fi
 
 outfile="${out_dir}/phenotypes_r${release}.txt.gz"
+missfile="${out_dir}/stats_r${release}.txt.gz"
+
 if [[ -f "$outfile" ]];then
     echo "ERROR: output file $outfile already exists" 1>&2
     exit 1
@@ -333,7 +342,8 @@ if [[ $n_update -eq 0 ]];then
 	    fmt=$fmt",2.$i"
 	done
 	
-	join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|tail -n +2|sort -k${input_ID_column[1]},${input_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
+	join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|tail -n +2|sort -k${input_ID_column[1]},${input_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'| cut -f 2-"
+
 	n=${input_ncols[0]}
 	m=${input_ncols[1]}
 	n=$((n+m-1))
@@ -346,7 +356,7 @@ if [[ $n_update -eq 0 ]];then
 		fmt=$fmt",2.$j"
 	    done
 	    
-	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
+	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'| cut -f 2-"
 	    m=${input_ncols[$i]}
 	    n=$((n+m-1))
 	done
@@ -408,7 +418,7 @@ else
 	    fmt=$fmt",2.$i"
 	done
 	
-	join_cmd="join --header -t$'\t' -1 ${update_ID_column[0]} -2 ${update_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|head -n 1) <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|tail -n +2|sort -k${update_ID_column[0]},${update_ID_column[0]})) <(cat <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|head -n 1) <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|tail -n +2|sort -k${update_ID_column[1]},${update_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
+	join_cmd="join --header -t$'\t' -1 ${update_ID_column[0]} -2 ${update_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|head -n 1) <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|tail -n +2|sort -k${update_ID_column[0]},${update_ID_column[0]})) <(cat <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|head -n 1) <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|tail -n +2|sort -k${update_ID_column[1]},${update_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'| cut -f 2-"
 	n=${update_ncols[0]}
 	m=${update_ncols[1]}
 	n=$((n+m-1))
@@ -421,7 +431,7 @@ else
 		fmt=$fmt",2.$j"
 	    done
 	    
-	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${update_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1) <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|tail -n +2|sort -k${update_ID_column[$i]},${update_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if ($2==NA){$2=$1;}print $0;}'| cut -f 2-"
+	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${update_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1) <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|tail -n +2|sort -k${update_ID_column[$i]},${update_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'| cut -f 2-"
 	    m=${update_ncols[$i]}
 	    n=$((n+m-1))
 	done
@@ -499,6 +509,9 @@ else
     tmpfile2=$(mktemp -p "$out_dir" temp_2_input_XXXXXXXX)
     if [[ $? -ne 0 ]];then
 	echo "ERROR: could not create tmpfile2 "|tee -a "$logfile"
+	if [[ $debug == "NO" ]];then
+	    rm -f "$tmpfile1"
+	fi
 	exit 1
     fi
     
@@ -544,6 +557,10 @@ else
     tmpfile3=$(mktemp -p "$out_dir" temp_3_joined_XXXXXXXX)
     if [[ $? -ne 0 ]];then
 	echo "ERROR: could not create tmpfile3 "|tee -a "$logfile"
+	if [[ $debug == "NO" ]];then
+	    rm -f "$tmpfile1"
+	    rm -f "$tmpfile2"
+	fi
 	exit 1
     fi
     
@@ -616,11 +633,28 @@ else
 	rm -f "$tmpfile1"
 	rm -f "$tmpfile2"
 	rm -f "$tmpfile3"
-    fi
-	
-    echo "Done"|tee -a "$logfile"
-    date "+%F %H-%M-%S" |tee -a "$logfile"
+    fi	
 fi
 
+# missingness counts
+if [[ "$skipmiss" == "NO" ]];then
+    echo "Creating missingness counts"|tee -a "$logfile"
+    
+    tmpfile_miss=$(mktemp -p "$out_dir" temp_4_miss_XXXXXXXX)    
+    if [[ $? -ne 0 ]];then
+	echo "ERROR: could not create tmpfile_miss "|tee -a "$logfile"
+	exit 1
+    fi
+    zcat "$outfile"|head -n 1 > "$tmpfile_miss"
+    zcat "$outfile"|tail -n +3|parallel --pipe -j64 -L10000 "${collectstats2}"|datamash -s -g 1 sum 2 >> "$tmpfile_miss"
+    cat "$tmpfile_miss"| "${collectstats}" | gzip - -c > "$missfile"
+    if [[ $debug == "NO" ]];then
+	rm -f "$tmpfile_miss"
+    fi
+fi
+
+echo "Done"|tee -a "$logfile"
+date "+%F %H-%M-%S" |tee -a "$logfile"
+    
 exit 0
 
