@@ -85,6 +85,10 @@ if len(infiles)>1:
     merged["RELEASE"]=release
     merged["CREATED"]=datestr
     print("Done\n",file=logF)
+    
+    # excluding IDs
+    merged=merged[~merged["f.eid"].isin(exlist)]
+    
     L=[(x,output_classes[x]) for x in merged.columns.values.tolist()]
     merged.columns=pd.MultiIndex.from_tuples(L)
     print("Output rows: %d" % len(merged),file=logF)
@@ -206,6 +210,8 @@ for c in ["f.eid","RELEASE","CREATED"]:
     new_classes[c]="NA"
 L=[(x,new_classes[x]) for x in df2.columns.values.tolist()]
 df2.columns=pd.MultiIndex.from_tuples(L)
+#df2 = df2[~df2["f.eid"].isin(exlist)]
+#print(df2.columns)
 print("Output rows: %d" % len(df2),file=logF)
 print("Output columns: %d" % len(df2.columns.values.tolist()),file=logF)
 df2.to_csv(out_prefix+".txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE)
