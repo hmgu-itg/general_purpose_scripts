@@ -117,6 +117,23 @@ function checkArray {
     echo $x
 }
 
+# given a value and an array, get 1-based index (or 0 if not in array) of value in array
+function getArrayIndex {
+    local k=$1
+    shift
+    local ar=("$@")
+
+    local x="0"
+    for (( i=0; i<${#ar[@]}; i++ ));
+    do
+	if [[ "${ar[$i]}" -eq $k ]];then
+	    x=$((i+1))
+	    break
+	fi
+    done
+    echo $x
+}
+
 # check for duplicate fields in a column
 function checkDuplicatesColumn {
     local fname=$1
@@ -346,6 +363,14 @@ function getColNum () {
 	cmd=$3
     fi
     echo $(fgrep -w "$colname"  <($cmd "$fname"|head -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//')|cut -f 1)
+}
+
+# get column number for a specific column in a file inside a tar.gz
+function getTGZColNum () {
+    local tgz_fname=$1
+    local fname=$2
+    local colname=$3
+    echo $(fgrep -w "$colname"  <(tar -zxf "$tgz_fname" "$fname" -O|head -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//')|cut -f 1)
 }
 
 function getCatCmd () {
