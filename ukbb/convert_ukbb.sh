@@ -54,6 +54,10 @@ fi
 exitIfNotFile "$encoding" "ERROR: encoding $encoding does not exist"
 outdir=$(realpath "$outdir")
 
+binput=$(basename "$infile")
+outname=${binput/%enc/tab_dec}
+exitIfExists "${outdir}/${outname}" "ERROR: output file $outname already exists"
+
 echo ""
 echo "INFO: input: $infile"
 echo "INFO: output dir: $outdir"
@@ -77,7 +81,6 @@ rname=${outfile1/%enc_ukb/r}
 tabname=${outfile1/%enc_ukb/tab}
 exitIfNotFile "$rname" "ERROR: $rname does not exist"
 exitIfNotFile "$tabname" "ERROR: $tabname does not exist"
-outname=${outfile1/%enc_ukb/tab_dec}
 Rscript <(cat "$rname" <(echo "write.table(bd,file=\"$outname\",quote=F,row.names=F,sep=\"\t\")"))
 cp "$outname" "$outdir"
 
