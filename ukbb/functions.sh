@@ -86,7 +86,7 @@ function exitIfNotDir {
 
 # check if necessary commands are present
 function checkInstalledCommands {
-    local cmds=("gawk")
+    local cmds=("$@")
     s="0"
     for c in "${cmds[@]}";do
 	command -v $c > /dev/null

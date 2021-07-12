@@ -91,7 +91,7 @@ while getopts "hi:u:f:o:r:x:kds" opt; do
 done
 shift "$((OPTIND-1))"
 
-ret=$(checkInstalledCommands)
+ret=$(checkInstalledCommands "gawk" "parallel")
 if [[ $ret -ne 0 ]];then
     exit 1
 fi
@@ -646,7 +646,7 @@ if [[ "$skipmiss" == "NO" ]];then
 	exit 1
     fi
     zcat "$outfile"|head -n 1 > "$tmpfile_miss"
-    zcat "$outfile"|tail -n +3|parallel --pipe -j64 -L10000 "${collectstats2}"|datamash -s -g 1 sum 2 >> "$tmpfile_miss"
+    zcat "$outfile"|tail -n +3|parallel --citation --pipe -j64 -L10000 "${collectstats2}"|datamash -s -g 1 sum 2 >> "$tmpfile_miss"
     cat "$tmpfile_miss"| "${collectstats}" | gzip - -c > "$missfile"
     if [[ $debug == "NO" ]];then
 	rm -f "$tmpfile_miss"

@@ -87,6 +87,7 @@ if len(infiles)>1:
     merged["RELEASE"]=release
     merged["CREATED"]=datestr
     merged.replace(np.nan,"NA",inplace=True)
+    merged.replace("","NA",inplace=True)
     print("Done\n",file=logF)
     
     # excluding IDs
@@ -158,6 +159,7 @@ if len(updateDF)==1:
 else:
     merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid",how="outer"),updateDF)
 merged.replace(np.nan,"NA",inplace=True)
+merged.replace("","NA",inplace=True)
 print("Done\n",file=logF)
 affected_classes=set()
 for c in merged.columns.values.tolist():
@@ -184,6 +186,7 @@ df=inputDF.drop(columns=columns_to_remove)
 # keep new IDs in, remove IDs not present in the update
 df2=pd.merge(df,merged,on="f.eid",how=mode)
 df2.replace(np.nan,"NA",inplace=True)
+df2.replace("","NA",inplace=True)
 df2["RELEASE"]=release
 df2["CREATED"]=datestr
 df2=df2[~df2["f.eid"].isin(exlist)]
