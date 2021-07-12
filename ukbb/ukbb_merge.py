@@ -50,6 +50,7 @@ if len(infiles)>1:
     inputDF=list()
     for f in infiles:
         inputDF.append(pd.read_table(f,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False))
+    # CHECKS START
     print("Checking IDs in input DFs\n",file=logF)
     for i in range(len(inputDF)):
         print("Input %d rows: %d" % (i,len(inputDF[i])),file=logF)
@@ -69,6 +70,7 @@ if len(infiles)>1:
                     print("",file=logF)        
                     sys.exit(1)
     print("Done\n",file=logF)
+    # CHECKS END
     output_classes=dict()
     cur_c=0
     for df in inputDF:
@@ -81,13 +83,15 @@ if len(infiles)>1:
     for c in ["f.eid","RELEASE","CREATED"]:
         output_classes[c]="NA"
     print("Merging input DFs",file=logF)
-    merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid",how="inner"),inputDF)
+    merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid",how="outer"),inputDF)
     merged["RELEASE"]=release
     merged["CREATED"]=datestr
+    merged.replace(np.nan,"NA",inplace=True)
     print("Done\n",file=logF)
     
     # excluding IDs
     merged=merged[~merged["f.eid"].isin(exlist)]
+    merged.sort_values(by="f.eid",inplace=True)
     
     L=[(x,output_classes[x]) for x in merged.columns.values.tolist()]
     merged.columns=pd.MultiIndex.from_tuples(L)
