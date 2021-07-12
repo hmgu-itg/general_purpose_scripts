@@ -127,13 +127,7 @@ print("Checking IDs in update DFs\n",file=logF)
 for i in range(len(updateDF)):
     print("Update %d rows: %d" % (i,len(updateDF[i])),file=logF)
     print("Update %d columns: %d\n" % (i,len(updateDF[i].columns.values.tolist())),file=logF)
-    # for j in range(len(updateDF)):
-    #     if i<j:
-    #         if not updateDF[i]["f.eid"].equals(updateDF[j]["f.eid"]):
-    #             print("ERROR: IDs in %d,%d not equal" %(i,j),file=logF)
-    #             sys.exit(1)
 print("Done\n",file=logF)
-
 print("Checking if columns in update DFs are disjoint",file=logF)
 for i in range(len(updateDF)):
     for j in range(len(updateDF)):
@@ -162,7 +156,8 @@ print("Merging update DFs",file=logF)
 if len(updateDF)==1:
     merged=updateDF[0]
 else:
-    merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid",how="inner"),updateDF)
+    merged=reduce(lambda x, y:pd.merge(x,y,on="f.eid",how="outer"),updateDF)
+merged.replace(np.nan,"NA",inplace=True)
 print("Done\n",file=logF)
 affected_classes=set()
 for c in merged.columns.values.tolist():
@@ -191,6 +186,9 @@ df2=pd.merge(df,merged,on="f.eid",how=mode)
 df2.replace(np.nan,"NA",inplace=True)
 df2["RELEASE"]=release
 df2["CREATED"]=datestr
+df2=df2[~df2["f.eid"].isin(exlist)]
+df2.sort_values(by="f.eid",inplace=True)
+
 new_classes=dict()
 temp=dict()
 for c in df2.columns.values.tolist():
@@ -214,7 +212,6 @@ for c in ["f.eid","RELEASE","CREATED"]:
     new_classes[c]="NA"
 L=[(x,new_classes[x]) for x in df2.columns.values.tolist()]
 df2.columns=pd.MultiIndex.from_tuples(L)
-#df2 = df2[~df2["f.eid"].isin(exlist)]
 #print(df2.columns)
 print("Output rows: %d" % len(df2),file=logF)
 print("Output columns: %d" % len(df2.columns.values.tolist()),file=logF)
