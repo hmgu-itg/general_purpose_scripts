@@ -16,7 +16,7 @@ function getCols {
 
 # read variable from a tab separated file
 # 1st field: key
-# 2nd field:value
+# 2nd field: value
 #
 # arguments: filename,key,variable name
 function readValue {
@@ -24,7 +24,7 @@ function readValue {
     local key=$2
     local -n name=$3
 
-    name=$(grep "$key" "$fname"|cut -f 2)
+    name=$(cat "$fname"|grep -v "#"|grep -m 1 "^$key" "$fname"|cut -f 2)
 }
 
 # read associative array from a tab separated file
@@ -41,7 +41,7 @@ function readAArray {
     
     while read x z;do
 	arname["$x"]="$z"
-    done < <(grep "$key" "$fname"|cut -f 2|tr ',' '\n'|tr ':' ' ')
+    done < <(cat "$fname"|grep -v "#"|grep -m 1 "^$key" "$fname"|cut -f 2|tr ',' '\n'|tr ':' ' ')
 }
 
 # print error message and exit if the first argument is empty
