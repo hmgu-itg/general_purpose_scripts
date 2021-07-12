@@ -1,3 +1,3 @@
-DATA_PATH	/storage/hmgu/projects/ukbiobank/phenotypes/masterFiles/
+DATA_PATH	/storage/hmgu/projects/ukbiobank/phenotypes/masterFiles
 PROJECTS	CM:CM_10205,OA:OA_9979
-EXEC_DIR	/storage/hmgu/projects/ukbiobank/phenotypes/executables/
+EXEC_DIR	/storage/hmgu/projects/ukbiobank/phenotypes/executables

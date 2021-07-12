@@ -80,9 +80,9 @@ echo $release > "$tmpdir"/RELEASE
 echo $datestr > "$tmpdir"/CREATED
 
 # replace empty fields with NAs
-cat "$main_fname" | gawk -v 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $n"."$m,$0;}' > "$tmpdir"/hesin.txt
-cat "$diag_fname" | gawk -v 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $n"."$m,$0;}' > "$tmpdir"/hesin_diag.txt
-cat "$oper_fname" | gawk -v 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $n"."$m,$0;}' > "$tmpdir"/hesin_oper.txt
+cat "$main_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $n"."$m,$0;}' > "$tmpdir"/hesin.txt
+cat "$diag_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $n"."$m,$0;}' > "$tmpdir"/hesin_diag.txt
+cat "$oper_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $n"."$m,$0;}' > "$tmpdir"/hesin_oper.txt
 
 cd "$tmpdir" && tar -zcf "$outfile" hesin.txt hesin_diag.txt hesin_oper.txt RELEASE CREATED && cd -
 

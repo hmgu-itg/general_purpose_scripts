@@ -16,6 +16,9 @@ scriptname=$0
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
 
+declare -A projects
+
+data_path=""
 config=""
 while getopts "hc:" opt; do
     case $opt in
@@ -27,5 +30,8 @@ done
 
 if [[ -z "$config" ]];then
     encoding="${scriptdir}"/config.txt
+    echo "INFO: no config file specified, trying to use $config"
 fi
 exitIfNotFile "$config" "ERROR: config $config does not exist"
+readAArray "$config" PROJECTS projects
+readValue "$config" DATA_PATH data_path

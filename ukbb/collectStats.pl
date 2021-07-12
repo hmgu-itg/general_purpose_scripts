@@ -10,7 +10,7 @@ $\="\n";
 $,="\t";
 while(<STDIN>){
     chomp;
-    my @a=split(/\t/);
+    my @a=split(/\t/,$_,-1);
     if ($nr==0){
 	for (my $i=0;$i<scalar(@a);$i++){
 	    my $c=$a[$i];

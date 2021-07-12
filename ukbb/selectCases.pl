@@ -25,8 +25,8 @@ BEGIN{
     while(<STDIN>){
 	chomp;
 	%D=();
-	@a=split(/\t/);
-	foreach $x (split(/,/,$a[1])){$D{$x}=1;}
+	@a=split(/\t/,$_,-1);
+	foreach $x (split(/,/,$a[2],-1)){$D{$x}=1;}
 	print $a[0] if F(\%D);
     }
 }
