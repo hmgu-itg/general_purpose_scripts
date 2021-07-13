@@ -3,7 +3,6 @@
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
 collapsescript="${scriptdir}/collapseFields.pl"
-collectstats="${scriptdir}/collectStats.pl"
 collectstats3="${scriptdir}/collectStats3.pl"
 
 OPTS=$(getopt -o hnc:p:r:o: -l help,names,project:,release:,config:,mean:,majority:,min-missing:,cc:,output: -n 'ukbb_select' -- "$@")
@@ -238,11 +237,32 @@ for f in "${!minnafields[@]}";do
     declare -p ar
     str=$(join_by , "${!ar[@]}")
     echo "str=$str"
-    echo -e "f.eid\t$f" > "$tmpdir"/cc_"$f"
-    paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$str"|tail -n +3)|"$collapsescript" cc $val >> "$tmpdir"/cc_"$f"
+    echo -e "f.eid\t$f" > "$tmpdir"/minna_"$f"
+    f1=""
+    if [[ "${#ar[@]}" -eq 1 ]];then
+	echo "INFO: there is only one column in input for field $f"
+	f1="${ar[$str]}"
+    else
+	echo "INFO: selecting column with least NAs for field $f"
+	f1=$(zcat "$infile"|cut -f "$str"|"$collectstats3"|sort -k2,2n|head -n 1|cut -f 1)	
+    fi
+    echo "f1=${f1}"
+    n=$(getColNum "$infile" "${f1}" "zcat")
+    paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$n"|tail -n +3) >> "$tmpdir"/minna_"$f"
 done
 
+i=0
+for f in $(find "$tmpdir" -maxdepth 1 -type f);do
+    if [[ "$i" -eq 0 ]];then
+	cmd="paste $f"
+    else
+	cmd="$cmd <(cut -f 2 $f)"
+    fi
+    i=$((i+1))
+done
 
+echo "cmd=$cmd"
+eval "$cmd" > "$outfile"
 
 #rm -rf "$tmpdir"
 exit 0

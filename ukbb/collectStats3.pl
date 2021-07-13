@@ -12,7 +12,8 @@ while(<STDIN>){
     my @a=split(/\t/,$_,-1);
     if ($nr eq 0){
 	for (my $i=0;$i<scalar(@a);$i++){
-	    $i2name{$i}=$a[$i]; 
+	    $i2name{$i}=$a[$i];
+	    $name2miss{$a[$i]}=0;
 	}
     }elsif($nr gt 1){
 	for (my $i=0;$i<scalar(@a);$i++){

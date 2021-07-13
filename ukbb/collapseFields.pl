@@ -8,8 +8,6 @@ if ($ARGV[0] ne "mean" && $ARGV[0] ne "majority" && $ARGV[0] ne "cc"){
     exit(1);
 }
 
-
-
 # first field is ID, skipping when collapsing
 while(<STDIN>){
     chomp;
