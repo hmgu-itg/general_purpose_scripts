@@ -132,13 +132,13 @@ declare -p minnafields
 declare -A fdesc
 declare -A ftype
 
-echo "INFO: getting value type infoemation"
+echo "INFO: getting value type information"
 while IFS=$'\t' read fid f t;do
     fdesc["$fid"]="$f"
     ftype["$fid"]="$t"
 done < <(tail -n +2 "$dfile"| awk -v n1=$fieldID_cn -v n2=$field_cn -v n3=$valtype_cn 'BEGIN{FS=OFS="\t";}{print $n1,$n2,$n3;}')
 
-#declare -p ftype
+#declare -p fdesc
 
 to_delete=()
 for f in "${!majorityfields[@]}";do
@@ -209,7 +209,15 @@ for f in "${!majorityfields[@]}";do
     declare -p ar
     str=$(join_by , "${!ar[@]}")
     echo "str=$str"
-    echo -e "f.eid\t$f" > "$tmpdir"/majority_"$f"
+    d="${fdesc[$f]}"
+    colname="$f"
+    if [[ "$usenames" == "YES" ]];then
+	if [[ ! -z "$d" ]];then
+	    colname="$d"
+	fi
+    fi
+    echo "colname=$colname"
+    echo -e "f.eid\t$colname" > "$tmpdir"/majority_"$f"
     paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$str"|tail -n +3)|"$collapsescript" majority >> "$tmpdir"/majority_"$f"
 done
 
@@ -218,7 +226,14 @@ for f in "${!meanfields[@]}";do
     declare -p ar
     str=$(join_by , "${!ar[@]}")
     echo "str=$str"
-    echo -e "f.eid\t$f" > "$tmpdir"/mean_"$f"
+    d="${fdesc[$f]}"
+    colname="$f"
+    if [[ "$usenames" == "YES" ]];then
+	if [[ ! -z "$d" ]];then
+	    colname="$d"
+	fi
+    fi
+    echo -e "f.eid\t$colname" > "$tmpdir"/mean_"$f"
     paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$str"|tail -n +3)|"$collapsescript" mean >> "$tmpdir"/mean_"$f"
 done
 
@@ -228,7 +243,14 @@ for f in "${!ccfields[@]}";do
     declare -p ar
     str=$(join_by , "${!ar[@]}")
     echo "str=$str"
-    echo -e "f.eid\t$f" > "$tmpdir"/cc_"$f"
+    colname="$f"
+    d="${fdesc[$f]}"
+    if [[ "$usenames" == "YES" ]];then
+	if [[ ! -z "$d" ]];then
+	    colname="$d"
+	fi
+    fi    
+    echo -e "f.eid\t$colname" > "$tmpdir"/cc_"$f"
     paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$str"|tail -n +3)|"$collapsescript" cc $val >> "$tmpdir"/cc_"$f"
 done
 
@@ -237,7 +259,6 @@ for f in "${!minnafields[@]}";do
     declare -p ar
     str=$(join_by , "${!ar[@]}")
     echo "str=$str"
-    echo -e "f.eid\t$f" > "$tmpdir"/minna_"$f"
     f1=""
     if [[ "${#ar[@]}" -eq 1 ]];then
 	echo "INFO: there is only one column in input for field $f"
@@ -247,10 +268,19 @@ for f in "${!minnafields[@]}";do
 	f1=$(zcat "$infile"|cut -f "$str"|"$collectstats3"|sort -k2,2n|head -n 1|cut -f 1)	
     fi
     echo "f1=${f1}"
+    colname="${f1}"
+    d="${fdesc[$f]}"
+    if [[ "$usenames" == "YES" ]];then
+	if [[ ! -z "$d" ]];then
+	    colname="$d"
+	fi
+    fi    
+    echo -e "f.eid\t$colname" > "$tmpdir"/minna_"$f"
     n=$(getColNum "$infile" "${f1}" "zcat")
     paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$n"|tail -n +3) >> "$tmpdir"/minna_"$f"
 done
 
+# merging
 i=0
 for f in $(find "$tmpdir" -maxdepth 1 -type f);do
     if [[ "$i" -eq 0 ]];then
@@ -260,11 +290,10 @@ for f in $(find "$tmpdir" -maxdepth 1 -type f);do
     fi
     i=$((i+1))
 done
-
 echo "cmd=$cmd"
 eval "$cmd" > "$outfile"
 
-#rm -rf "$tmpdir"
+rm -rf "$tmpdir"
 exit 0
 
 
