@@ -7,6 +7,7 @@ args=("$@")
 
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
+rmscript="${scriptdir}/removeEmpty.pl"
 
 function usage () {
     echo ""
@@ -80,9 +81,16 @@ echo $release > "$tmpdir"/RELEASE
 echo $datestr > "$tmpdir"/CREATED
 
 # replace empty fields with NAs
-cat "$main_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $n"."$m,$0;}' > "$tmpdir"/hesin.txt
-cat "$diag_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $n"."$m,$0;}' > "$tmpdir"/hesin_diag.txt
-cat "$oper_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $n"."$m,$0;}' > "$tmpdir"/hesin_oper.txt
+echo "REPLACING EMPTY FIELDS WITH NAs IN MAIN" | tee -a "$logfile"
+cat "$main_fname" |parallel --pipe -N100000 --lb "$rmscript" > "$tmpdir"/hesin.txt
+echo "REPLACING EMPTY FIELDS WITH NAs IN DIAG" | tee -a "$logfile"
+cat "$diag_fname" |parallel --pipe -N100000 --lb "$rmscript" > "$tmpdir"/hesin_diag.txt
+echo "REPLACING EMPTY FIELDS WITH NAs IN OPER" | tee -a "$logfile"
+cat "$oper_fname" |parallel --pipe -N100000 --lb  "$rmscript" > "$tmpdir"/hesin_oper.txt
+
+# cat "$main_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $0;}' > "$tmpdir"/hesin2.txt
+# cat "$diag_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $0;}' > "$tmpdir"/hesin_diag2.txt
+# cat "$oper_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $0;}' > "$tmpdir"/hesin_oper2.txt
 
 cd "$tmpdir" && tar -zcf "$outfile" hesin.txt hesin_diag.txt hesin_oper.txt RELEASE CREATED && cd -
 
