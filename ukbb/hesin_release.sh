@@ -11,7 +11,7 @@ rmscript="${scriptdir}/removeEmpty.pl"
 
 function usage () {
     echo ""
-    echo "Merging script for inpatient UKBB data"
+    echo "Create release for inpatient UKBB data"
     echo ""
     echo "Usage: hesin_merge.sh -i <main HESIN table> -d <HESIN DIAG table> -p <HESIN OPER table> -r <release> -o <output dir>"
     echo ""
@@ -82,11 +82,11 @@ echo $datestr > "$tmpdir"/CREATED
 
 # replace empty fields with NAs
 echo "REPLACING EMPTY FIELDS WITH NAs IN MAIN" | tee -a "$logfile"
-cat "$main_fname" |parallel --pipe -N100000 --lb "$rmscript" > "$tmpdir"/hesin.txt
+cat "$main_fname" |parallel --block 100M --pipe -N100000 "$rmscript" > "$tmpdir"/hesin.txt
 echo "REPLACING EMPTY FIELDS WITH NAs IN DIAG" | tee -a "$logfile"
-cat "$diag_fname" |parallel --pipe -N100000 --lb "$rmscript" > "$tmpdir"/hesin_diag.txt
+cat "$diag_fname" |parallel --block 100M --pipe -N100000 "$rmscript" > "$tmpdir"/hesin_diag.txt
 echo "REPLACING EMPTY FIELDS WITH NAs IN OPER" | tee -a "$logfile"
-cat "$oper_fname" |parallel --pipe -N100000 --lb  "$rmscript" > "$tmpdir"/hesin_oper.txt
+cat "$oper_fname" |parallel --block 100M --pipe -N100000 "$rmscript" > "$tmpdir"/hesin_oper.txt
 
 # cat "$main_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $0;}' > "$tmpdir"/hesin2.txt
 # cat "$diag_fname" | gawk 'BEGIN{FS=OFS="\t";}{for (i=1;i<=NF;i++){if ($i==""){$i="NA";}}print $0;}' > "$tmpdir"/hesin_diag2.txt
