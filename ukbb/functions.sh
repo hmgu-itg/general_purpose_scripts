@@ -11,7 +11,7 @@ function getCols {
     
     while read i x;do
 	arname[$i]=$x
-    done < <(eval "$cmd $fname" | head -n 1 | gawk -v v="$field" 'BEGIN{FS="\t";}{for (i=1;i<=NF;i++){if (match($i,"f."v".[[:digit:]]+.[[:digit:]]+")){print i,$i;}}}')
+    done < <(eval "$cmd $fname"|head -n 1|perl -slne '$,=" ";@a=split(/\t/,$_,-1);for ($i=0;$i<scalar(@a);$i++){if ($a[$i]=~/^f\.$f\.\d+\.\d+$/){print $i+1,$a[$i];}}' -- -f=$field)
 }
 
 # read variable from a tab separated file
