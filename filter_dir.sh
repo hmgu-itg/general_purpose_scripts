@@ -4,6 +4,19 @@
 #
 ########################
 
+## Get path of current script
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+
+if [[ ! -s "$DIR/filter_chr.sh" ]]; then
+  echo ERROR: Make sure helper script exists: $DIR/filter_chr.sh
+fi
+
 function usage {
     echo ""
     echo "Usage: $0"
@@ -14,17 +27,20 @@ function usage {
     echo "        { -m : <mode>; optional, \"stats\" or \"full\"; default: \"full\" }"
     echo "        { -t : <pvalue threshold>; only required if mode is \"full\"}"
     echo "        { -r : if analyses should be rerun; optional; default: false }"
+    echo "        { -b : if a pipe should be used instead of temporary files when computing stats. Prevents rerunning.; default: false }"
+    echo "        { -s : file containing list of samples to exclude; optional }"
     echo "        { -e <threads> : optional; # threads to use for bcftools/plink; only required if mode is \"full\"; default: 1 }"
     exit 0
 }
 
 resume="no"
+pipe="no"
 chroms="1-22"
 mode="full"
 pt=""
 threads=1
 OPTIND=1
-while getopts "i:o:p:c:m:t:re:" optname; do
+while getopts "i:o:p:c:m:t:rbs:e:" optname; do
     case "$optname" in
         "i" ) input="${OPTARG}";;
         "o" ) output="${OPTARG}";;
@@ -33,6 +49,8 @@ while getopts "i:o:p:c:m:t:re:" optname; do
         "m" ) mode="${OPTARG}";;
         "t" ) pt="${OPTARG}";;
         "r" ) resume="yes";;
+        "b" ) pipe="yes";;
+        "s" ) exsamp="${OPTARG}";;
         "e" ) threads="${OPTARG}";;
         "?" ) usage ;;
         *) usage ;;
@@ -71,6 +89,8 @@ echo "PVALUE THRESHOLD $pt"
 echo "THREADS $threads"
 echo "CHROMS $chroms"
 echo "RESUME $resume"
+echo "USE PIPE $pipe"
+echo "SAMPLE EXCLUSION LIST $exsamp"
 echo "--------------------------------------"
 echo ""
 
@@ -115,9 +135,22 @@ if [[ "$resume" == "yes" ]];then
     resopt="-r"
 fi
 
+pipopt=""
+if [[ "$pipe" == "yes" ]];then
+    pipopt="-b"
+fi
+
+
 topt=""
 if [[ ! -z "$pt" ]];then
     topt="-t $pt"
 fi
 
-sbatch --job-name=filter_chr --cpus-per-task=1 --mem-per-cpu=1G --time=72:00:00 -p normal_q --array="$chroms" -o "$logdir"/filter_chr_%A_chr_%a.log -e "$logdir"/filter_chr_%A_chr_%a.err /compute/Genomics/software/scripts/general_purpose_scripts/filter_chr.sh -i "$input" -o "$output" -p "$pheno" -m "$mode" -e "$threads" "$topt" "$resopt"
+if [[ ! -z "$exsamp" ]];then
+  if [[ ! -s "$exsamp" ]]; then
+    echo ERROR: Sample exclusion file does not exist: $exsamp
+  fi
+      exsamp_opt="-s $exsamp"
+fi
+
+sbatch --job-name=filter_chr -c 1 --mem=1G --time=72:00:00 -p normal_q --array="$chroms" -o "$logdir"/filter_chr_%A_chr_%a.log -e "$logdir"/filter_chr_%A_chr_%a.err $DIR/filter_chr.sh -i "$input" -o "$output" -p "$pheno" -m "$mode" -e "$threads" "$topt" "$resopt" "$pipopt" "$exsamp_opt"
