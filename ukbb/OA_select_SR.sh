@@ -9,7 +9,7 @@ script="${scriptdir}/ukbb_select.sh"
 
 function usage () {
     echo ""
-    echo "Wrapper script for selecting self-reported OA status from a UKBB release"
+    echo "Wrapper script for selecting self reported OA cases from a UKBB release"
     echo ""
     echo "Usage: ukbb_select.sh -r | --release <release>"
     echo "                      -o | --output <output prefix>"
@@ -49,6 +49,10 @@ if [[ -z "$config" ]];then
     config="${scriptdir}"/config.txt
 fi
 
-"$script" -p "OA" -r "$release" --cc 20002,1465 -o "$outprefix" -c "$config"
+outfile="${outprefix}".txt
+exitIfExists "$outfile" "ERROR: output file $outfile already exists"
+logfile="${outprefix}".log
+
+"$script" -p "OA" -r "$release" --cc 20002,1465 -c "$config" 2>"$logfile" | tail -n +2 | grep "1$" | cut -f 1 >"$outfile" 
 
 exit 0
