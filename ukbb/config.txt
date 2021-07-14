@@ -8,5 +8,4 @@ EXEC_DIR	/storage/hmgu/projects/ukbiobank/phenotypes/executables
 DATA_DICT	/storage/hmgu/projects/ukbiobank/phenotypes/resources/Data_Dictionary_Showcase.tsv
 
 # ICD codes for hospital diagnosed OA
-HD_OA_ICD10	/storage/hmgu/projects/ukbiobank/phenotypes/resources/hospital_diagnosed_OA_icd10.txt
-HD_OA_ICD9	/storage/hmgu/projects/ukbiobank/phenotypes/resources/hospital_diagnosed_OA_icd9.txt
+HD_OA_ICD	/storage/hmgu/projects/ukbiobank/phenotypes/resources/hospital_diagnosed_OA.txt
