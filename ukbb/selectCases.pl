@@ -11,7 +11,7 @@ BEGIN{
     foreach $x (keys %h){
 	$x=~s/or/||/ig;
 	$x=~s/and/&&/ig;
-	$x=~s/([a-zA-Z]\d{3})/defined\(\$r->\{\1\}\)/g;
+	$x=~s/([a-zA-Z\d]+)/defined\(\$r->\{\1\}\)/g;
 	push @code, "(".$x.")";
     }
     $c=join(" || ",@code);
