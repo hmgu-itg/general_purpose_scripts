@@ -21,16 +21,20 @@ function usage {
 
 mode="full"
 pt=""
+odir=""
 OPTIND=1
 pipe="no"
 collapse="no"
+n=""
 
-while getopts "p:f:m:t:bc" optname; do
+while getopts "p:f:m:t:o:n:bc" optname; do
     case "$optname" in
         "p" ) pheno="${OPTARG}";;
         "f" ) flist="${OPTARG}";;
         "m" ) mode="${OPTARG}";;
         "t" ) pt="${OPTARG}";;
+        "o" ) odir="${OPTARG}";;
+        "n" ) n="${OPTARG}";;
         "b" ) pipe="yes";;
         "c" ) collapse="yes";;
         "?" ) usage ;;
@@ -69,12 +73,24 @@ if [[ ! -z "$exsamp" ]];then
 fi
 
 # current file number in the file list
-n=$SLURM_ARRAY_TASK_ID
+if [[ -z "$n" ]]; then
+  if [[ -z "$SLURM_ARRAY_TASK_ID" ]]; then
+    echo "ERROR: no chunk number specified. Use -n or set SLURM_ARRAY_TASK_ID env variable."
+    exit 1
+  else
+    n=$SLURM_ARRAY_TASK_ID
+  fi
+fi
 
 pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
 fname=$(cat $flist | head -n $n | tail -n 1)
-outname=${fname/%.vcf.gz/."$pheno_name".qctool.out}
 
+if [[ -z "$odir" ]]; then
+  outname=${fname/%.vcf.gz/."$pheno_name".qctool.out}
+else
+  obase=$(basename $fname)
+  outname=$odir/${obase/%.vcf.gz/.$pheno_name.qctool.out}
+fi
 
 echo "INPUT DIR $input" | ts
 echo "PHENOTYPE FILE $pheno" | ts
@@ -89,10 +105,11 @@ echo "--------------------------------------------------------------"
 echo ""
 
 echo "INFO: phenotype name: $pheno_name"  | ts
-dmx_vcf=${fname/%.vcf.gz/.dmx.vcf.gz}
+dmx_vcf=${outname/%.$pheno_name.qctool.out/.dmx.vcf.gz}
+echo "INTERMEDIATE VCF $dmx_vcf"
 
 collapse_option() {
-  echo collapse_option called, collapse=$collapse
+  >&2 echo collapse_option called, collapse=$collapse
    if [[ "$collapse" == "yes" ]]; then
        bcftools norm -m +any | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov
    else
@@ -101,9 +118,9 @@ collapse_option() {
  }
 
 pipe_or_file_input() {
-  echo "pipe_or_file_input called, pipe=$pipe, fname=$fname, dmx_vcf=$dmx_vcf, to_remove=$to_remove"
+  >&2 echo "pipe_or_file_input called, pipe=$pipe, fname=$fname, dmx_vcf=$dmx_vcf, to_remove=$to_remove"
   if [[ "$pipe" == "yes" ]]; then
-    bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$dmx_vcf"
+    bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz
   else
       bcftools view --exclude ID=@"$to_remove" "$dmx_vcf" -Ov
   fi
@@ -115,17 +132,22 @@ retval=0
 # check if qctool2 output exists
 if [[ ! -s "$outname" ]];then
   if [[ "$pipe" == "no" ]]; then
-      bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz -o "$dmx_vcf"
+      bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
       zcat "$dmx_vcf" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno" $exsamp_opt
       retval=$?
     else
-      bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno" $exsamp_opt
+      bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno" $exsamp_opt
       retval=$?
   fi
 else
+  if [[ "$pipe" == "no" && (! -s "$dmx_vcf") ]]; then
+      bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
+  else
+
     echo "INFO: $outname already exists" | ts
     echo "--------------------------------------------------------------"
     echo ""
+  fi
 fi
 
 if [[ $retval -ne 0 ]];then
@@ -152,7 +174,7 @@ else
     echo "INFO: done" | ts
     echo "--------------------------------------------------------------"
 
-    final_vcf=${fname/%.vcf.gz/.filtered."$pheno_name"."$pt".vcf.gz}
+    final_vcf=${dmx_vcf/%.dmx.vcf.gz/.filtered."$pheno_name"."$pt".vcf.gz}
     # removing variants with P<threshold, merging back
     echo "INFO: bcftools: creating filtered output VCF" | ts
     echo "INFO: input: $dmx_vcf" | ts
@@ -160,7 +182,7 @@ else
     echo "INFO: output: $final_vcf" | ts
     # NORM ANY
 
-    bcftools view --exclude ID=@"$to_remove" "$dmx_vcf" -Ov | collapse_option() | bcftools +fill-tags -Oz -o "$final_vcf"
+    pipe_or_file_input | collapse_option | bcftools +fill-tags -Oz -o "$final_vcf"
     retval=$?
     if [[ $retval -ne 0 ]];then
 	echo "INFO: something went wrong when creating filtered VCF; exit" | ts
