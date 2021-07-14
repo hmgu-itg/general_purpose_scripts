@@ -1,4 +1,12 @@
 DATA_PATH	/storage/hmgu/projects/ukbiobank/phenotypes/masterFiles
 PROJECTS	CM:CM_10205,OA:OA_9979
+
+# UKBB utilities: conversion, decoding etc.
 EXEC_DIR	/storage/hmgu/projects/ukbiobank/phenotypes/executables
+
+# UKBB data dictionary
 DATA_DICT	/storage/hmgu/projects/ukbiobank/phenotypes/resources/Data_Dictionary_Showcase.tsv
+
+# ICD codes for hospital diagnosed OA
+HD_OA_ICD10	/storage/hmgu/projects/ukbiobank/phenotypes/resources/hospital_diagnosed_OA_icd10.txt
+HD_OA_ICD9	/storage/hmgu/projects/ukbiobank/phenotypes/resources/hospital_diagnosed_OA_icd9.txt

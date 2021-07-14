@@ -9,7 +9,7 @@ script="${scriptdir}/ukbb_select.sh"
 
 function usage () {
     echo ""
-    echo "Script for selecting self-reported OA status from a UKBB release"
+    echo "Wrapper script for selecting self-reported OA status from a UKBB release"
     echo ""
     echo "Usage: ukbb_select.sh -r | --release <release>"
     echo "                      -o | --output <output prefix>"
@@ -23,23 +23,11 @@ if [[ $# -eq 0 ]];then
     usage
 fi
 
-OPTS=$(getopt -o hnc:p:r:o: -l help,names,project:,release:,config:,mean:,majority:,min-missing:,cc:,output: -n 'ukbb_select' -- "$@")
+OPTS=$(getopt -o hc:r:o: -l help,release:,config:,output: -n 'OA_select_SR' -- "$@")
 
 if [ $? != 0 ] ; then echo "ERROR: failed parsing options" >&2 ; usage ; exit 1 ; fi
 
 eval set -- "$OPTS"
-
-declare -a ccargs
-declare -a majorityargs
-declare -a meanargs
-declare -a minnaargs
-
-declare -A ccfields
-declare -A majorityfields
-declare -A meanfields
-declare -A minnafields
-
-declare -A available_projects
 
 config=""
 release=""
@@ -62,3 +50,5 @@ if [[ -z "$config" ]];then
 fi
 
 "$script" -p "OA" -r "$release" --cc 20002,1465 -o "$outprefix" -c "$config"
+
+exit 0
