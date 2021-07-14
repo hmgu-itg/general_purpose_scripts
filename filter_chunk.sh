@@ -21,16 +21,18 @@ function usage {
 
 mode="full"
 pt=""
+odir=""
 OPTIND=1
 pipe="no"
 collapse="no"
 
-while getopts "p:f:m:t:bc" optname; do
+while getopts "p:f:m:t:o:bc" optname; do
     case "$optname" in
         "p" ) pheno="${OPTARG}";;
         "f" ) flist="${OPTARG}";;
         "m" ) mode="${OPTARG}";;
         "t" ) pt="${OPTARG}";;
+        "o" ) odir="${OPTARG}";;
         "b" ) pipe="yes";;
         "c" ) collapse="yes";;
         "?" ) usage ;;
@@ -73,8 +75,13 @@ n=$SLURM_ARRAY_TASK_ID
 
 pheno_name=$(head -n 1 $pheno| tr ' ' '\t' |cut -f 2)
 fname=$(cat $flist | head -n $n | tail -n 1)
-outname=${fname/%.vcf.gz/."$pheno_name".qctool.out}
 
+if [[ -z "$odir" ]]; then
+  outname=${fname/%.vcf.gz/."$pheno_name".qctool.out}
+else
+  obase=$(basename $fname)
+  outname=$odir/${obase/%.vcf.gz/.$pheno_name.qctool.out}
+fi
 
 echo "INPUT DIR $input" | ts
 echo "PHENOTYPE FILE $pheno" | ts
