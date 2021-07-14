@@ -105,7 +105,7 @@ echo "--------------------------------------------------------------"
 echo ""
 
 echo "INFO: phenotype name: $pheno_name"  | ts
-dmx_vcf=${fname/%.vcf.gz/.dmx.vcf.gz}
+dmx_vcf=${outname/%.$pheno_name.qctool.out/.dmx.vcf.gz}
 echo "INTERMEDIATE VCF $dmx_vcf"
 
 collapse_option() {
