@@ -8,6 +8,33 @@ source "${scriptdir}/functions.sh"
 collapsescript="${scriptdir}/collapseFields.pl"
 collectstats3="${scriptdir}/collectStats3.pl"
 
+function usage () {
+    echo ""
+    echo "Script for selecting data from a UKBB release"
+    echo ""
+    echo "Usage: ukbb_select.sh -p | --project <project name>"
+    echo "                      -r | --release <release>"
+    echo "                      --majority <comma-separated list of fields>"
+    echo "                      --mean <comma-separated list of fields>"
+    echo "                      --min-missing <comma-separated list of fields>"
+    echo "                      --cc <field,value>"
+    echo "                      -o | --output <output prefix>"
+    echo "                      -c | --config <optional: config file; default: config.txt in script directory>"
+    echo "                      -n | --names <optional: use trait names as output columns; default: false>"
+    echo "                      -h | --help"
+    echo ""
+    echo "--majority: for each ID output most frequent value across instances/array indexes; useful for categorical variables"
+    echo "--mean: for each ID output mean value across instances/array indexes; useful for integer/continuous variables"
+    echo "--min-missing: select instance/array index with the least number of NAs"
+    echo "--cc: case/control: for each ID output \"1\" if a specified value occurs among field's instances/array indexes, otherwise \"0\""
+    echo ""
+    exit 0
+}
+
+if [[ $# -eq 0 ]];then
+    usage
+fi
+
 OPTS=$(getopt -o hnc:p:r:o: -l help,names,project:,release:,config:,mean:,majority:,min-missing:,cc:,output: -n 'ukbb_select' -- "$@")
 
 if [ $? != 0 ] ; then echo "ERROR: failed parsing options" >&2 ; usage ; exit 1 ; fi

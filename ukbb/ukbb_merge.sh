@@ -67,7 +67,7 @@ if [[ $# -eq 0 ]];then
 fi
 
 id_field="f.eid"
-datestr=$(date +%F)
+datestr=$(date +%d-%b-%Y)
 out_dir=""
 release=""
 exclude_list=""
