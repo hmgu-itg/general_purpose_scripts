@@ -86,6 +86,7 @@ exitIfExists "$outfile" "ERROR: output file $outfile already exists"
 
 : > "$logfile"
 date "+%F %H-%M-%S"|tee -a "$logfile"
+echo ""|tee -a "$logfile"
 echo "Current dir: ${PWD}"|tee -a "$logfile"
 echo "Command line: $scriptname ${args[@]}"|tee -a "$logfile"
 echo ""|tee -a "$logfile"
@@ -102,6 +103,7 @@ exitIfNotFile "$config" "ERROR: config $config does not exist"
 
 readValue "$config" DATA_DICT dfile
 exitIfNotFile "$dfile" "ERROR: dictionary $dfile does not exist"
+echo "INFO: using data dictionary: $dfile"|tee -a "$logfile"
 
 readAArray "$config" PROJECTS available_projects
 exitIfEmpty "${available_projects[$project]}" "ERROR: project $project is not defined in $config"
@@ -119,6 +121,8 @@ exitIfNotFile "$infile" "ERROR: input file $infile does not exist"
 # declare -p minnaargs
 
 echo "INFO: using human readable field names in output: $usenames"|tee -a "$logfile"
+echo ""|tee -a "$logfile"
+echo "INFO: checking if input fields are integers"|tee -a "$logfile"
 
 for name in mean minna majority;do
     declare -n Z=${name}args
@@ -128,7 +132,7 @@ for name in mean minna majority;do
 	    if [[ $z =~ ^[0-9]+$ ]];then
 		Y[$z]=1
 	    else
-		echo "WARN: specified field $z is not an integer; dropping"|tee -a "$logfile"
+		echo "WARN: specified field \"$z\" is not an integer; dropping"|tee -a "$logfile"
 	    fi
 	done < <(echo $x|tr ',' '\n')
     done
@@ -142,6 +146,7 @@ for x in "${ccargs[@]}";do
 	echo "WARN: specified field $a is not an integer; dropping"|tee -a "$logfile"
     fi		
 done
+echo ""|tee -a "$logfile"
 
 # declare -p ccfields
 # declare -p majorityfields
@@ -153,8 +158,15 @@ field_cn=$(getColNum "$dfile" "Field" "cat")
 valtype_cn=$(getColNum "$dfile" "ValueType" "cat")
 ID_cn=$(getColNum "$infile" "f.eid" "zcat")
 
+echo "INFO: field ID column in data dictionary: $fieldID_cn"|tee -a "$logfile"
+echo "INFO: field description column in data dictionary: $field_cn"|tee -a "$logfile"
+echo "INFO: value type column in data dictionary: $valtype_cn"|tee -a "$logfile"
+echo "INFO: ID column in $infile: $ID_cn"|tee -a "$logfile"
+echo ""|tee -a "$logfile"
+
 declare -a to_delete
 declare -A ar
+echo "INFO: checking if input fields are present in input"|tee -a "$logfile"
 for name in ccfields meanfields minnafields majorityfields;do
     declare -n Z=$name
     for f in "${!Z[@]}";do
@@ -172,6 +184,7 @@ for name in ccfields meanfields minnafields majorityfields;do
     done
     to_delete=()
 done
+echo ""|tee -a "$logfile"
 
 # declare -p ccfields
 # declare -p majorityfields
@@ -182,25 +195,11 @@ done
 declare -A fdesc
 declare -A ftype
 
-echo "INFO: getting value type information"|tee -a "$logfile"
+echo "INFO: getting field value type information"|tee -a "$logfile"
 while IFS=$'\t' read fid f t;do
     fdesc["$fid"]="$f"
     ftype["$fid"]="$t"
 done < <(tail -n +2 "$dfile"| awk -v n1=$fieldID_cn -v n2=$field_cn -v n3=$valtype_cn 'BEGIN{FS=OFS="\t";}{print $n1,$n2,$n3;}')
-
-# fid="21"
-# echo "$fid" "${fdesc[$fid]}"
-# echo "$fid" "${fdesc[21]}"
-# x="${fdesc[$fid]}"
-# echo "$fid" "$x"
-# if [[ ! -z "${fdesc[$fid]}" ]];then
-#     echo "NOT EMPTY: ${fdesc[$fid]}"
-# else
-#     echo "EMPTY: ${fdesc[$fid]}"
-# fi
-# exit 1
-
-#declare -p fdesc
 
 to_delete=()
 for f in "${!majorityfields[@]}";do
@@ -210,7 +209,7 @@ for f in "${!majorityfields[@]}";do
 	to_delete+=($f)
     else
 	if [[ "$t" != "Categorical single" ]];then
-	    echo "WARN: $f has value type \"$t\"; for majority rule it needs to be \"Categorical single\"; dropping"|tee -a "$logfile"
+	    echo "WARN: $f has value type \"$t\"; for the majority rule it needs to be \"Categorical single\"; dropping"|tee -a "$logfile"
 	    to_delete+=($f)
 	fi
     fi
@@ -244,7 +243,7 @@ for f in "${!meanfields[@]}";do
 	to_delete+=($f)
     else
 	if [[ "$t" != "Continuous" || "$t" != "Integer" ]];then
-	    echo "WARN: $f has value type \"$t\"; for mean rule it needs to be \"Continuous\" or \"Integer\"; dropping"|tee -a "$logfile"
+	    echo "WARN: $f has value type \"$t\"; for the mean rule it needs to be \"Continuous\" or \"Integer\"; dropping"|tee -a "$logfile"
 	    to_delete+=($f)
 	fi
     fi
@@ -253,6 +252,7 @@ for f in "${to_delete[@]}";do
     unset "meanfields[$f]"
 done
 to_delete=()
+echo ""|tee -a "$logfile"
 
 # declare -p ccfields
 # declare -p majorityfields
@@ -266,6 +266,7 @@ if [[ $? -ne 0 ]];then
     exit 1
 fi
 
+echo "INFO: selecting fields"|tee -a "$logfile"
 for f in "${!majorityfields[@]}";do
     getCols "$infile" "zcat" "$f" ar
     #declare -p ar
@@ -353,8 +354,10 @@ for f in "${!minnafields[@]}";do
     n=$(getColNum "$infile" "${f1}" "zcat")
     paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$n"|tail -n +3) >> "$tmpdir"/minna_"$f"
 done
+echo ""|tee -a "$logfile"
 
 # merging
+echo "INFO: merging"|tee -a "$logfile"
 i=0
 for f in $(find "$tmpdir" -maxdepth 1 -type f);do
     if [[ "$i" -eq 0 ]];then
@@ -371,6 +374,7 @@ else
     eval "$cmd" | gzip - -c > "$outfile"
 fi
 
+echo ""|tee -a "$logfile"
 date "+%F %H-%M-%S"|tee -a "$logfile"
 
 rm -rf "$tmpdir"
