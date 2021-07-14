@@ -140,9 +140,14 @@ if [[ ! -s "$outname" ]];then
       retval=$?
   fi
 else
+  if [[ "$pipe" == "no" && (! -s "$dmx_vcf") ]]; then
+      bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
+  else
+
     echo "INFO: $outname already exists" | ts
     echo "--------------------------------------------------------------"
     echo ""
+  fi
 fi
 
 if [[ $retval -ne 0 ]];then
