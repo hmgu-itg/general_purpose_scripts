@@ -13,6 +13,7 @@ function usage {
     echo "          -f <file list>"
     echo "        { -m : <mode>; optional, \"stats\" or \"full\"; default: \"full\" }"
     echo "        { -t : <pvalue threshold>; only required if mode is \"full\"}"
+    echo "        { -o : <output directory>; If not specified, will do scary things with your input files.}"
     echo "        { -b : if a pipe should be used instead of temporary files when computing stats. Prevents rerunning. }"
     echo "        { -c : Collapse multiallelics in output. If set, this flag will create ALT records such as A,C in the output. By default, two records are generated. }"
     exit 0
@@ -187,7 +188,7 @@ else
     ## The whole "resume" section needs to be reworked. No test or linking should be done on the input files
     ## Currently "mode=stats" just generates statistics, and if used with "pipe=no" can be used to "resume" if "mode=full"
     ## Just test the intermediate files for resume: the intermediate VCFs and exclusion lists need to be there. If they're there proceed to filtering and chr merging.
-    
+
     # echo "INFO: removing intermediate files" | ts
     # rm -fv "$fname" "$to_remove" "$outname" "$dmx_vcf"
     echo "INFO: done" | ts
