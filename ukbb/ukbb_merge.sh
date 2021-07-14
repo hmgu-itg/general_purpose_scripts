@@ -190,7 +190,8 @@ echo "Command line: $scriptname ${args[@]}"|tee -a "$logfile"
 echo ""|tee -a "$logfile"
 echo "Output release: $release"|tee -a "$logfile"
 echo "Output file: $outfile"|tee -a "$logfile"
-echo "INFO: join mode: $mode"|tee -a "$logfile"
+echo "Exclude list: $exclude_list"|tee -a "$logfile"
+echo "INFO: join mode (-k): $mode"|tee -a "$logfile"
 echo ""|tee -a "$logfile"
 #----------------------------------------------------
 
