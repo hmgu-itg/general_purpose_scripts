@@ -169,7 +169,7 @@ else
     echo "INFO: done" | ts
     echo "--------------------------------------------------------------"
 
-    final_vcf=${fname/%.vcf.gz/.filtered."$pheno_name"."$pt".vcf.gz}
+    final_vcf=${dmx_vcf/%.dmx.vcf.gz/.filtered."$pheno_name"."$pt".vcf.gz}
     # removing variants with P<threshold, merging back
     echo "INFO: bcftools: creating filtered output VCF" | ts
     echo "INFO: input: $dmx_vcf" | ts
