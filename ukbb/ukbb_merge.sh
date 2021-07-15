@@ -12,10 +12,6 @@ normal=$(tput sgr0)
 
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
-# collectstats="${scriptdir}/collectStats.pl"
-# collectstats2="${scriptdir}/collectStats2.pl"
-
-# TODO: check if scripts exist
 
 function usage () {
     echo ""
@@ -33,11 +29,11 @@ function usage () {
     echo "                     -u updateM.tab"
     echo ""
     echo "                     -o <output dir>"
+    echo "                     -b <basename of the output file; default: \"phenotypes\">"
     echo "                     -r <release; default: \"1\" if merging, incrementing RELEASE in input if updating>"
     echo "                     -k <when updating, also include samples from update file(s) that are ${bold}not${normal} present in input; default: false>"
     echo "                     -x <list of individual IDs to exclude>"
     echo "                     -d <debug mode: do not remove temporary files>"
-#    echo "                     -s <skip creating missingness summary file>"
     echo ""
     echo "All input/update/output files are tab-separated"
     echo ""
@@ -73,8 +69,8 @@ release=""
 exclude_list=""
 mode="inner"
 debug="NO"
-#skipmiss="NO"
-while getopts "hi:u:f:o:r:x:kd" opt; do
+bname="phenotypes"
+while getopts "hi:u:f:o:r:x:kdb:" opt; do
     case $opt in
         i)input_fnames+=($OPTARG);;
         u)update_fnames+=($OPTARG);;
@@ -84,7 +80,7 @@ while getopts "hi:u:f:o:r:x:kd" opt; do
         x)exclude_list=($OPTARG);;
         k)mode="right";;
         d)debug="YES";;
-#        s)skipmiss="YES";;
+        b)bname=($OPTARG);;
         h)usage;;
         *)usage;;
     esac
@@ -174,14 +170,13 @@ else
     fi
 fi
 
-outfile="${out_dir}/phenotypes_r${release}.txt.gz"
-missfile="${out_dir}/stats_r${release}.txt.gz"
+outfile="${out_dir}/${bname}_r${release}.txt.gz"
 
 if [[ -f "$outfile" ]];then
     echo "ERROR: output file $outfile already exists" 1>&2
     exit 1
 fi
-logfile="${out_dir}/phenotypes_r${release}.log"
+logfile="${out_dir}/${bname}_r${release}.log"
 
 : > "$logfile"
 date "+%F %H-%M-%S"|tee -a "$logfile"
@@ -636,23 +631,6 @@ else
 	rm -f "$tmpfile3"
     fi	
 fi
-
-# missingness counts
-# if [[ "$skipmiss" == "NO" ]];then
-#     echo "Creating missingness counts"|tee -a "$logfile"
-    
-#     tmpfile_miss=$(mktemp -p "$out_dir" temp_4_miss_XXXXXXXX)    
-#     if [[ $? -ne 0 ]];then
-# 	echo "ERROR: could not create tmpfile_miss "|tee -a "$logfile"
-# 	exit 1
-#     fi
-#     zcat "$outfile"|head -n 1 > "$tmpfile_miss"
-#     zcat "$outfile"|tail -n +3|parallel --block 1500M --pipe -N10000 "${collectstats2}"|datamash -s -g 1 sum 2 >> "$tmpfile_miss"
-#     cat "$tmpfile_miss"| "${collectstats}" | gzip - -c > "$missfile"
-#     if [[ $debug == "NO" ]];then
-# 	rm -f "$tmpfile_miss"
-#     fi
-# fi
 
 echo "Done"|tee -a "$logfile"
 date "+%F %H-%M-%S" |tee -a "$logfile"
