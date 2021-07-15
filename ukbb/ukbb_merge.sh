@@ -373,12 +373,10 @@ if [[ $n_update -eq 0 ]];then
 	fi
     fi
     
-    final_IDs=$(zcat "${outfile}"| wc -l)
-    final_IDs=$((final_IDs-2)) # minus header lines 
+    final_rows=$(zcat "${outfile}"| wc -l)
     final_cols=$(zcat "${outfile}"|head -n 1|tr '\t' '\n'|wc -l)
-    echo ""|tee -a "$logfile"
-    echo "IDs in output: $final_IDs"|tee -a "$logfile"
-    echo "Columns in output: $final_cols"|tee -a "$logfile"
+    echo "Rows in output: $final_rows (including 2 header rows)"|tee -a "$logfile"
+    echo "Columns in output: $final_cols (including ID column and CREATED, RELEASE columns)"|tee -a "$logfile"
     echo ""|tee -a "$logfile"
     
     echo "Done"|tee -a "$logfile"
