@@ -48,7 +48,7 @@ if(!is.null(exclfile)){
 
 ## read sample file
 pheno=fread(phenofile)
-
+pheno[,ID:=as.character(ID)]
 ### remove samples not in VCF
 pheno=pheno[ID %in% c(vcfsamples, 0)]
 
@@ -66,4 +66,4 @@ if(!is.null(exclist)){
   pheno=pheno[ID %nin% exclist]
 }
 
-fwrite(pheno, outfile, quote=F, sep="\t")
+fwrite(pheno, outfile, quote=F, sep="\t", na="NA")
