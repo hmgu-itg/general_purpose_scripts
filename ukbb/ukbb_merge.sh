@@ -296,9 +296,7 @@ echo ""|tee -a "$logfile"
 #-------------------------------------- OUTPUT -------------------------------------------------
 
 if [[ $n_update -eq 0 ]];then
-    # JUST MERGING INPUT FILES IF MORE THAN ONE SPECIFIED
-    # OR
-    # EXCLUDE IDS IN -x LIST IF ONLY ONE INPUT FILE SPECIFIED
+    # OUTER JOIN INPUT FILES ON IDs, THEN EXCLUDE IDS IN -x LIST 
 
     if [[ $n_input -eq 1 ]];then
 	paste <(${cats["${input_fnames[0]}"]} "${input_fnames[0]}"|head -n 1) <(echo RELEASE CREATED|tr ' ' '\t')|gzip - -c > "${outfile}"
@@ -366,7 +364,7 @@ if [[ $n_update -eq 0 ]];then
 	class_array+=("NA" "NA")
 	cline=$(join_by , "${class_array[@]}")
 	eval "cat <(echo $cline|tr ',' '\t')|gzip - -c >> ${outfile}"
-	# adding body, excluding IDs from exclude list
+	# adding body, excluding IDs from the exclude list
 	x=$(cat $tmpfile1|wc -l)
 	x=$((x-1))
 	paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr | tr ' ' '\t' | head -n $x) | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c=1|gzip - -c >> "${outfile}"
@@ -374,6 +372,14 @@ if [[ $n_update -eq 0 ]];then
 	    rm -f "$tmpfile1"
 	fi
     fi
+    
+    final_IDs=$(zcat "${outfile}"| wc -l)
+    final_IDs=$((final_IDs-2)) # minus header lines 
+    final_cols=$(zcat "${outfile}"|head -n 1|tr '\t' '\n'|wc -l)
+    echo ""|tee -a "$logfile"
+    echo "IDs in output: $final_IDs"|tee -a "$logfile"
+    echo "Columns in output: $final_cols"|tee -a "$logfile"
+    echo ""|tee -a "$logfile"
     
     echo "Done"|tee -a "$logfile"
     date "+%F %H-%M-%S" |tee -a "$logfile"
