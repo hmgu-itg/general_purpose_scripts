@@ -54,6 +54,7 @@ pheno=pheno[ID %in% c(vcfsamples, 0)]
 
 ### add samples in VCF but not in sample file
 phenoname=colnames(pheno)[2]
+setnames(pheno, phenoname, "pheno")
 pheno=rbind(pheno, data.table(ID=vcfsamples[vcfsamples %nin% pheno$ID], pheno=NA))
 setnames(pheno, "pheno", phenoname)
 
