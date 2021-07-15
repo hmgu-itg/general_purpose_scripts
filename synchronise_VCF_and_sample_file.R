@@ -25,8 +25,8 @@ if(!file.exists(phenofile)){
 outfile=argv[3]
 
 exclfile=NULL
-if(length(argv)>2){
-  exclfile=argv[3]
+if(length(argv)>3){
+  exclfile=argv[4]
   if(!file.exists(phenofile)){
     cat("ERROR: Exclusion file specified but the file does not exist.\n")
     exit(1)
