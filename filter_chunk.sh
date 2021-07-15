@@ -9,7 +9,7 @@ set -o pipefail
 function usage {
     echo ""
     echo "Usage: $0"
-    echo "          -p <pheno file>; Space or tab-separated. Header line 1: ID Phenotype_name; Header line 2: 0 B (for binary); Must contain exactly the same samples as in the VCF, in the same order."
+    echo "          -p <pheno file>; Space or tab-separated. Header line 1: ID Phenotype_name; Header line 2: 0 B (for binary)."
     echo "          -f <file list>"
     echo "        { -m : <mode>; optional, \"stats\" or \"full\"; default: \"full\" }"
     echo "        { -t : <pvalue threshold>; only required if mode is \"full\"}"
@@ -129,6 +129,11 @@ echo ""
 opt_remove_samples=$([ "$elist" == "no" ] && echo "" || echo "$elist")
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 $SCRIPT_DIR/synchronise_VCF_and_sample_file.R $fname $pheno $opheno $opt_remove_samples
+$retval=$?
+if [[ $retval -ne 0 ]];then
+    echo "INFO: something went wrong when synchronising phenotype and VCF; exit" | ts
+    exit 1
+fi
 
 collapse_option() {
   >&2 echo collapse_option called, collapse=$collapse
@@ -151,7 +156,7 @@ collapse_option() {
 pipe_or_file_input() {
   >&2 echo "pipe_or_file_input called, pipe=$pipe, fname=$fname, dmx_vcf=$dmx_vcf, to_remove=$to_remove"
   if [[ "$pipe" == "yes" ]]; then
-    bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz
+    bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz | bcftools +missing2ref | bcftools view --exclude ID=@"$to_remove"
   else
       bcftools view --exclude ID=@"$to_remove" "$dmx_vcf" -Ov
   fi
