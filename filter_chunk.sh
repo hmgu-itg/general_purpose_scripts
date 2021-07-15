@@ -9,11 +9,13 @@ set -o pipefail
 function usage {
     echo ""
     echo "Usage: $0"
-    echo "          -p <pheno file>"
+    echo "          -p <pheno file>; Space or tab-separated. Header line 1: ID Phenotype_name; Header line 2: 0 B (for binary); Must contain exactly the same samples as in the VCF, in the same order."
     echo "          -f <file list>"
     echo "        { -m : <mode>; optional, \"stats\" or \"full\"; default: \"full\" }"
     echo "        { -t : <pvalue threshold>; only required if mode is \"full\"}"
     echo "        { -o : <output directory>; If not specified, will do scary things with your input files.}"
+    echo "        { -n : <chunk number>; If specified, will process the n-th line of the input file list. If unset, will default to SLURM_ARRAY_TASK_ID.}"
+    echo "        { -e : <sample exclusion list>; Exclude samples in this file on-the-fly.}"
     echo "        { -b : if a pipe should be used instead of temporary files when computing stats. Prevents rerunning. }"
     echo "        { -c : Collapse multiallelics in output. If set, this flag will create ALT records such as A,C in the output. By default, two records are generated. }"
     exit 0
@@ -26,8 +28,9 @@ OPTIND=1
 pipe="no"
 collapse="no"
 n=""
+elist="no"
 
-while getopts "p:f:m:t:o:n:bc" optname; do
+while getopts "p:f:m:t:o:n:e:bc" optname; do
     case "$optname" in
         "p" ) pheno="${OPTARG}";;
         "f" ) flist="${OPTARG}";;
@@ -35,6 +38,7 @@ while getopts "p:f:m:t:o:n:bc" optname; do
         "t" ) pt="${OPTARG}";;
         "o" ) odir="${OPTARG}";;
         "n" ) n="${OPTARG}";;
+        "e" ) elist="${OPTARG}";;
         "b" ) pipe="yes";;
         "c" ) collapse="yes";;
         "?" ) usage ;;
@@ -62,6 +66,12 @@ if [[ ! -f "$flist" ]];then
     echo "ERROR: file list $flist does not exist; exit"
     exit 1
 fi
+
+if [[ "$elist" != "no" && ! -f "$flist" ]];then
+    echo "ERROR: exclusion list $elist does not exist; exit"
+    exit 1
+fi
+
 
 if [[ ! -f "$pheno" ]];then
     echo "ERROR: phenotype file $pheno does not exist; exit"
@@ -92,6 +102,14 @@ else
   outname=$odir/${obase/%.vcf.gz/.$pheno_name.qctool.out}
 fi
 
+if [[ -z "$odir" ]]; then
+  opheno=$pheno.matched
+else
+  ophenobase=$(basename $pheno)
+  opheno=$odir/$ophenobase.matched
+fi
+
+
 echo "INPUT DIR $input" | ts
 echo "PHENOTYPE FILE $pheno" | ts
 echo "MODE $mode" | ts
@@ -101,12 +119,16 @@ echo "CURRENT FILE $fname" | ts
 echo "QCTOOL2 OUTPUT FILE $outname" | ts
 echo "COLLAPSING VARIANTS $collapse" | ts
 echo "PIPE, NO INTERMEDIATE FILES $pipe" | ts
-echo "--------------------------------------------------------------"
-echo ""
-
+echo "SAMPLE EXCLUSION FILE $efile" | ts
 echo "INFO: phenotype name: $pheno_name"  | ts
 dmx_vcf=${outname/%.$pheno_name.qctool.out/.dmx.vcf.gz}
 echo "INTERMEDIATE VCF $dmx_vcf"
+echo "--------------------------------------------------------------"
+echo ""
+
+opt_remove_samples=$([ "$elist" == "no" ] && echo "" || echo "$elist")
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+$SCRIPT_DIR/synchronise_VCF_and_sample_file.R $fname $pheno $opheno $opt_remove_samples
 
 collapse_option() {
   >&2 echo collapse_option called, collapse=$collapse
@@ -117,14 +139,24 @@ collapse_option() {
    fi
  }
 
+ remove_samples_option() {
+   >&2 echo "remove_samples_option called, exclusion list set to $elist"
+   if [[ "$elist" != "no" ]]; then
+     bcftools view -S ^$elist
+   else
+     cat
+   fi
+ }
+
 pipe_or_file_input() {
   >&2 echo "pipe_or_file_input called, pipe=$pipe, fname=$fname, dmx_vcf=$dmx_vcf, to_remove=$to_remove"
   if [[ "$pipe" == "yes" ]]; then
-    bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz
+    bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz
   else
       bcftools view --exclude ID=@"$to_remove" "$dmx_vcf" -Ov
   fi
 }
+
 
 
 retval=0
@@ -132,16 +164,17 @@ retval=0
 # check if qctool2 output exists
 if [[ ! -s "$outname" ]];then
   if [[ "$pipe" == "no" ]]; then
-      bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
+      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
       zcat "$dmx_vcf" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno" $exsamp_opt
       retval=$?
     else
-      bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno" $exsamp_opt
+      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno" $exsamp_opt
       retval=$?
   fi
 else
   if [[ "$pipe" == "no" && (! -s "$dmx_vcf") ]]; then
-      bcftools norm -m- "$fname" -Ov | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
+      echo "INFO: $outname already exists, pipe is NO, regenerating $dmx_vcf" | ts
+      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
   else
 
     echo "INFO: $outname already exists" | ts
