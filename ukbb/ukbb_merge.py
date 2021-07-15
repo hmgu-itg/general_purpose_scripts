@@ -32,7 +32,7 @@ infiles=args.input
 updates=args.update
 out_prefix=args.output
 logF=open(out_prefix+".log","w")
-datestr=datetime.datetime.now().strftime("%F")
+datestr=datetime.datetime.now().strftime("%d-%b-%Y")
 
 if updates is None:
     updates=list()

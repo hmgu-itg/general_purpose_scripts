@@ -54,9 +54,9 @@ i=1
 newcol_index_start=1
 newcol_index_end=""
 for c in "${classes[@]}";do
-    echo "Generating file $i/${#classes[@]}" 1>&2
+    echo "Generating file $i/${#classes[@]}"
     fname=${prefix}_r${release}_${i}".txt.gz"
-    echo "Output file: $fname" 1>&2
+    echo "Output file: $fname"
 
     to_mod=$((RANDOM%max_mod))
     rem=$((ns-to_mod))
@@ -68,12 +68,12 @@ for c in "${classes[@]}";do
 	echo "Keeping same IDs"
     else
 	if [[ $del -eq 1 ]];then
-	    echo "Deleting $to_mod row(s)" 1>&2
+	    echo "Deleting $to_mod row(s)"
 	    tmp=$($catcmd $infile|cut -f 1|tail -n +3|shuf|head -n $rem|sort|tr '\n' ',')
 	    id_cmd='echo -n '$tmp'|sed "s/,/\n/g"'
 	    new_total=$((ns-to_mod))
 	else
-	    echo "Adding $to_mod row(s)" 1>&2
+	    echo "Adding $to_mod row(s)"
 	    id_cmd='cat <($catcmd $infile|cut -f 1|tail -n +3) <(for i in $(seq -w 1 '$to_mod');do echo ADD$i;done)|sort'
 	    new_total=$((ns+to_mod))
 	fi
@@ -81,13 +81,13 @@ for c in "${classes[@]}";do
     
     read -r -a sar <<<$($catcmd $infile|head -n 2|tail -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//'|sed 's/\t/ /g'|gawk -v n=$c '$2==n{print $1;}'|tr '\n' ' '|sed 's/ $//')
     str=$(join_by , "${sar[@]}")
-#    echo $str 1>&2
+#    echo $str
     n="${#sar[@]}"
     fmt="1.1"
     for (( j=0; j<$n; j++ ));do
 	fmt=$fmt",2.$((j+2))"
     done
-#    echo $fmt 1>&2
+#    echo $fmt
     to_del=$((RANDOM%del_col_lim))
     echo "Deleting $to_del column(s)"
     to_del_str=""
