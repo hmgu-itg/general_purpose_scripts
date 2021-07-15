@@ -41,7 +41,7 @@ vcfsamples=vcfsamples[[1]][10:length(vcfsamples[[1]])]
 
 ## Get exclusion
 exclist=NULL
-if(exclfile != NULL){
+if(!is.null(exclfile)){
   exclist=fread(exfile, header=F)$V1
 }
 
@@ -60,7 +60,7 @@ setnames(pheno, "pheno", phenoname)
 pheno=rbind(pheno[1], pheno[match(vcfsamples, pheno$ID)])
 
 ### subset if warranted
-if(exclist != NULL){
+if(!is.null(exclist)){
   pheno=pheno[ID %nin% exclist]
 }
 
