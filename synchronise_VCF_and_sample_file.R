@@ -43,7 +43,7 @@ vcfsamples=vcfsamples[[1]][10:length(vcfsamples[[1]])]
 ## Get exclusion
 exclist=NULL
 if(!is.null(exclfile)){
-  exclist=fread(exfile, header=F)$V1
+  exclist=fread(exclfile, header=F)$V1
 }
 
 ## read sample file
