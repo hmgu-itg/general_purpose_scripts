@@ -4,6 +4,7 @@
 
 argv=commandArgs(T)
 library(data.table)
+library(Hmisc)
 
 if(length(argv)<3){
   cat("ERROR: At least 3 arguments expected: vcf_file pheno_file output_file [optional_exclusion_file]\n")
