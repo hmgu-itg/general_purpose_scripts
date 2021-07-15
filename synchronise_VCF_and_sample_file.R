@@ -1,4 +1,4 @@
-#!/software/bin/Rscript
+#!/usr/bin/Rscript
 
 ## Synchronises a phenotype file to the exact same samples as a VCF file
 
