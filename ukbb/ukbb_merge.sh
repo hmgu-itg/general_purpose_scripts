@@ -311,7 +311,7 @@ if [[ $n_update -eq 0 ]];then
 	cline=$(join_by , "${class_array[@]}")
 	eval "cat <(echo $cline|tr ',' '\t')|gzip - -c >> ${outfile}"
 
-	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c="${input_ID_column[0]}" | gzip - -c >> "${outfile}"
+	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_;}}' -- -f="$exclude_list" -c="${input_ID_column[0]}" | gzip - -c >> "${outfile}"	
     else	
 	# column classes of input columns are based on source input files
 	for i in $(seq 0 $((n_input-1)));do
@@ -367,20 +367,18 @@ if [[ $n_update -eq 0 ]];then
 	# adding body, excluding IDs from the exclude list
 	x=$(cat $tmpfile1|wc -l)
 	x=$((x-1))
-	paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr | tr ' ' '\t' | head -n $x) | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c=1|gzip - -c >> "${outfile}"
+	paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr | tr ' ' '\t' | head -n $x) | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_;}}' -- -f="$exclude_list" -c=1|gzip - -c >> "${outfile}"
 	if [[ $debug == "NO" ]];then
 	    rm -f "$tmpfile1"
 	fi
     fi
-    
+
     final_rows=$(zcat "${outfile}"| wc -l)
     final_cols=$(zcat "${outfile}"|head -n 1|tr '\t' '\n'|wc -l)
-    echo "Rows in output: $final_rows (including 2 header rows)"|tee -a "$logfile"
-    echo "Columns in output: $final_cols (including ID column and CREATED, RELEASE columns)"|tee -a "$logfile"
+    echo "INFO: rows in output: $final_rows (including 2 header rows)"|tee -a "$logfile"
+    echo "INFO: columns in output: $final_cols (including ID column and CREATED, RELEASE columns)"|tee -a "$logfile"
     echo ""|tee -a "$logfile"
     
-    echo "Done"|tee -a "$logfile"
-    date "+%F %H-%M-%S" |tee -a "$logfile"
 else
     # updating the first input file using update files
     
@@ -626,9 +624,17 @@ else
     x=$(tail -n +2 "$tmpfile3"| wc -l)
     command2=${command2}" <(yes $release $datestr| tr ' ' '\t'| head -n $x)"
 
-    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2)" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);print $_ if !defined($h{$a[$c-1]});}' -- -f="$exclude_list" -c="$joined_ID" | gzip - -c > "${outfile}"
+    eval "cat <($command1) <(echo $header2|tr ',' '\t') <($command2)" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_;}}' -- -f="$exclude_list" -c="$joined_ID" | gzip - -c > "${outfile}"
+
     echo "Done"|tee -a "$logfile"
 
+    echo ""|tee -a "$logfile"
+    final_rows=$(zcat "${outfile}"|wc -l)
+    final_cols=$(zcat "${outfile}"|head -n 1|tr '\t' '\n'|wc -l)
+    echo "INFO: rows in output: $final_rows (including 2 header rows)"|tee -a "$logfile"
+    echo "INFO: columns in output: $final_cols (including ID column and CREATED, RELEASE columns)"|tee -a "$logfile"
+    echo ""|tee -a "$logfile"
+    
     if [[ $debug == "NO" ]];then
 	rm -f "$tmpfile1"
 	rm -f "$tmpfile2"
@@ -636,7 +642,6 @@ else
     fi	
 fi
 
-echo "Done"|tee -a "$logfile"
 date "+%F %H-%M-%S" |tee -a "$logfile"
     
 exit 0

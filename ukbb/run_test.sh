@@ -34,7 +34,8 @@ for (( k=1; k <= $rep; k++ ));do
 	    opts="$opts -i $tmpdir/input_$i.txt.gz" 
 	done
     else
-	opts="-i $infile"
+	zcat "$infile"|cut -f 1|tail -n +3|shuf -n 10 > "${tmpdir}"/exclude
+	opts="-i $infile -x ${tmpdir}/exclude"
 	for (( i=1; i <= $n; i++ ));do
 	    opts="$opts -u ${tmpdir}/update_r${k}_${i}.txt.gz" 
 	done
@@ -47,7 +48,7 @@ for (( k=1; k <= $rep; k++ ));do
     eval "$mergepy" "$opts" -o "$tmpdir"/merge_py_r$k
     zdiff "$tmpdir"/merge_sh_r$k.txt.gz "$tmpdir"/merge_py_r$k.txt.gz &>/dev/null
     if [[ $? -ne 0 ]];then
-	echo "ERROR: iter $k, files $tmpdir/merge_sh_r$k.txt.gz $tmpdir/merge_py_r$k.txt.gz differ"
+	echo "ERROR: iteration $k, files $tmpdir/merge_sh_r$k.txt.gz $tmpdir/merge_py_r$k.txt.gz differ"
 	exit 1
     else
 	echo ""
