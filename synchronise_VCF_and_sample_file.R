@@ -35,6 +35,9 @@ if(length(argv)>3){
 }
 
 
+classvec="character"
+names(classvec)="ID"
+
 ## Get VCF samples
 header=system(paste0("zgrep -m1 '#CHROM' ", vcffile), intern=T)
 vcfsamples=strsplit(header, "\t")
@@ -43,12 +46,11 @@ vcfsamples=vcfsamples[[1]][10:length(vcfsamples[[1]])]
 ## Get exclusion
 exclist=NULL
 if(!is.null(exclfile)){
-  exclist=fread(exclfile, header=F)$V1
+  exclist=fread(exclfile, header=F, colClasses="character")$V1
 }
 
 ## read sample file
-pheno=fread(phenofile)
-pheno[,ID:=as.character(ID)]
+pheno=fread(phenofile, colClasses=classvec)
 ### remove samples not in VCF
 pheno=pheno[ID %in% c(vcfsamples, 0)]
 
