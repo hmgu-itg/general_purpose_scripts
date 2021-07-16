@@ -129,7 +129,7 @@ echo ""
 opt_remove_samples=$([ "$elist" == "no" ] && echo "" || echo "$elist")
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 $SCRIPT_DIR/synchronise_VCF_and_sample_file.R $fname $pheno $opheno $opt_remove_samples
-$retval=$?
+retval=$?
 if [[ $retval -ne 0 ]];then
     echo "INFO: something went wrong when synchronising phenotype and VCF; exit" | ts
     exit 1
