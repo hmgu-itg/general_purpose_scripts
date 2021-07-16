@@ -108,6 +108,8 @@ fi
 
 echo "INPUT DIR $input" | ts
 echo "PHENOTYPE FILE $pheno" | ts
+echo "OUTPUT PHENOTYPE FILE $opheno" | ts
+
 echo "MODE $mode" | ts
 echo "PVALUE THRESHOLD $pt" | ts
 echo "CURRENT FILENO $n" | ts
