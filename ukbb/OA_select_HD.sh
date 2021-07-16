@@ -132,8 +132,8 @@ echo "" | tee -a "$logfile"
 
 #----------------------------------------------------------------------------------------------------------------
 
-awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}' "$icd_codes_file" > "$tmp_icd9"
-awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}' "$icd_codes_file" > "$tmp_icd10"
+grep -v "^#" "$icd_codes_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}' > "$tmp_icd9"
+grep -v "^#" "$icd_codes_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}' > "$tmp_icd10"
 
 cat <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd9_cn}"|datamash -s -g "${new_eid1}" collapse "$new_icd9"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_icd9" 1) <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd10_cn}"|datamash -s -g "${new_eid2}" collapse "$new_icd10"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_icd10" 1) | sort | uniq | gzip - -c > "${outfile}"
 
