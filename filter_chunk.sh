@@ -78,10 +78,6 @@ if [[ ! -f "$pheno" ]];then
     exit 1
 fi
 
-if [[ ! -z "$exsamp" ]];then
-      exsamp_opt="--excl-samples $exsamp"
-fi
-
 # current file number in the file list
 if [[ -z "$n" ]]; then
   if [[ -z "$SLURM_ARRAY_TASK_ID" ]]; then
@@ -103,10 +99,10 @@ else
 fi
 
 if [[ -z "$odir" ]]; then
-  opheno=$pheno.matched
+  opheno=$obase.$pheno.matched
 else
   ophenobase=$(basename $pheno)
-  opheno=$odir/$ophenobase.matched
+  opheno=$odir/$obase.$ophenobase.matched
 fi
 
 
@@ -128,6 +124,7 @@ echo ""
 
 opt_remove_samples=$([ "$elist" == "no" ] && echo "" || echo "$elist")
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 $SCRIPT_DIR/synchronise_VCF_and_sample_file.R $fname $pheno $opheno $opt_remove_samples
 retval=$?
 if [[ $retval -ne 0 ]];then
@@ -170,10 +167,10 @@ retval=0
 if [[ ! -s "$outname" ]];then
   if [[ "$pipe" == "no" ]]; then
       bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
-      zcat "$dmx_vcf" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno" $exsamp_opt
+      zcat "$dmx_vcf" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$opheno"
       retval=$?
     else
-      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$pheno" $exsamp_opt
+      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$opheno"
       retval=$?
   fi
 else
