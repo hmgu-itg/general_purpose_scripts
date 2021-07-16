@@ -92,26 +92,15 @@ if [[ $ret -ne 0 ]];then
     exit 1
 fi
 
-if [[ -z "$out_dir" ]];then
-    echo "ERROR: no output dir specified" 1>&2
-    exit 1
-fi
-
-if [[ ! -d "$out_dir" ]];then
-    echo "ERROR: output dir $out_dir is not a directory" 1>&2
-    exit 1
-fi
-
+exitIfEmpty "$out_dir" "ERROR: no output dir specified"
+exitIfNotDir "$out_dir" "ERROR: output dir $out_dir is not a directory"
 if [[ ! -w "$out_dir" ]];then
     echo "ERROR: output dir $out_dir is not writable" 1>&2
     exit 1
 fi
 
 if [[ ! -z "$exclude_list" ]];then
-    if [[ ! -f "$exclude_list" ]];then
-	echo "ERROR: exclude list $exclude_list is not a file" 1>&2
-	exit 1
-    fi
+    exitIfNotFile "$exclude_list" "ERROR: exclude list $exclude_list is not a file"
 fi
 
 out_dir=${out_dir%/}
@@ -155,15 +144,9 @@ if [[ $n_update -eq 0 ]];then
 else
     # read previous release from input[0]
     release_col=$(getColNum "${input_fnames[0]}" "RELEASE" ${cats[${input_fnames[0]}]})
-    if [[ -z "$release_col" ]];then
-	echo "ERROR: no RELEASE column found in the input file ${input_fnames[0]}" 1>&2
-	exit 1
-    fi
+    exitIfEmpty "$release_col" "ERROR: no RELEASE column found in the input file ${input_fnames[0]}"
     created_col=$(getColNum "${input_fnames[0]}" "CREATED" ${cats[${input_fnames[0]}]})
-    if [[ -z "$created_col" ]];then
-	echo "ERROR: no CREATED column found in the input file ${input_fnames[0]}" 1>&2
-	exit 1
-    fi
+    exitIfEmpty "$created_col" "ERROR: no CREATED column found in the input file ${input_fnames[0]}"
     if [[ -z "$release" ]];then
 	release=$(${cats[${input_fnames[0]}]} "${input_fnames[0]}"|cut -f ${release_col}|head -n 3|tail -n 1)
 	release=$((release+1))
@@ -171,11 +154,7 @@ else
 fi
 
 outfile="${out_dir}/${bname}_r${release}.txt.gz"
-
-if [[ -f "$outfile" ]];then
-    echo "ERROR: output file $outfile already exists" 1>&2
-    exit 1
-fi
+exitIfExists "$outfile" "ERROR: output file $outfile already exists"
 logfile="${out_dir}/${bname}_r${release}.log"
 
 : > "$logfile"
@@ -213,10 +192,7 @@ fi
 # get ID column 
 for i in $(seq 0 $((n_input-1)));do
     x=$(getColNum "${input_fnames[$i]}" "$id_field" ${cats[${input_fnames[$i]}]})
-    if [[ -z $x ]];then
-	echo "ERROR: no \"$id_field\" found in ${input_fnames[$i]}"|tee -a "$logfile"
-	exit 1
-    fi    
+    exitIfEmpty "$x" "ERROR: no \"$id_field\" found in ${input_fnames[$i]}"
     input_ID_column+=($x)
     input_nrows+=($(${cats[${input_fnames[$i]}]} "${input_fnames[$i]}"|wc -l))
     input_ncols+=($(${cats[${input_fnames[$i]}]} "${input_fnames[$i]}"|head -n 1|tr '\t' '\n'|wc -l))
@@ -226,10 +202,7 @@ for i in $(seq 0 $((n_input-1)));do
 done
 for i in $(seq 0 $((n_update-1)));do
     x=$(getColNum "${update_fnames[$i]}" "$id_field" ${cats[${update_fnames[$i]}]})
-    if [[ -z $x ]];then
-	echo "ERROR: no \"$id_field\" found in ${update_fnames[$i]}"|tee -a "$logfile"
-	exit 1
-    fi    
+    exitIfEmpty "$x" "ERROR: no \"$id_field\" found in ${update_fnames[$i]}"
     update_ID_column+=($x)
     update_nrows+=($(${cats[${update_fnames[$i]}]} "${update_fnames[$i]}"|wc -l))
     update_ncols+=($(${cats[${update_fnames[$i]}]} "${update_fnames[$i]}"|head -n 1|tr '\t' '\n'|wc -l))
@@ -255,11 +228,13 @@ for i in $(seq 0 $((n_update-1)));do
     echo "INFO: columns: ${update_ncols[$i]}"|tee -a "$logfile"
     echo ""|tee -a "$logfile"
 done
+
 #----------------------------------------------------
 
 #
 # check if column names (excepth for ID field) in input files are disjoint
 #
+
 echo -n "Checking if column names in input files are disjoint ... "|tee -a "$logfile"
 if [[ $n_input -gt 1 ]];then
     for i in $(seq 0 $((n_input-1)));do
@@ -273,13 +248,15 @@ if [[ $n_input -gt 1 ]];then
     done
 fi
 echo "OK"|tee -a "$logfile"
+
 #----------------------------------------------------
 
 #
 # check if column names (excepth for ID field) in update files are disjoint
 #
-echo -n "Checking if column names in update files are disjoint ... "|tee -a "$logfile"
+
 if [[ $n_update -gt 1 ]];then
+    echo -n "Checking if column names in update files are disjoint ... "|tee -a "$logfile"
     for i in $(seq 0 $((n_update-1)));do
 	for j in $(seq $((i+1)) $((n_update-1)));do
 	    x=$(cat <("${cats[${update_fnames[$i]}]}" "${update_fnames[$i]}"|head -n 1|cut --complement -f ${update_ID_column[$i]}) <("${cats[${update_fnames[$j]}]}" "${update_fnames[$j]}"|head -n 1|cut --complement -f ${update_ID_column[$j]})|sort|uniq -d|wc -l)
@@ -289,8 +266,8 @@ if [[ $n_update -gt 1 ]];then
 	    fi	    
 	done
     done
+    echo "OK"|tee -a "$logfile"
 fi
-echo "OK"|tee -a "$logfile"
 echo ""|tee -a "$logfile"
 
 #-------------------------------------- OUTPUT -------------------------------------------------
@@ -300,18 +277,17 @@ if [[ $n_update -eq 0 ]];then
 
     if [[ $n_input -eq 1 ]];then
 	paste <(${cats["${input_fnames[0]}"]} "${input_fnames[0]}"|head -n 1) <(echo RELEASE CREATED|tr ' ' '\t')|gzip - -c > "${outfile}"
-    	for c in $("${cats[${input_fnames[0]}]}" "${input_fnames[0]}"|head -n 1|cut --complement -f ${input_ID_column[0]});do
-    	    column_class[$c]="0"
-    	done
-	column_class["$id_field"]="NA"
 	for c in $(${cats["${input_fnames[0]}"]} "${input_fnames[0]}"|head -n 1);do
-	    class_array+=(${column_class[$c]})
+	    if [[ "$c" == "$id_field" ]];then
+		class_array+=("NA")
+	    else
+		class_array+=("0")
+	    fi
 	done
 	class_array+=("NA" "NA")
 	cline=$(join_by , "${class_array[@]}")
 	eval "cat <(echo $cline|tr ',' '\t')|gzip - -c >> ${outfile}"
-
-	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_;}}' -- -f="$exclude_list" -c="${input_ID_column[0]}" | gzip - -c >> "${outfile}"	
+	${cats["${input_fnames[0]}"]} "${input_fnames[0]}"|perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_;}}' -- -f="$exclude_list" -c="${input_ID_column[0]}"|gzip - -c >> "${outfile}"	
     else	
 	# column classes of input columns are based on source input files
 	for i in $(seq 0 $((n_input-1)));do
@@ -324,7 +300,7 @@ if [[ $n_update -eq 0 ]];then
 	# OUTER JOIN on IDs
 	tmpfile1=$(mktemp -p "$out_dir" temp_1_join_XXXXXXXX)
 	if [[ $? -ne 0 ]];then
-	    echo "ERROR: could not create tmpfile1 "|tee -a "$logfile"
+	    echo "ERROR: could not create tmpfile1"|tee -a "$logfile"
 	    exit 1
 	fi
 
@@ -336,7 +312,7 @@ if [[ $n_update -eq 0 ]];then
 	    fmt=$fmt",2.$i"
 	done
 	
-	join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|tail -n +2|sort -k${input_ID_column[1]},${input_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'| cut -f 2-"
+	join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -t$'\t' -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|tail -n +2|sort -t$'\t' -k${input_ID_column[1]},${input_ID_column[1]}))|gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'|cut -f 2-"
 
 	n=${input_ncols[0]}
 	m=${input_ncols[1]}
@@ -350,13 +326,13 @@ if [[ $n_update -eq 0 ]];then
 		fmt=$fmt",2.$j"
 	    done
 	    
-	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -k${input_ID_column[$i]},${input_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'| cut -f 2-"
+	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -t$'\t' -k${input_ID_column[$i]},${input_ID_column[$i]}))|gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'|cut -f 2-"
 	    m=${input_ncols[$i]}
 	    n=$((n+m-1))
 	done
 	eval "$join_cmd > $tmpfile1"
 
-	# adding class line
+	# adding class line, CREATED and RELEASE columns
 	paste <(head -n 1 "$tmpfile1") <(echo RELEASE CREATED|tr ' ' '\t')|gzip - -c > "${outfile}"
 	for c in $(head -n 1 "$tmpfile1");do
 	    class_array+=(${column_class[$c]})
@@ -367,7 +343,7 @@ if [[ $n_update -eq 0 ]];then
 	# adding body, excluding IDs from the exclude list
 	x=$(cat $tmpfile1|wc -l)
 	x=$((x-1))
-	paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr | tr ' ' '\t' | head -n $x) | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_;}}' -- -f="$exclude_list" -c=1|gzip - -c >> "${outfile}"
+	paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr|tr ' ' '\t'|head -n $x)|perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_;}}' -- -f="$exclude_list" -c=1|gzip - -c >> "${outfile}"
 	if [[ $debug == "NO" ]];then
 	    rm -f "$tmpfile1"
 	fi
@@ -377,8 +353,7 @@ if [[ $n_update -eq 0 ]];then
     final_cols=$(zcat "${outfile}"|head -n 1|tr '\t' '\n'|wc -l)
     echo "INFO: rows in output: $final_rows (including 2 header rows)"|tee -a "$logfile"
     echo "INFO: columns in output: $final_cols (including ID column and CREATED, RELEASE columns)"|tee -a "$logfile"
-    echo ""|tee -a "$logfile"
-    
+    echo ""|tee -a "$logfile"    
 else
     # updating the first input file using update files
     
