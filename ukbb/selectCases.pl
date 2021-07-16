@@ -8,7 +8,7 @@ BEGIN{
     # print STDERR "$ARGV[0]\n";
     # print STDERR "$ARGV[1]\n";
     open(fh,"<",$ARGV[0]);
-    while(<fh>){chomp;next if /^#/;$h{$_}=1;}
+    while(<fh>){chomp;next if /^#/;next if /^\s*$/;$h{$_}=1;}
     close(fh);
     # print STDERR scalar(keys %h)."\n";
     @code=();
