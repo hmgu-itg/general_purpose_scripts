@@ -360,7 +360,18 @@ else
     echo "Updating input ... "|tee -a "$logfile"
 
     #----------------------------------------------------------------
-    # merging all update files using OUTER JOIN and saving the result in a temporary file, with classes
+    # column classes of update files
+    
+    for i in $(seq 0 $((n_update-1)));do
+    	for c in $("${cats[${update_fnames[$i]}]}" "${update_fnames[$i]}"|head -n 1|cut --complement -f ${update_ID_column[$i]});do
+    	    column_class[$c]=$i
+    	done
+    done
+    column_class["$id_field"]="NA"
+
+    #----------------------------------------------------------------
+    # merging all update files using OUTER JOIN and saving the result in a temporary file, without classes
+    
     tmpfile0=$(mktemp -p "$out_dir" temp_0_join_XXXXXXXX)
     if [[ $? -ne 0 ]];then
 	echo "ERROR: could not create tmpfile0 "|tee -a "$logfile"
@@ -374,14 +385,6 @@ else
 
     echo -n "Merging update files ... "|tee -a "$logfile"
 
-    # column classes of update files
-    for i in $(seq 0 $((n_update-1)));do
-    	for c in $("${cats[${update_fnames[$i]}]}" "${update_fnames[$i]}"|head -n 1|cut --complement -f ${update_ID_column[$i]});do
-    	    column_class[$c]=$i
-    	done
-    done
-    column_class["$id_field"]="NA"
-
     if [[ $n_update -gt 1 ]];then
 	fmt="1.${update_ID_column[0]},2.${update_ID_column[1]}"
 	for i in $(seq 2 ${update_ncols[0]});do
@@ -391,7 +394,7 @@ else
 	    fmt=$fmt",2.$i"
 	done
 	
-	join_cmd="join --header -t$'\t' -1 ${update_ID_column[0]} -2 ${update_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|head -n 1) <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|tail -n +2|sort -k${update_ID_column[0]},${update_ID_column[0]})) <(cat <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|head -n 1) <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|tail -n +2|sort -k${update_ID_column[1]},${update_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'| cut -f 2-"
+	join_cmd="join --header -t$'\t' -1 ${update_ID_column[0]} -2 ${update_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|head -n 1) <(${cats[${update_fnames[0]}]} ${update_fnames[0]}|tail -n +2|sort -t$'\t' -k${update_ID_column[0]},${update_ID_column[0]})) <(cat <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|head -n 1) <(${cats[${update_fnames[1]}]} ${update_fnames[1]}|tail -n +2|sort -t$'\t' -k${update_ID_column[1]},${update_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'|cut -f 2-"
 	n=${update_ncols[0]}
 	m=${update_ncols[1]}
 	n=$((n+m-1))
@@ -404,7 +407,7 @@ else
 		fmt=$fmt",2.$j"
 	    done
 	    
-	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${update_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1) <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|tail -n +2|sort -k${update_ID_column[$i]},${update_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'| cut -f 2-"
+	    join_cmd=$join_cmd"|join --header -t$'\t' -1 1 -2 ${update_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|head -n 1) <(${cats[${update_fnames[$i]}]} ${update_fnames[$i]}|tail -n +2|sort -t$'\t' -k${update_ID_column[$i]},${update_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}'|cut -f 2-"
 	    m=${update_ncols[$i]}
 	    n=$((n+m-1))
 	done
@@ -412,6 +415,10 @@ else
     else
 	cp "${update_fnames[0]}" "$tmpfile0"
     fi
+    # join done
+    
+    #----------------------------------------------------------------
+    # add classes
     
     head -n 1 "$tmpfile0" > "$tmpfile1"
     for c in $(head -n 1 "$tmpfile0");do
@@ -422,11 +429,12 @@ else
     tail -n +2 "$tmpfile0" >> "$tmpfile1"    
     if [[ $debug == "NO" ]];then
 	rm -f "$tmpfile0"
-    fi
-	
+    fi	
     echo "Done"|tee -a "$logfile"
+    
     #----------------------------------------------------------------
     # input fields (except for ID column) and their classes, from the input file
+    
     declare -a input_fields
     declare -a input_classes
     declare -A input_field2class
@@ -437,12 +445,15 @@ else
 	input_classes+=($c)
     done
     for (( i=0; i<"${#input_fields[@]}"; i++ )); do input_field2class[${input_fields[$i]}]=${input_classes[$i]};done
+    
+    #----------------------------------------------------------------
+    # update fields (except for ID column) and their classes, from the merged update file
+    
     new_update_ID=$(getColNum "$tmpfile1" "$id_field" "cat")
-    if [[ -z $new_update_ID ]];then
+    if [[ -z "$new_update_ID" ]];then
 	echo "ERROR: no \"$id_field\" found in $tmpfile1"|tee -a "$logfile"
 	exit 1
-    fi    
-    # update fields (except for ID column) and their classes, from the merged update file
+    fi
     declare -a update_fields
     declare -a update_classes
     declare -A update_field2class
@@ -450,7 +461,9 @@ else
     for c in $(head -n 2 "$tmpfile1"|tail -n 1|cut --complement -f $new_update_ID);do update_classes+=($c);done
     for (( i=0; i<"${#update_fields[@]}"; i++ )); do update_field2class[${update_fields[$i]}]=${update_classes[$i]};done
     
+    #----------------------------------------------------------------
     # input classes intersecting with update fields: all input fields from these will be excluded from input before merging
+
     declare -A intersecting_classes
     # new fields in update that will be added
     declare -A new_fields
