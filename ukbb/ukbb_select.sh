@@ -119,7 +119,10 @@ infile="$data_path"/"${available_projects[$project]}"/releases/phenotypes_r"$rel
 eval echo "INFO: using input file $infile" "$sfx"
 exitIfNotFile "$infile" "ERROR: input file $infile does not exist"
 
-eval echo "INFO: using human readable field names in output" "$sfx"
+if [[ "$usenames" == "YES" ]];then
+    eval echo "INFO: using human readable field names in output" "$sfx"
+fi
+
 eval echo "" "$sfx"
 eval echo "INFO: checking if input fields are integers" "$sfx"
 
@@ -137,10 +140,21 @@ for name in mean minna majority;do
     done
 done
 
+declare -A temp_ar
 for x in "${ccargs[@]}";do
     read a b < <(echo $x|tr ',' ' ')
     if [[ $a =~ ^[0-9]+$ ]];then
-	ccfields[$a]=$b
+	v="${ccfields[$a]}"
+	if [[ -z "$v" ]];then
+	    ccfields[$a]=$b
+	else
+	    temp_ar=()
+	    for x in $(echo "$v"|tr ',' ' '); do temp_ar[$x]=1; done
+	    z="${temp_ar[$b]}"
+	    if [[ -z "$z" ]];then
+		ccfields[$a]=$v","$b
+	    fi
+	fi
     else
 	eval echo 'WARN: specified field \"'"$a"'\" is not an integer\; dropping' "$sfx"
     fi		
@@ -279,17 +293,19 @@ done
 
 for f in "${!ccfields[@]}";do
     getCols "$infile" "zcat" "$f" ar
-    val="${ccfields[$f]}"
     str=$(join_by , "${!ar[@]}")
-    colname="$f : ${ccfields[$f]}"
     d="${fdesc[$f]}"
-    if [[ "$usenames" == "YES" ]];then
-	if [[ ! -z "$d" ]];then
-	    colname="$d : ${ccfields[$f]}"
-	fi
-    fi    
-    echo -e "f.eid\t$colname" > "$tmpdir"/cc_"$f"
-    paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$str"|tail -n +3)|"$collapsescript" cc $val >> "$tmpdir"/cc_"$f"
+    val="${ccfields[$f]}"
+    for v in $(echo "${val}"|tr ',' ' '); do
+	colname="$f:${v}"
+	if [[ "$usenames" == "YES" ]];then
+	    if [[ ! -z "$d" ]];then
+		colname="$d:${v}"
+	    fi
+	fi    
+	echo -e "f.eid\t$colname" > "$tmpdir"/cc_"${f}"_"${v}"
+	paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$str"|tail -n +3)|"$collapsescript" cc ${v} >> "$tmpdir"/cc_"${f}"_"${v}"
+    done
 done
 
 for f in "${!minnafields[@]}";do
