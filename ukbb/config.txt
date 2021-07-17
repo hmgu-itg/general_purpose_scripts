@@ -7,5 +7,8 @@ EXEC_DIR	/storage/hmgu/projects/ukbiobank/phenotypes/executables
 # UKBB data dictionary
 DATA_DICT	/storage/hmgu/projects/ukbiobank/phenotypes/resources/Data_Dictionary_Showcase.tsv
 
-# ICD codes for hospital diagnosed OA
+# ICD codes for hospital diagnosed OA (KneeOA, HipOA etc.)
 HD_OA_ICD	/storage/hmgu/projects/ukbiobank/phenotypes/resources/hospital_diagnosed_OA.txt
+
+# OPCS4 codes used to define THR, TKR (together with ICD codes for KneeOA, HipOA)
+HD_OA_OPCS4	/storage/hmgu/projects/ukbiobank/phenotypes/resources/knee_hip_opcs4.txt
