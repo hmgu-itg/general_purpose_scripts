@@ -56,19 +56,24 @@ if [[ -z "$config" ]];then
     config="${scriptdir}"/config.txt
 fi
 
-outfile="${outprefix}".txt
+outfile="${outprefix}".txt.gz
 exitIfExists "$outfile" "ERROR: output file $outfile already exists"
 logfile="${outprefix}".log
 
+: > "$logfile"
+echo "Wrapper script: current dir: ${PWD}"|tee -a "$logfile"
+echo "Wrapper script: command line: $scriptname ${args[@]}"|tee -a "$logfile"
+echo ""|tee -a "$logfile"
+
 case $key in
     THR)
-	"$script" -p "OA" -r "$release" --cc 20002,1465 --cc 20002,1318 -c "$config" 2>"$logfile" | tail -n +2 | awk 'BEGIN{FS="\t";}$2=="1" && $3=="1"{print $1;}' >"$outfile" 
+	"$script" -p "OA" -r "$release" --cc 20002,1465 --cc 20004,1318 -c "$config" 2>>"$logfile" | tail -n +2 | awk 'BEGIN{FS="\t";}$2=="1" && $3=="1"{print $1;}'| gzip - -c >"$outfile" 
 	;;
     TKR)
-	"$script" -p "OA" -r "$release" --cc 20002,1465 --cc 20002,1319 -c "$config" 2>"$logfile" | tail -n +2 | awk 'BEGIN{FS="\t";}$2=="1" && $3=="1"{print $1;}' >"$outfile" 
+	"$script" -p "OA" -r "$release" --cc 20002,1465 --cc 20004,1319 -c "$config" 2>>"$logfile" | tail -n +2 | awk 'BEGIN{FS="\t";}$2=="1" && $3=="1"{print $1;}'| gzip - -c >"$outfile" 
 	;;
     TJR)
-	"$script" -p "OA" -r "$release" --cc 20002,1465 --cc 20002,1318 --cc 20002,1319 -c "$config" 2>"$logfile" | awk 'BEGIN{FS="\t";}{if (NR==1){for (i=1;i<=NF;i++){A[$i]=i;}}else{a=A["20002:1465"];b=A["20002:1318"];c=A["20002:1319"];if ($a=="1" && ($b=="1" || $c=="1")){print $1;}}}' >"$outfile" 
+	"$script" -p "OA" -r "$release" --cc 20002,1465 --cc 20004,1318 --cc 20004,1319 -c "$config" 2>>"$logfile" | awk 'BEGIN{FS="\t";}{if (NR==1){for (i=1;i<=NF;i++){A[$i]=i;}}else{a=A["20002:1465"];b=A["20004:1318"];c=A["20004:1319"];if ($a=="1" && ($b=="1" || $c=="1")){print $1;}}}'| gzip - -c >"$outfile" 
 	;;
 esac
 
