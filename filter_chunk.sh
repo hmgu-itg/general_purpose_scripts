@@ -137,7 +137,7 @@ fi
 collapse_option() {
   >&2 echo collapse_option called, collapse=$collapse
    if [[ "$collapse" == "yes" ]]; then
-       bcftools norm -m +any | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov
+       bcftools norm -m +any | bcftools annotate --set-id '%CHROM\_%POS\_%REF\_%ALT' -Ov
    else
        cat
    fi
@@ -155,7 +155,7 @@ collapse_option() {
 pipe_or_file_input() {
   >&2 echo "pipe_or_file_input called, pipe=$pipe, fname=$fname, dmx_vcf=$dmx_vcf, to_remove=$to_remove"
   if [[ "$pipe" == "yes" ]]; then
-    bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Oz | bcftools +missing2ref | bcftools view --exclude ID=@"$to_remove"
+    bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id '%CHROM\_%POS\_%REF\_%ALT' -Oz | bcftools +missing2ref | bcftools view --exclude ID=@"$to_remove"
   else
       bcftools view --exclude ID=@"$to_remove" "$dmx_vcf" -Ov
   fi
@@ -168,17 +168,17 @@ retval=0
 # check if qctool2 output exists
 if [[ ! -s "$outname" ]];then
   if [[ "$pipe" == "no" ]]; then
-      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
+      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id '%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
       zcat "$dmx_vcf" | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$opheno"
       retval=$?
     else
-      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$opheno"
+      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id '%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref | qctool2 -g - -filetype vcf -differential "$pheno_name" -osnp "$outname" -s "$opheno"
       retval=$?
   fi
 else
   if [[ "$pipe" == "no" && (! -s "$dmx_vcf") ]]; then
       echo "INFO: $outname already exists, pipe is NO, regenerating $dmx_vcf" | ts
-      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
+      bcftools norm -m- "$fname" -Ov | remove_samples_option | bcftools annotate --set-id '%CHROM\_%POS\_%REF\_%ALT' -Ov | bcftools +missing2ref| bgzip > "$dmx_vcf"
   else
 
     echo "INFO: $outname already exists" | ts
