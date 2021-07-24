@@ -11,7 +11,7 @@ function usage () {
     echo ""
     echo "Wrapper script for selecting self reported OA hip/knee/both replacement cases from a UKBB release"
     echo ""
-    echo "Usage: ukbb_select.sh -r | --release <release>"
+    echo "Usage: ukbb_select.sh -r | --release <release of the MAIN dataset>"
     echo "                      -o | --output <output prefix>"
     echo "                      -k | --key <one of: TKR/THR/TJR>"
     echo "                      -c | --config <optional: config file; default: config.txt in script directory>"

@@ -11,7 +11,7 @@ function usage () {
     echo ""
     echo "Script for selecting hospital diagnosed OA cases from a HESIN release"
     echo ""
-    echo "Usage: ukbb_select.sh -r | --release <release>"
+    echo "Usage: ukbb_select.sh -r | --release <release of the HESIN dataset>"
     echo "                      -k | --key <one of: FingerOA, HandOA, HipKneeOA, HipOA, KneeOA, OA, SpineOA, ThumbOA>"
     echo "                      -o | --output <output prefix>"
     echo "                      -c | --config <optional: config file; default: config.txt in script directory>"

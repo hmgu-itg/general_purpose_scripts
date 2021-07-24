@@ -11,9 +11,9 @@ rmscript="${scriptdir}/removeEmpty.pl"
 
 function usage () {
     echo ""
-    echo "Create release for inpatient UKBB data"
+    echo "Create a release for inpatient UKBB data"
     echo ""
-    echo "Usage: hesin_merge.sh -i <main HESIN table> -d <HESIN DIAG table> -p <HESIN OPER table> -r <release> -o <output dir>"
+    echo "Usage: hesin_release.sh -i <main HESIN table> -d <HESIN DIAG table> -p <HESIN OPER table> -r <release> -o <output dir>"
     echo ""
     echo "Input files and output file are tab-separated."
     echo ""
