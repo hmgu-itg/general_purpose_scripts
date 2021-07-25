@@ -10,12 +10,12 @@ my %i2name;
 while(<STDIN>){
     chomp;
     my @a=split(/\t/,$_,-1);
-    if ($nr eq 0){
+    if ($nr == 0){
 	for (my $i=0;$i<scalar(@a);$i++){
 	    $i2name{$i}=$a[$i];
 	    $name2miss{$a[$i]}=0;
 	}
-    }elsif($nr gt 1){
+    }elsif($nr > 1){
 	for (my $i=0;$i<scalar(@a);$i++){
 	    $name2miss{$i2name{$i}}++ if ($a[$i] eq "NA"); 
 	}
