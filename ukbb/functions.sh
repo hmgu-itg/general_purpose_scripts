@@ -1,4 +1,18 @@
 
+# return an associative array with field names as keys
+function getColNames {
+    local fname=$1
+    local cmd=$2
+    local -n arname=$3
+
+    arname=()
+
+    # don't save f.eid, CREATED, RELEASE
+    while read x;do
+	arname+=($x)
+    done < <(eval "$cmd $fname"|head -n 1|perl -lne '$,=" ";@a=split(/\t/,$_,-1);%H=();for ($i=0;$i<scalar(@a);$i++){if ($a[$i]=~/^f\.(\d+)\.\d+\.\d+$/){$H{$1}=1;}}foreach $k (sort {$a <=> $b} keys %H){print $k;}')
+}
+
 # for a given field, return an associative array "column index" --> "column name" for columns with names matching the field
 # 12345 matches f.12345.0.1
 function getCols {

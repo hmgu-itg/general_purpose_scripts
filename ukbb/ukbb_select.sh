@@ -14,13 +14,14 @@ function usage () {
     echo ""
     echo "Usage: ukbb_select.sh -p | --project <project name>"
     echo "                      -r | --release <release>"
+    echo "                      -l | --list-fields <output available fields and exit>"
     echo "                      --majority <comma-separated list of fields>"
     echo "                      --mean <comma-separated list of fields>"
     echo "                      --min-missing <comma-separated list of fields>"
     echo "                      --cc <field,value>"
     echo "                      -o | --output <optional: output prefix; if not specified, output goes to STDOUT>"
     echo "                      -c | --config <optional: config file; default: config.txt in script directory>"
-    echo "                      -n | --names <optional: use trait names as output columns; default: false>"
+    echo "                      -n | --use-names <optional: use trait names as output columns; default: false>"
     echo "                      -h | --help"
     echo ""
     echo "--majority: for each ID output most frequent value across instances/array indexes; useful for categorical variables"
@@ -35,7 +36,7 @@ if [[ $# -eq 0 ]];then
     usage
 fi
 
-OPTS=$(getopt -o hnc:p:r:o: -l help,names,project:,release:,config:,mean:,majority:,min-missing:,cc:,output: -n 'ukbb_select' -- "$@")
+OPTS=$(getopt -o hnlc:p:r:o: -l help,use-names,list-fields,project:,release:,config:,mean:,majority:,min-missing:,cc:,output: -n 'ukbb_select' -- "$@")
 
 if [ $? != 0 ] ; then echo "ERROR: failed parsing options" >&2 ; usage ; exit 1 ; fi
 
@@ -59,10 +60,12 @@ project=""
 release=""
 outfile=""
 use_gzip="NO"
+list_fields="NO"
 while true; do
   case "$1" in
     -h|--help ) usage; shift ;;
-    -n|--names ) usenames="YES"; shift ;;
+    -n|--use-names ) usenames="YES"; shift ;;
+    -l|--list-fields ) list_fields="YES"; shift ;;
     -p|--project ) project=$2; shift 2 ;;
     -r|--release ) release=$2; shift 2 ;;
     -c|--config ) config=$2; shift 2 ;;
@@ -119,6 +122,45 @@ infile="$data_path"/"${available_projects[$project]}"/releases/phenotypes_r"$rel
 eval echo "INFO: using input file $infile" "$sfx"
 exitIfNotFile "$infile" "ERROR: input file $infile does not exist"
 
+fieldID_cn=$(getColNum "$dfile" "FieldID" "cat")
+field_cn=$(getColNum "$dfile" "Field" "cat")
+valtype_cn=$(getColNum "$dfile" "ValueType" "cat")
+ID_cn=$(getColNum "$infile" "f.eid" "zcat")
+
+eval echo "INFO: field ID column in data dictionary: $fieldID_cn" "$sfx"
+eval echo "INFO: field description column in data dictionary: $field_cn" "$sfx"
+eval echo "INFO: value type column in data dictionary: $valtype_cn" "$sfx"
+eval echo "INFO: ID column in $infile: $ID_cn" "$sfx"
+eval echo "" "$sfx"
+
+if [[ "$list_fields" == "YES" ]];then
+    declare -a colnames
+    declare -A h1
+    getColNames "$infile" "zcat" colnames
+    for c in "${colnames[@]}";do
+	n=$(tail -n +2 "$dfile"| awk -v n1=$fieldID_cn -v n2=$field_cn -v n3=$c 'BEGIN{FS=OFS="\t";ret="NA";}$n1==n3{ret=$n2;exit;}END{print ret;}')
+	h1["$c"]="$n"
+    done
+    if [[ ! -z "$outfile" ]];then
+	if [[ "$use_gzip" == "NO" ]];then
+	    for c in "${!h1[@]}";do
+		echo -e "$c\t${h1[$c]}"
+	    done | sort -k1,1n > "$outfile"
+	else
+	    for c in "${!h1[@]}";do
+		echo -e "$c\t${h1[$c]}"
+	    done | sort -k1,1n | gzip - -c > "$outfile"
+	fi
+    else
+	for c in "${!h1[@]}";do
+	    echo -e "$c\t${h1[$c]}"
+	done | sort -k1,1n 
+    fi
+    
+    eval date "+%d-%b-%Y:%H-%M-%S" "$sfx"
+    exit 0
+fi
+
 if [[ "$usenames" == "YES" ]];then
     eval echo "INFO: using human readable field names in output" "$sfx"
 fi
@@ -159,17 +201,6 @@ for x in "${ccargs[@]}";do
 	eval echo 'WARN: specified field \"'"$a"'\" is not an integer\; dropping' "$sfx"
     fi		
 done
-eval echo "" "$sfx"
-
-fieldID_cn=$(getColNum "$dfile" "FieldID" "cat")
-field_cn=$(getColNum "$dfile" "Field" "cat")
-valtype_cn=$(getColNum "$dfile" "ValueType" "cat")
-ID_cn=$(getColNum "$infile" "f.eid" "zcat")
-
-eval echo "INFO: field ID column in data dictionary: $fieldID_cn" "$sfx"
-eval echo "INFO: field description column in data dictionary: $field_cn" "$sfx"
-eval echo "INFO: value type column in data dictionary: $valtype_cn" "$sfx"
-eval echo "INFO: ID column in $infile: $ID_cn" "$sfx"
 eval echo "" "$sfx"
 
 declare -a to_delete

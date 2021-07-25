@@ -1,0 +1,25 @@
+Bootstrap: library
+From: ubuntu:18.04
+
+%environment
+        TZ=Europe/Berlin
+        LC_ALL=C
+        export LC_ALL
+%post
+	apt update
+	apt install -y locales gnupg software-properties-common bc
+	apt-add-repository universe
+	add-apt-repository multiverse
+	apt-get update
+	apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+        add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/'
+	apt install -y software-properties-common python3-pip emacs wget man-db manpages-posix less gawk parallel python3 python2.7 r-base
+	pip3 install pandas argparse numpy
+	cd /usr/local/bin
+	wget http://ftp.gnu.org/gnu/datamash/datamash-1.3.tar.gz && tar -xzf datamash-1.3.tar.gz && cd datamash-1.3 && ./configure && make && make check && make install
+	cd /opt
+	wget https://github.com/harelba/q/releases/download/2.0.19/q-text-as-data_2.0.19-2_amd64.deb
+	dpkg -i q-text-as-data_2.0.19-2_amd64.deb
+	rm q-text-as-data_2.0.19-2_amd64.deb
+	apt-get install -y textql git
+
