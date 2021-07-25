@@ -21,7 +21,7 @@ function usage () {
     echo "                      --cc <field,value>"
     echo "                      -o | --output <optional: output prefix; if not specified, output goes to STDOUT>"
     echo "                      -c | --config <optional: config file; default: config.txt in script directory>"
-    echo "                      -n | --use-names <optional: use trait names as output columns; default: false>"
+    echo "                      -n | --use-names <optional: use trait names in output header; default: false>"
     echo "                      -h | --help"
     echo ""
     echo "--majority: for each ID output most frequent value across instances/array indexes; useful for categorical variables"
@@ -47,10 +47,10 @@ declare -a majorityargs
 declare -a meanargs
 declare -a minnaargs
 
-declare -A ccfields
-declare -A majorityfields
-declare -A meanfields
-declare -A minnafields
+declare -A ccfields # field --> val1,val2,val3,...
+declare -A majorityfields # field --> 1
+declare -A meanfields # field --> 1
+declare -A minnafields # field --> 1
 
 declare -A available_projects
 
@@ -131,8 +131,8 @@ eval echo "INFO: field ID column in data dictionary: $fieldID_cn" "$sfx"
 eval echo "INFO: field description column in data dictionary: $field_cn" "$sfx"
 eval echo "INFO: value type column in data dictionary: $valtype_cn" "$sfx"
 eval echo "INFO: ID column in $infile: $ID_cn" "$sfx"
-eval echo "" "$sfx"
 
+# list fields and exit
 if [[ "$list_fields" == "YES" ]];then
     declare -a colnames
     declare -A h1
@@ -165,9 +165,11 @@ if [[ "$usenames" == "YES" ]];then
     eval echo "INFO: using human readable field names in output" "$sfx"
 fi
 
+# check if input fields are integers
+# and
+# filling *fields associative arrays
 eval echo "" "$sfx"
 eval echo "INFO: checking if input fields are integers" "$sfx"
-
 for name in mean minna majority;do
     declare -n Z=${name}args
     declare -n Y=${name}fields
@@ -192,6 +194,7 @@ for x in "${ccargs[@]}";do
 	else
 	    temp_ar=()
 	    for x in $(echo "$v"|tr ',' ' '); do temp_ar[$x]=1; done
+	    # only add if not already present
 	    z="${temp_ar[$b]}"
 	    if [[ -z "$z" ]];then
 		ccfields[$a]=$v","$b
@@ -203,6 +206,7 @@ for x in "${ccargs[@]}";do
 done
 eval echo "" "$sfx"
 
+# check if input fields are present
 declare -a to_delete
 declare -A ar
 eval echo "INFO: checking if input fields are present in input" "$sfx"
@@ -275,7 +279,7 @@ for f in "${!meanfields[@]}";do
 	eval echo 'WARN: no value type information found for '"$f"'\; dropping' "$sfx"
 	to_delete+=($f)
     else
-	if [[ "$t" != "Continuous" || "$t" != "Integer" ]];then
+	if [[ "$t" != "Continuous" && "$t" != "Integer" ]];then
 	    eval echo 'WARN: '"$f"' has value type \"'"$t"'\"\; for the mean rule it needs to be \"Continuous\" or \"Integer\"\; dropping' "$sfx"
 	    to_delete+=($f)
 	fi
@@ -287,6 +291,52 @@ done
 to_delete=()
 eval echo "" "$sfx"
 
+# ----------------------------------------------------------------------
+# reporting
+
+if [[ "${#ccfields[@]}" -eq 0 && "${#meanfields[@]}" -eq 0 && "${#majorityfields[@]}" -eq 0 && "${#minnafields[@]}" -eq 0 ]];then
+    eval echo 'INFO: no fields left to process; exit' "$sfx"
+    eval echo "" "$sfx"
+    eval date "+%d-%b-%Y:%H-%M-%S" "$sfx"
+    exit 0
+fi
+
+if [[ "${#ccfields[@]}" -ne 0 ]];then
+    eval echo 'INFO: selecting case/control fields:' "$sfx"
+    for f in "${!ccfields[@]}";do
+	v="${ccfields[$f]}"
+	eval echo "$f : values $v" "$sfx"
+    done
+    eval echo "" "$sfx"
+fi
+
+if [[ "${#meanfields[@]}" -ne 0 ]];then
+    eval echo 'INFO: selecting mean value fields:' "$sfx"
+    for f in "${!meanfields[@]}";do
+	eval echo "$f" "$sfx"
+    done
+    eval echo "" "$sfx"
+fi
+
+if [[ "${#majorityfields[@]}" -ne 0 ]];then
+    eval echo 'INFO: selecting majority rule fields:' "$sfx"
+    for f in "${!majorityfields[@]}";do
+	eval echo "$f" "$sfx"
+    done
+    eval echo "" "$sfx"
+fi
+
+if [[ "${#minnafields[@]}" -ne 0 ]];then
+    eval echo 'INFO: selecting min NA fields:' "$sfx"
+    for f in "${!minnafields[@]}";do
+	eval echo "$f" "$sfx"
+    done
+    eval echo "" "$sfx"
+fi
+
+# ----------------------------------------------------------------------
+
+# selecting
 outdir=$(dirname "$outfile")
 tmpdir=$(mktemp -d -p "$outdir" tempdir_select_XXXXXXXX)
 if [[ $? -ne 0 ]];then
@@ -304,6 +354,7 @@ for f in "${!majorityfields[@]}";do
 	    colname="${fdesc[$f]}"
 	fi
     fi
+    colname="$colname (majority)"
     echo -e "f.eid\t$colname" > "$tmpdir"/majority_"$f"
     paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$str"|tail -n +3)|"$collapsescript" majority >> "$tmpdir"/majority_"$f"
 done
@@ -318,6 +369,7 @@ for f in "${!meanfields[@]}";do
 	    colname="$d"
 	fi
     fi
+    colname="$colname (mean)"
     echo -e "f.eid\t$colname" > "$tmpdir"/mean_"$f"
     paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$str"|tail -n +3)|"$collapsescript" mean >> "$tmpdir"/mean_"$f"
 done
@@ -333,7 +385,8 @@ for f in "${!ccfields[@]}";do
 	    if [[ ! -z "$d" ]];then
 		colname="$d:${v}"
 	    fi
-	fi    
+	fi
+	colname="$colname (case/control)"
 	echo -e "f.eid\t$colname" > "$tmpdir"/cc_"${f}"_"${v}"
 	paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$str"|tail -n +3)|"$collapsescript" cc ${v} >> "$tmpdir"/cc_"${f}"_"${v}"
     done
@@ -356,7 +409,8 @@ for f in "${!minnafields[@]}";do
 	if [[ ! -z "$d" ]];then
 	    colname="$d"
 	fi
-    fi    
+    fi
+    colname="$colname (min NA)"
     echo -e "f.eid\t$colname" > "$tmpdir"/minna_"$f"
     n=$(getColNum "$infile" "${f1}" "zcat")
     paste <(zcat "$infile"|cut -f "$ID_cn"|tail -n +3) <(zcat "$infile"|cut -f "$n"|tail -n +3) >> "$tmpdir"/minna_"$f"
