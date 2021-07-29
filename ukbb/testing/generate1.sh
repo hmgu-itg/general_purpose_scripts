@@ -6,6 +6,7 @@ source "${upperdir}/functions.sh"
 
 outname1=$1
 outname2=$2
+outname3=$3
 
 declare -ir max_arrays=10
 declare -ir max_visits=10
@@ -15,6 +16,8 @@ declare -a icd10codes
 declare -a icd9codes
 declare -ir out_opcodes=50
 declare -r nsamples=1000
+declare -ir out_icd9codes=20
+declare -ir out_icd10codes=100
 
 # perl -e 'sub F{my $l=shift;my @a=("AND","OR");my $p=rand(2);return "x ".$a[$p]." x" if $l==5;my $x1=F($l+1);my $x2=F($l+1);return "(".$x1.") ".$a[$p]." (".$x2.")";} print F(1)."\n";'
 
@@ -46,6 +49,7 @@ icd9codes_str=$(join_by , "${icd9codes[@]}")
 op_sz="${#opcodes[@]}"
 sz2="${#expressions[@]}"
 
+# opcode expressions
 for (( i=0; i<$out_opcodes; i++ ));do
     x=$((RANDOM%10))
     if [[ $x -lt 5 ]];then
@@ -59,6 +63,7 @@ for (( i=0; i<$out_opcodes; i++ ));do
     fi
 done|sort|uniq > "${outname1}"
 
+# main part
 declare -a temp1
 declare -a temp2
 declare -a temp3
@@ -96,5 +101,14 @@ for i in $(seq -w 1 $nsamples);do
 	done
     done
 done|tr ' ' '\t' >> "${outname2}"
+
+# ICD codes
+: > "$outname3"
+while read x;do
+    echo "TRAIT" "ICD10" "$x"| tr ' ' '\t' >> "$outname3"
+done < <(echo "$icd9codes_str"|tr ',' '\n'|shuf -n $((out_icd10codes+1)))
+while read x;do
+    echo "TRAIT" "ICD9" "$x"| tr ' ' '\t' >> "$outname3"
+done < <(echo "$icd9codes_str"|tr ',' '\n'|shuf -n $((out_icd9codes+1)))
 
 exit 0
