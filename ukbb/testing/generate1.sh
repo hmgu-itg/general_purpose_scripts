@@ -4,9 +4,10 @@ scriptdir=$(dirname $(readlink -f $0))
 upperdir=$(dirname $scriptdir)
 source "${upperdir}/functions.sh"
 
-outname1=$1
-outname2=$2
-outname3=$3
+nsamples=$1
+outname1=$2
+outname2=$3
+outname3=$4
 
 declare -ir max_arrays=10
 declare -ir max_visits=10
@@ -15,9 +16,10 @@ declare -a opcodes
 declare -a icd10codes
 declare -a icd9codes
 declare -ir out_opcodes=50
-declare -r nsamples=1000
 declare -ir out_icd9codes=20
 declare -ir out_icd10codes=100
+declare -ir ncases=200
+declare -ir n2cases=50
 
 # perl -e 'sub F{my $l=shift;my @a=("AND","OR");my $p=rand(2);return "x ".$a[$p]." x" if $l==5;my $x1=F($l+1);my $x2=F($l+1);return "(".$x1.") ".$a[$p]." (".$x2.")";} print F(1)."\n";'
 
@@ -47,26 +49,55 @@ done
 icd9codes_str=$(join_by , "${icd9codes[@]}")
 
 op_sz="${#opcodes[@]}"
+icd9_sz="${#icd9codes[@]}"
+icd10_sz="${#icd10codes[@]}"
 sz2="${#expressions[@]}"
 
+declare -A selected_cases
+declare -A selected2_cases
+while read s;do
+    selected_cases[$s]=1
+done < <(seq -w 1 $nsamples|shuf -n $ncases)
+while read s;do
+    selected2_cases[$s]=1
+done < <(echo $(join_by , "${!selected_cases[@]}")|tr ',' '\n'|shuf -n $n2cases)
+
+date "+%d-%b-%Y:%H-%M-%S"
+# ICD codes
+declare -A selected_icd9
+declare -A selected_icd10
+: > "$outname3"
+while read x;do
+    selected_icd10["$x"]=1
+    echo "TRAIT" "ICD10" "$x"| tr ' ' '\t' >> "$outname3"
+done < <(echo "$icd9codes_str"|tr ',' '\n'|shuf -n $((out_icd10codes)))
+while read x;do
+    selected_icd9["$x"]=1
+    echo "TRAIT" "ICD9" "$x"| tr ' ' '\t' >> "$outname3"
+done < <(echo "$icd9codes_str"|tr ',' '\n'|shuf -n $((out_icd9codes)))
+echo "ICD done"
+date "+%d-%b-%Y:%H-%M-%S"
+
+declare -A selected_opcodes
 # opcode expressions
 for (( i=0; i<$out_opcodes; i++ ));do
     x=$((RANDOM%10))
     if [[ $x -lt 5 ]];then
 	z=$((RANDOM%op_sz))
+	selected_opcodes["${opcodes[$z]}"]=1
 	echo "${opcodes[$z]}"
     else
 	z=$((RANDOM%sz2))
 	y=$(echo "${expressions[$z]}" |sed 's/[^X]//g' | awk '{print length;}')
 	str=$(for c in "${opcodes[@]}";do echo $c;done|shuf -n $y|tr '\n' ','|sed 's/,$//')
-	echo $(perl -se 'foreach $x (split(/,/,$b,-1)){$a=~s/X/$x/;}print $a."\n";' -- -a="${expressions[$z]}" -b="$str")
+	s=$(perl -se 'foreach $x (split(/,/,$b,-1)){$a=~s/X/$x/;}print $a."\n";' -- -a="${expressions[$z]}" -b="$str")
+	selected_opcodes["$s"]=1
+	echo $s
     fi
 done|sort|uniq > "${outname1}"
+echo "expressions done"
+date "+%d-%b-%Y:%H-%M-%S" 
 
-# main part
-declare -a temp1
-declare -a temp2
-declare -a temp3
 # either ICD9 or ICD10, not both
 echo -e "ID\tVISIT\tARRAY\tOPCODE\tICD9\tICD10" > "${outname2}"
 for i in $(seq -w 1 $nsamples);do
@@ -75,40 +106,25 @@ for i in $(seq -w 1 $nsamples);do
     p=$((RANDOM%100))
     
     for j in $(seq 0 $n_visits);do
-	temp1=()
-	temp2=()
-	temp3=()
-	while read x;do
-	    temp1+=($x)
-	done < <(echo "$opcodes_str"|tr ',' '\n'|shuf -n $((n_arrays+1)))
+	k=0
 	if [[ $p -lt 10 ]];then
-	    while read x;do
-		temp2+=($x)
-	    done < <(echo "$icd9codes_str"|tr ',' '\n'|shuf -n $((n_arrays+1)))
-	    while read x;do
-		temp3+=($x)
-	    done < <(yes "NA"|head -n $((n_arrays+1)))
+	    while read a b;do
+#		echo $i $j $k "${opcodes[$a]}" "${icd9codes[$b]}" "NA"
+		echo $i $j $k $a $b "NA"
+		k=$((k+1))
+#	    done < <(paste -d ' ' <(seq 0 $((op_sz-1))|shuf -n $((n_arrays+1))) <(seq 0 $((icd9_sz-1))|shuf -n $((n_arrays+1))))
+	    done < <(paste -d ' ' <(echo $opcodes_str|tr ',' '\n'|shuf -n $((n_arrays+1))) <(echo $icd9codes_str|tr ',' '\n'|shuf -n $((n_arrays+1))))
 	else
-	    while read x;do
-		temp3+=($x)
-	    done < <(echo "$icd10codes_str"|tr ',' '\n'|shuf -n $((n_arrays+1)))
-	    while read x;do
-		temp2+=($x)
-	    done < <(yes "NA"|head -n $((n_arrays+1)))
-	fi	
-	for k in $(seq 0 $n_arrays);do
-	    echo $i $j $k "${temp1[$k]}" "${temp2[$k]}" "${temp3[$k]}"
-	done
+	    while read a b;do
+#		echo $i $j $k "${opcodes[$a]}" "NA" "${icd10codes[$b]}"
+		echo $i $j $k $a "NA" $b
+		k=$((k+1))
+#	    done < <(paste -d ' ' <(seq 0 $((op_sz-1))|shuf -n $((n_arrays+1))) <(seq 0 $((icd10_sz-1))|shuf -n $((n_arrays+1))))
+	    done < <(paste -d ' ' <(echo $opcodes_str|tr ',' '\n'|shuf -n $((n_arrays+1))) <(echo $icd10codes_str|tr ',' '\n'|shuf -n $((n_arrays+1))))
+	fi
     done
 done|tr ' ' '\t' >> "${outname2}"
-
-# ICD codes
-: > "$outname3"
-while read x;do
-    echo "TRAIT" "ICD10" "$x"| tr ' ' '\t' >> "$outname3"
-done < <(echo "$icd9codes_str"|tr ',' '\n'|shuf -n $((out_icd10codes+1)))
-while read x;do
-    echo "TRAIT" "ICD9" "$x"| tr ' ' '\t' >> "$outname3"
-done < <(echo "$icd9codes_str"|tr ',' '\n'|shuf -n $((out_icd9codes+1)))
+echo "main done"
+date "+%d-%b-%Y:%H-%M-%S"
 
 exit 0

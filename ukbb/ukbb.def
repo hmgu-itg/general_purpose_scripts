@@ -5,6 +5,10 @@ From: ubuntu:18.04
         TZ=Europe/Berlin
         LC_ALL=C
         export LC_ALL
+	PERL_MM_USE_DEFAULT=1
+        export PERL_MM_USE_DEFAULT
+        PERL_EXTUTILS_AUTOINSTALL="--defaultdeps"
+        export PERL_EXTUTILS_AUTOINSTALL
 %post
 	apt update
 	apt install -y locales gnupg software-properties-common bc
@@ -22,4 +26,5 @@ From: ubuntu:18.04
 	dpkg -i q-text-as-data_2.0.19-2_amd64.deb
 	rm q-text-as-data_2.0.19-2_amd64.deb
 	apt-get install -y textql git
+	perl -MCPAN -e 'foreach (@ARGV) { CPAN::Shell->rematein("notest", "install", $_) }' Algorithm::Combinatorics
 
