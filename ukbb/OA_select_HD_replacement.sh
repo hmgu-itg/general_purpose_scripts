@@ -13,11 +13,11 @@ function usage () {
     echo ""
     echo "Script for selecting hospital diagnosed OA knee/hip replacement cases from a HESIN release"
     echo ""
-    echo "Usage: ukbb_select.sh -r | --release <release of the HESIN dataset>"
-    echo "                      -k | --key <one of: THR, TKR, TJR>"
-    echo "                      -o | --output <output prefix>"
-    echo "                      -c | --config <optional: config file; default: config.txt in script directory>"
-    echo "                      -h | --help"
+    echo "Usage: OA_select_HD_replacement.sh -r | --release <release of the HESIN dataset>"
+    echo "                                   -k | --key <one of: THR, TKR, TJR>"
+    echo "                                   -o | --output <output prefix>"
+    echo "                                   -c | --config <optional: config file; default: config.txt in script directory>"
+    echo "                                   -h | --help"
     echo ""
     exit 0
 }
