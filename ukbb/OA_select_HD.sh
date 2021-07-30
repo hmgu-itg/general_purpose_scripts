@@ -13,7 +13,7 @@ function usage () {
     echo ""
     echo "Usage: ukbb_select.sh -r | --release <release of the HESIN dataset>"
     echo "                      -k | --key <one of: FingerOA, HandOA, HipKneeOA, HipOA, KneeOA, OA, SpineOA, ThumbOA>"
-    echo "                      -o | --output <output prefix>"
+    echo "                      -o | --output <output prefix; if not specified, output goes to STDOUT>"
     echo "                      -c | --config <optional: config file; default: config.txt in script directory>"
     echo "                      -h | --help"
     echo ""
@@ -50,12 +50,8 @@ while true; do
 done
 
 exitIfEmpty "$key" "ERROR: key not specified"
-exitIfEmpty "${keys[$key]}" "ERROR: wrong key $key"
-outfile="${outprefix}".txt.gz
-logfile="${outprefix}".log
-exitIfExists "$outfile" "ERROR: output file $outfile already exists"
+exitIfEmpty "${keys[$key]}" "ERROR: invalid key $key"
 exitIfEmpty "$release" "ERROR: release not specified"
-exitIfEmpty "$outprefix" "ERROR: output prefix not specified"
 if [[ -z "$config" ]];then
     config="${scriptdir}"/config.txt
 fi
@@ -88,30 +84,38 @@ fi
 
 #----------------------------------------------------------------------------------------------------------------
 
-: > "$logfile"
+if [[ ! -z "$outprefix" ]];then
+    logfile="$outprefix".log
+    outfile="$outprefix".txt.gz
+    exitIfExists "$outfile" "ERROR: output file $outfile already exists"
+    : > "$logfile"
+    sfx="|tee -a $logfile"
+else
+    sfx="1>&2"
+fi
 
-date "+%d-%b-%Y:%H-%M-%S" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
-echo "Current dir: ${PWD}" | tee -a "$logfile"
-echo "Command line: $scriptname ${args[@]}" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
+eval date "+%d-%b-%Y:%H-%M-%S" "$sfx"
+eval echo "" "$sfx"
+eval echo "Current dir: ${PWD}" "$sfx"
+eval echo "Command line: $scriptname ${args[@]}" "$sfx"
+eval echo "" "$sfx"
 
-echo "INFO: release: $release" | tee -a "$logfile"
-echo "INFO: key: $key" | tee -a "$logfile"
-echo "INFO: input file: $infile" | tee -a "$logfile"
-echo "INFO: output prefix: $outprefix" | tee -a "$logfile"
-echo "INFO: output file: $outfile" | tee -a "$logfile"
-echo "INFO: ICD codes: $icd_codes_file" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
+eval echo "INFO: release: $release" "$sfx"
+eval echo "INFO: key: $key" "$sfx"
+eval echo "INFO: input file: $infile" "$sfx"
+eval echo "INFO: output prefix: $outprefix" "$sfx"
+eval echo "INFO: output file: $outfile" "$sfx"
+eval echo "INFO: ICD codes: $icd_codes_file" "$sfx"
+eval echo "" "$sfx"
 
 icd9_cn=$(getTGZColNum "${infile}" "hesin_diag.txt" "diag_icd9")
 icd10_cn=$(getTGZColNum "${infile}" "hesin_diag.txt" "diag_icd10")
 eid_cn=$(getTGZColNum "${infile}" "hesin_diag.txt" "eid")
 
-echo "INFO: eid column: ${eid_cn}" | tee -a "$logfile"
-echo "INFO: icd9 column: ${icd9_cn}" | tee -a "$logfile"
-echo "INFO: icd10 column: ${icd10_cn}" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
+eval echo "INFO: eid column: ${eid_cn}" "$sfx"
+eval echo "INFO: icd9 column: ${icd9_cn}" "$sfx"
+eval echo "INFO: icd10 column: ${icd10_cn}" "$sfx"
+eval echo "" "$sfx"
 
 indexes=("${icd9_cn}" "${eid_cn}")
 readarray -t sorted < <(for a in "${indexes[@]}"; do echo "$a"; done | sort -n)
@@ -123,21 +127,25 @@ readarray -t sorted < <(for a in "${indexes[@]}"; do echo "$a"; done | sort -n)
 new_eid2=$(getArrayIndex "${eid_cn}" "${sorted[@]}")
 new_icd10=$(getArrayIndex "${icd10_cn}" "${sorted[@]}")
 
-echo "INFO: new eid column: ${new_eid1}" | tee -a "$logfile"
-echo "INFO: new icd9 column: ${new_icd9}" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
-echo "INFO: new eid column: ${new_eid2}" | tee -a "$logfile"
-echo "INFO: new icd10 column: ${new_icd10}" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
+eval echo "INFO: new eid column: ${new_eid1}" "$sfx"
+eval echo "INFO: new icd9 column: ${new_icd9}" "$sfx"
+eval echo "" "$sfx"
+eval echo "INFO: new eid column: ${new_eid2}" "$sfx"
+eval echo "INFO: new icd10 column: ${new_icd10}" "$sfx"
+eval echo "" "$sfx"
 
 #----------------------------------------------------------------------------------------------------------------
 
 grep -v "^#" "$icd_codes_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}' > "$tmp_icd9"
 grep -v "^#" "$icd_codes_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}' > "$tmp_icd10"
 
-cat <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd9_cn}"|datamash -s -g "${new_eid1}" collapse "$new_icd9"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_icd9" 1) <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd10_cn}"|datamash -s -g "${new_eid2}" collapse "$new_icd10"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_icd10" 1) | sort | uniq | gzip - -c > "${outfile}"
+if [[ -z "${outfile}" ]];then
+    cat <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd9_cn}"|datamash -s -g "${new_eid1}" collapse "$new_icd9"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_icd9" 1) <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd10_cn}"|datamash -s -g "${new_eid2}" collapse "$new_icd10"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_icd10" 1) | sort | uniq
+else
+    cat <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd9_cn}"|datamash -s -g "${new_eid1}" collapse "$new_icd9"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_icd9" 1) <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd10_cn}"|datamash -s -g "${new_eid2}" collapse "$new_icd10"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_icd10" 1) | sort | uniq | gzip - -c > "${outfile}"
+fi
 
-date "+%d-%b-%Y:%H-%M-%S" | tee -a "$logfile"
+eval date "+%d-%b-%Y:%H-%M-%S" "$sfx"
 
 rm "$tmp_icd9" "$tmp_icd10"
 
