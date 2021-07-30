@@ -37,6 +37,7 @@ config=""
 release=""
 outprefix=""
 key=""
+outfile=""
 while true; do
   case "$1" in
     -h|--help ) usage; shift ;;

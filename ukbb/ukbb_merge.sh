@@ -5,7 +5,7 @@
 scriptname=$0
 args=("$@")
 
-# help folrmatting
+# help formatting
 bold=$(tput bold)
 underlined=$(tput smul)
 normal=$(tput sgr0)
