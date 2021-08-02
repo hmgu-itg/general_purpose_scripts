@@ -6,7 +6,7 @@ args=("$@")
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
 collapsescript="${scriptdir}/collapseFields.pl"
-collectstats3="${scriptdir}/collectStats3.pl"
+collectstats3="${scriptdir}/collectStats.pl"
 
 function usage () {
     echo ""

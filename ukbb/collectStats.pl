@@ -1,6 +1,7 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl -w
 
 # two header lines in each chunk
+# gathers numbers of NAs in input columns
 
 use strict;
 
