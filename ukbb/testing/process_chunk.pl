@@ -20,7 +20,7 @@ my $icd9_str=$ARGV[2];
 my $icd10_str=$ARGV[3];
 my $opcodes_str=$ARGV[4];
 
-my (%case1,%case2,%sicd9,%sicd10,%ICD9,%ICD10,%OP,%fullOP,%sop);
+my (%case1,%case2,%sicd9,%sicd10,%ICD9,%ICD10,%fullICD9,%fullICD10,%OP,%fullOP,%sop);
 
 $case1{$_}=1 for (split(/,/,$case1_str,-1));
 $case2{$_}=1 for (split(/,/,$case2_str,-1));
@@ -32,6 +32,7 @@ for my $x ("A" .. "B"){
     for my $i (0 .. 999){
 	my $z=$x.sprintf("%03d",$i);
 	$OP{$z}=1 if (!defined($sop{$z}));
+	$fullOP{$z}=1;
     }
 }
 
@@ -39,7 +40,7 @@ for my $x ("K" .. "N"){
     for my $i (0 .. 99){
 	my $z=$x.sprintf("%02d",$i);
 	$ICD10{$z}=1 if (!defined($sicd10{$z}));
-	$fullOP{$z}=1;
+	$fullICD10{$z}=1;
     }
 }
 
@@ -47,6 +48,7 @@ for my $x ("Q" .. "T"){
     for my $i (0 .. 99){
 	my $z=$x.sprintf("%02d",$i);
 	$ICD9{$z}=1 if (!defined($sicd9{$z}));
+	$fullICD9{$z}=1;
     }
 }
 
@@ -54,7 +56,7 @@ my @code=();
 foreach my $x (keys %sop){
     $x=~s/or/||/ig;
     $x=~s/and/&&/ig;
-    $x=~s/([a-zA-Z\d]+)/defined\(\$r->\{\1\}\)/g;
+    $x=~s/([a-zA-Z\d]+)/defined\(\$r->\{$1\}\)/g;
     push @code, "(".$x.")";
 }
 my $exs=join(" || ",@code);
@@ -72,26 +74,47 @@ while(<STDIN>){
 	$hr=\%ICD9;
 	$icd9=1;
     }
+    my $selected_icd9=(keys %sicd9)[rand keys %sicd9];
+    my $selected_icd10=(keys %sicd10)[rand keys %sicd10];
     
-    if (defined($case1{$ID})){
+    if (defined($case2{$ID})){
+	# case2: subset of case1
 
     }
-    elsif(defined($case2{$ID})){
-
+    elsif(defined($case1{$ID})){
+	for (my $i=0;$i<=$inst;$i++){
+	    for (my $j=0;$j<=$arrays;$j++){
+		if ($i==0 && $j==0){
+		    if ($icd9){
+			print $ID,$i,$j,$selected_icd9,"NA",(keys %OP)[rand keys %OP],"1";
+		    }
+		    else{
+			print $ID,$i,$j,"NA",$selected_icd10,(keys %OP)[rand keys %OP],"1";
+		    }
+		    next;
+		}
+		
+		if ($icd9){
+		    print $ID,$i,$j,(keys %fullICD9)[rand keys %fullICD9],"NA",(keys %OP)[rand keys %OP],"1";
+		}
+		else{
+		    print $ID,$i,$j,"NA",(keys %fullICD10)[rand keys %fullICD10],(keys %OP)[rand keys %OP],"1";
+		}
+	    }
+	}
 
     }
     else{
 	for (my $i=0;$i<=$inst;$i++){
 	    for (my $j=0;$j<=$arrays;$j++){
 		if ($icd9){
-		    print $ID,$i,$j,(keys %$hr)[rand keys %$hr],"NA",(keys %fullOP)[rand keys %fullOP];
+		    print $ID,$i,$j,(keys %$hr)[rand keys %$hr],"NA",(keys %fullOP)[rand keys %fullOP],"0";
 		}
 		else{
-		    print $ID,$i,$j,"NA",(keys %$hr)[rand keys %$hr],(keys %fullOP)[rand keys %fullOP];
+		    print $ID,$i,$j,"NA",(keys %$hr)[rand keys %$hr],(keys %fullOP)[rand keys %fullOP],"0";
 		}
 	    }
 	}
-
     }
 }
 

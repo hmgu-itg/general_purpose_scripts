@@ -3,6 +3,7 @@
 scriptdir=$(dirname $(readlink -f $0))
 upperdir=$(dirname $scriptdir)
 source "${upperdir}/functions.sh"
+scriptname="${scriptdir}/process_chunk.pl"
 
 nsamples=$1
 outname1=$2
@@ -86,7 +87,6 @@ for (( i=0; i<$out_opcodes; i++ ));do
 	z=$((RANDOM%op_sz))
 	if [[ -z "${selected_opcodes[${opcodes[$z]}]}" ]];then
 	    selected_opcodes["${opcodes[$z]}"]=1
-	    echo "${opcodes[$z]}"
 	fi
     else
 	z=$((RANDOM%sz2))
@@ -95,39 +95,50 @@ for (( i=0; i<$out_opcodes; i++ ));do
 	s=$(perl -se 'foreach $x (split(/,/,$b,-1)){$a=~s/X/$x/;}print $a."\n";' -- -a="${expressions[$z]}" -b="$str")
 	if [[ -z "${selected_opcodes[$s]}" ]];then
 	    selected_opcodes["$s"]=1
-	    echo $s
 	fi
     fi
-done|sort|uniq > "${outname1}"
+done
+for x in "${!selected_opcodes[@]}";do
+    echo $x
+done > "${outname1}"
 echo "expressions done"
-date "+%d-%b-%Y:%H-%M-%S" 
+date "+%d-%b-%Y:%H-%M-%S"
+
+echo "CASES:" $(join_by , "${!selected_cases[@]}")
+echo "CASES2:" $(join_by , "${!selected2_cases[@]}")
+echo "ICD9:" $(join_by , "${!selected_icd9[@]}")
+echo "ICD10:" $(join_by , "${!selected_icd10[@]}")
+echo "OPCODES:" $(join_by , "${!selected_opcodes[@]}")
+
+seq -w 1 $nsamples | "$scriptname" $(join_by , "${!selected_cases[@]}") $(join_by , "${!selected2_cases[@]}") $(join_by , "${!selected_icd9[@]}") $(join_by , "${!selected_icd10[@]}") $(join_by , "${!selected_opcodes[@]}") > "$outname2"
 
 # either ICD9 or ICD10, not both
-echo -e "ID\tVISIT\tARRAY\tOPCODE\tICD9\tICD10" > "${outname2}"
-for i in $(seq -w 1 $nsamples);do
-    n_visits=$((RANDOM%max_visits))
-    n_arrays=$((RANDOM%max_arrays))
-    p=$((RANDOM%100))
+# echo -e "ID\tVISIT\tARRAY\tOPCODE\tICD9\tICD10" > "${outname2}"
+# for i in $(seq -w 1 $nsamples);do
+#     n_visits=$((RANDOM%max_visits))
+#     n_arrays=$((RANDOM%max_arrays))
+#     p=$((RANDOM%100))
     
-    for j in $(seq 0 $n_visits);do
-	k=0
-	if [[ $p -lt 10 ]];then
-	    while read a b;do
-#		echo $i $j $k "${opcodes[$a]}" "${icd9codes[$b]}" "NA"
-		echo $i $j $k $a $b "NA"
-		k=$((k+1))
-#	    done < <(paste -d ' ' <(seq 0 $((op_sz-1))|shuf -n $((n_arrays+1))) <(seq 0 $((icd9_sz-1))|shuf -n $((n_arrays+1))))
-	    done < <(paste -d ' ' <(echo $opcodes_str|tr ',' '\n'|shuf -n $((n_arrays+1))) <(echo $icd9codes_str|tr ',' '\n'|shuf -n $((n_arrays+1))))
-	else
-	    while read a b;do
-#		echo $i $j $k "${opcodes[$a]}" "NA" "${icd10codes[$b]}"
-		echo $i $j $k $a "NA" $b
-		k=$((k+1))
-#	    done < <(paste -d ' ' <(seq 0 $((op_sz-1))|shuf -n $((n_arrays+1))) <(seq 0 $((icd10_sz-1))|shuf -n $((n_arrays+1))))
-	    done < <(paste -d ' ' <(echo $opcodes_str|tr ',' '\n'|shuf -n $((n_arrays+1))) <(echo $icd10codes_str|tr ',' '\n'|shuf -n $((n_arrays+1))))
-	fi
-    done
-done|tr ' ' '\t' >> "${outname2}"
+#     for j in $(seq 0 $n_visits);do
+# 	k=0
+# 	if [[ $p -lt 10 ]];then
+# 	    while read a b;do
+# #		echo $i $j $k "${opcodes[$a]}" "${icd9codes[$b]}" "NA"
+# 		echo $i $j $k $a $b "NA"
+# 		k=$((k+1))
+# #	    done < <(paste -d ' ' <(seq 0 $((op_sz-1))|shuf -n $((n_arrays+1))) <(seq 0 $((icd9_sz-1))|shuf -n $((n_arrays+1))))
+# 	    done < <(paste -d ' ' <(echo $opcodes_str|tr ',' '\n'|shuf -n $((n_arrays+1))) <(echo $icd9codes_str|tr ',' '\n'|shuf -n $((n_arrays+1))))
+# 	else
+# 	    while read a b;do
+# #		echo $i $j $k "${opcodes[$a]}" "NA" "${icd10codes[$b]}"
+# 		echo $i $j $k $a "NA" $b
+# 		k=$((k+1))
+# #	    done < <(paste -d ' ' <(seq 0 $((op_sz-1))|shuf -n $((n_arrays+1))) <(seq 0 $((icd10_sz-1))|shuf -n $((n_arrays+1))))
+# 	    done < <(paste -d ' ' <(echo $opcodes_str|tr ',' '\n'|shuf -n $((n_arrays+1))) <(echo $icd10codes_str|tr ',' '\n'|shuf -n $((n_arrays+1))))
+# 	fi
+#     done
+# done|tr ' ' '\t' >> "${outname2}"
+
 echo "main done"
 date "+%d-%b-%Y:%H-%M-%S"
 
