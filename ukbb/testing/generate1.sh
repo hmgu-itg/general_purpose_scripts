@@ -104,40 +104,15 @@ done > "${outname1}"
 echo "expressions done"
 date "+%d-%b-%Y:%H-%M-%S"
 
-echo "CASES:" $(join_by , "${!selected_cases[@]}")
-echo "CASES2:" $(join_by , "${!selected2_cases[@]}")
-echo "ICD9:" $(join_by , "${!selected_icd9[@]}")
-echo "ICD10:" $(join_by , "${!selected_icd10[@]}")
-echo "OPCODES:" $(join_by , "${!selected_opcodes[@]}")
+# echo "CASES:" $(join_by , "${!selected_cases[@]}")
+# echo "CASES2:" $(join_by , "${!selected2_cases[@]}")
+# echo "ICD9:" $(join_by , "${!selected_icd9[@]}")
+# echo "ICD10:" $(join_by , "${!selected_icd10[@]}")
+# echo "OPCODES:" $(join_by , "${!selected_opcodes[@]}")
 
-seq -w 1 $nsamples | "$scriptname" $(join_by , "${!selected_cases[@]}") $(join_by , "${!selected2_cases[@]}") $(join_by , "${!selected_icd9[@]}") $(join_by , "${!selected_icd10[@]}") $(join_by , "${!selected_opcodes[@]}") > "$outname2"
+opc=$(echo $(join_by , "${!selected_opcodes[@]}")|tr ' ()' '_:?')
 
-# either ICD9 or ICD10, not both
-# echo -e "ID\tVISIT\tARRAY\tOPCODE\tICD9\tICD10" > "${outname2}"
-# for i in $(seq -w 1 $nsamples);do
-#     n_visits=$((RANDOM%max_visits))
-#     n_arrays=$((RANDOM%max_arrays))
-#     p=$((RANDOM%100))
-    
-#     for j in $(seq 0 $n_visits);do
-# 	k=0
-# 	if [[ $p -lt 10 ]];then
-# 	    while read a b;do
-# #		echo $i $j $k "${opcodes[$a]}" "${icd9codes[$b]}" "NA"
-# 		echo $i $j $k $a $b "NA"
-# 		k=$((k+1))
-# #	    done < <(paste -d ' ' <(seq 0 $((op_sz-1))|shuf -n $((n_arrays+1))) <(seq 0 $((icd9_sz-1))|shuf -n $((n_arrays+1))))
-# 	    done < <(paste -d ' ' <(echo $opcodes_str|tr ',' '\n'|shuf -n $((n_arrays+1))) <(echo $icd9codes_str|tr ',' '\n'|shuf -n $((n_arrays+1))))
-# 	else
-# 	    while read a b;do
-# #		echo $i $j $k "${opcodes[$a]}" "NA" "${icd10codes[$b]}"
-# 		echo $i $j $k $a "NA" $b
-# 		k=$((k+1))
-# #	    done < <(paste -d ' ' <(seq 0 $((op_sz-1))|shuf -n $((n_arrays+1))) <(seq 0 $((icd10_sz-1))|shuf -n $((n_arrays+1))))
-# 	    done < <(paste -d ' ' <(echo $opcodes_str|tr ',' '\n'|shuf -n $((n_arrays+1))) <(echo $icd10codes_str|tr ',' '\n'|shuf -n $((n_arrays+1))))
-# 	fi
-#     done
-# done|tr ' ' '\t' >> "${outname2}"
+seq -w 1 $nsamples | parallel --pipe --block 1M -N1000 "$scriptname" $(join_by , "${!selected_cases[@]}") $(join_by , "${!selected2_cases[@]}") $(join_by , "${!selected_icd9[@]}") $(join_by , "${!selected_icd10[@]}") "$opc" > "$outname2"
 
 echo "main done"
 date "+%d-%b-%Y:%H-%M-%S"

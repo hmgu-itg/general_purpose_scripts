@@ -11,6 +11,16 @@ sub checkF{
     eval $expr_str;
 }
 
+sub getSingleKey{
+    my $r=shift;
+    my $x=(keys %$r)[rand keys %$r];
+    while($x=~/\s/){
+	$x=(keys %$r)[rand keys %$r];
+    }
+
+    return $x;
+}
+
 my $max_visits=10;
 my $max_arrays=10;
 
@@ -26,7 +36,10 @@ $case1{$_}=1 for (split(/,/,$case1_str,-1));
 $case2{$_}=1 for (split(/,/,$case2_str,-1));
 $sicd9{$_}=1 for (split(/,/,$icd9_str,-1));
 $sicd10{$_}=1 for (split(/,/,$icd10_str,-1));
-$sop{$_}=1 for (split(/,/,$opcodes_str,-1));
+for my $x (split(/,/,$opcodes_str,-1)){
+    $x=~tr/_:?/ ()/;
+    $sop{$x}=1;
+}
 
 for my $x ("A" .. "B"){
     for my $i (0 .. 999){
@@ -79,7 +92,27 @@ while(<STDIN>){
     
     if (defined($case2{$ID})){
 	# case2: subset of case1
+	for (my $i=0;$i<=$inst;$i++){
+	    for (my $j=0;$j<=$arrays;$j++){
+		if ($i==0 && $j==0){
+		    my $z=getSingleKey(\%sop);
+		    if ($icd9){
+			print $ID,$i,$j,$selected_icd9,"NA",$z,"2";
+		    }
+		    else{
+			print $ID,$i,$j,"NA",$selected_icd10,$z,"2";
+		    }
+		    next;
+		}
 
+		if ($icd9){
+		    print $ID,$i,$j,(keys %fullICD9)[rand keys %fullICD9],"NA",(keys %fullOP)[rand keys %fullOP],"2";
+		}
+		else{
+		    print $ID,$i,$j,"NA",(keys %fullICD10)[rand keys %fullICD10],(keys %fullOP)[rand keys %fullOP],"2";
+		}
+	    }
+	}
     }
     elsif(defined($case1{$ID})){
 	for (my $i=0;$i<=$inst;$i++){
