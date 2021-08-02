@@ -10,9 +10,6 @@ outname1=$2
 outname2=$3
 outname3=$4
 
-declare -ir max_arrays=10
-declare -ir max_visits=10
-declare -r p1=0.5
 declare -a opcodes
 declare -a icd10codes
 declare -a icd9codes
@@ -21,8 +18,6 @@ declare -ir out_icd9codes=20
 declare -ir out_icd10codes=100
 declare -ir ncases=200
 declare -ir n2cases=50
-
-# perl -e 'sub F{my $l=shift;my @a=("AND","OR");my $p=rand(2);return "x ".$a[$p]." x" if $l==5;my $x1=F($l+1);my $x2=F($l+1);return "(".$x1.") ".$a[$p]." (".$x2.")";} print F(1)."\n";'
 
 declare -a expressions=("X And (X Or X Or X Or (X AND X) Or X)" "X And (X Or X Or X)")
 
@@ -33,7 +28,6 @@ for c in {A..B};do
 	opcodes+=($c$i)
     done
 done
-opcodes_str=$(join_by , "${opcodes[@]}")
 
 for c in {K..N};do
     for i in $(seq -w 0 99);do
@@ -50,8 +44,6 @@ done
 icd9codes_str=$(join_by , "${icd9codes[@]}")
 
 op_sz="${#opcodes[@]}"
-icd9_sz="${#icd9codes[@]}"
-icd10_sz="${#icd10codes[@]}"
 sz2="${#expressions[@]}"
 
 declare -A selected_cases
@@ -71,7 +63,7 @@ declare -A selected_icd10
 while read x;do
     selected_icd10["$x"]=1
     echo "TRAIT" "ICD10" "$x"| tr ' ' '\t' >> "$outname3"
-done < <(echo "$icd9codes_str"|tr ',' '\n'|shuf -n $((out_icd10codes)))
+done < <(echo "$icd10codes_str"|tr ',' '\n'|shuf -n $((out_icd10codes)))
 while read x;do
     selected_icd9["$x"]=1
     echo "TRAIT" "ICD9" "$x"| tr ' ' '\t' >> "$outname3"
@@ -103,12 +95,6 @@ for x in "${!selected_opcodes[@]}";do
 done > "${outname1}"
 echo "expressions done"
 date "+%d-%b-%Y:%H-%M-%S"
-
-# echo "CASES:" $(join_by , "${!selected_cases[@]}")
-# echo "CASES2:" $(join_by , "${!selected2_cases[@]}")
-# echo "ICD9:" $(join_by , "${!selected_icd9[@]}")
-# echo "ICD10:" $(join_by , "${!selected_icd10[@]}")
-# echo "OPCODES:" $(join_by , "${!selected_opcodes[@]}")
 
 opc=$(echo $(join_by , "${!selected_opcodes[@]}")|tr ' ()' '_:?')
 
