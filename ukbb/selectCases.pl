@@ -1,36 +1,33 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
+
+use strict;
 
 $\="\n";
 
-BEGIN{
-    %h=();
-    $valcol=$ARGV[1];
-    # print STDERR "$ARGV[0]\n";
-    # print STDERR "$ARGV[1]\n";
-    open($fh,"<",$ARGV[0]);
-    while(<$fh>){chomp;next if /^#/;next if /^\s*$/;$h{$_}=1;}
-    close($fh);
-    # print STDERR scalar(keys %h)."\n";
-    @code=();
-    foreach $x (keys %h){
-	$x=~s/or/||/ig;
-	$x=~s/and/&&/ig;
-	$x=~s/([a-zA-Z\d]+)/defined\(\$r->\{\1\}\)/g;
-	push @code, "(".$x.")";
-    }
-    $c=join(" || ",@code);
-    #print "\n".$c."\n\n";
-    sub F{
-	$r=shift;
-	eval $c;
-    }
+my %h=();
+my $valcol=$ARGV[1];
+open($fh,"<",$ARGV[0]);
+while(<$fh>){chomp;next if /^#/;next if /^\s*$/;$h{$_}=1;}
+close($fh);
+my @expressions=();
+foreach my $x (keys %h){
+    $x=~s/or/||/ig;
+    $x=~s/and/&&/ig;
+    $x=~s/([a-zA-Z\d]+)/defined\(\$r->\{$1\}\)/g;
+    push @expressions, "(".$x.")";
 }
-{
-    while(<STDIN>){
-	chomp;
-	%D=();
-	@a=split(/\t/,$_,-1);
-	foreach $x (split(/,/,$a[$valcol],-1)){$D{$x}=1;}
-	print $a[0] if F(\%D);
-    }
+my $code=join(" || ",@expressions);
+sub F{
+    my $r=shift;
+    my $c=shift;
+    eval $c;
 }
+
+while(<STDIN>){
+    chomp;
+    my %D=();
+    my @a=split(/\t/,$_,-1);
+    foreach my $x (split(/,/,$a[$valcol],-1)){$D{$x}=1;}
+    print $a[0] if F(\%D,$code);
+}
+
