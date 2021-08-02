@@ -84,15 +84,19 @@ for (( i=0; i<$out_opcodes; i++ ));do
     x=$((RANDOM%10))
     if [[ $x -lt 5 ]];then
 	z=$((RANDOM%op_sz))
-	selected_opcodes["${opcodes[$z]}"]=1
-	echo "${opcodes[$z]}"
+	if [[ -z "${selected_opcodes[${opcodes[$z]}]}" ]];then
+	    selected_opcodes["${opcodes[$z]}"]=1
+	    echo "${opcodes[$z]}"
+	fi
     else
 	z=$((RANDOM%sz2))
 	y=$(echo "${expressions[$z]}" |sed 's/[^X]//g' | awk '{print length;}')
 	str=$(for c in "${opcodes[@]}";do echo $c;done|shuf -n $y|tr '\n' ','|sed 's/,$//')
 	s=$(perl -se 'foreach $x (split(/,/,$b,-1)){$a=~s/X/$x/;}print $a."\n";' -- -a="${expressions[$z]}" -b="$str")
-	selected_opcodes["$s"]=1
-	echo $s
+	if [[ -z "${selected_opcodes[$s]}" ]];then
+	    selected_opcodes["$s"]=1
+	    echo $s
+	fi
     fi
 done|sort|uniq > "${outname1}"
 echo "expressions done"
