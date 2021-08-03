@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
+use List::Util qw(shuffle);
 
 $\="\n";
 $,="\t";
@@ -74,6 +75,22 @@ foreach my $x (keys %sop){
 }
 my $exs=join(" || ",@code);
 
+sub selectOpTuple{
+    my $n=shift;
+    my $href=shift;
+    my $expr_str=shift;
+
+    my %D=();
+    $D{$_}=1 for ((shuffle keys %$href)[0..$n-1]);
+    
+    while(checkF($expr_str,\%D)){
+	%D=();
+	$D{$_}=1 for ((shuffle keys %$href)[0..$n-1]);
+    }
+
+    return join(",",keys %D);
+}
+
 # --------------------------------------------------------------------------------
 
 while(<STDIN>){
@@ -116,26 +133,37 @@ while(<STDIN>){
     }
     elsif(defined($case1{$ID})){
 	for (my $i=0;$i<=$inst;$i++){
-	    for (my $j=0;$j<=$arrays;$j++){
-		if ($i==0 && $j==0){
-		    if ($icd9){
-			print $ID,$i,$j,$selected_icd9,"NA",(keys %OP)[rand keys %OP],"1";
-		    }
-		    else{
-			print $ID,$i,$j,"NA",$selected_icd10,(keys %OP)[rand keys %OP],"1";
-		    }
-		    next;
+	    my @icd9values=();
+	    my @icd10values=();
+	    if ($i==0){
+		push @icd9values,$selected_icd9;
+		for (my $j=1;$j<=$arrays;$j++){
+		    push @icd9values,(keys %fullICD9)[rand keys %fullICD9];
 		}
-		
-		if ($icd9){
-		    print $ID,$i,$j,(keys %fullICD9)[rand keys %fullICD9],"NA",(keys %OP)[rand keys %OP],"1";
-		}
-		else{
-		    print $ID,$i,$j,"NA",(keys %fullICD10)[rand keys %fullICD10],(keys %OP)[rand keys %OP],"1";
+		push @icd10values,$selected_icd10;
+		for (my $j=1;$j<=$arrays;$j++){
+		    push @icd10values,(keys %fullICD10)[rand keys %fullICD10];
 		}
 	    }
+	    else{
+		for (my $j=0;$j<=$arrays;$j++){
+		    push @icd9values,(keys %fullICD9)[rand keys %fullICD9];
+		}
+		for (my $j=0;$j<=$arrays;$j++){
+		    push @icd10values,(keys %fullICD10)[rand keys %fullICD10];
+		}
+	    }
+	    my $str=selectOpTuple($arrays+1,\%OP,$exs);
+	    my @opcvalues=split(/,/,$str,-1);
+	    for (my $j=0;$j<=$arrays;$j++){
+		if ($icd9){
+		    print $ID,$i,$j,$icd9values[$j],"NA",$opcvalues[$j],"1";
+		}
+		else{
+		    print $ID,$i,$j,"NA",$icd10values[$j],$opcvalues[$j],"1";
+		}
+	    }	    
 	}
-
     }
     else{
 	for (my $i=0;$i<=$inst;$i++){

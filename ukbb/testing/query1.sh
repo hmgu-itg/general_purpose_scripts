@@ -29,7 +29,7 @@ fi
 grep -v "^#" "$icdcodes" | awk 'BEGIN{FS="\t";}$1=="TRAIT" && $2=="ICD9"{print $3;}' > "$tmp_icd9"
 grep -v "^#" "$icdcodes" | awk 'BEGIN{FS="\t";}$1=="TRAIT" && $2=="ICD10"{print $3;}' > "$tmp_icd10"
 
-cat <(tail -n +2 "$main"|cut -f 1,5|datamash -s -g 1 collapse 2|parallel --pipe --block 1M -N10 "$selectscript" "$tmp_icd9" 1) <(tail -n +2 "$main"|cut -f 1,6|datamash -s -g 1 collapse 2|parallel --pipe --block 1M -N10 "$selectscript" "$tmp_icd10" 1) | sort | uniq 
+cat <(cut -f 1,4 "$main"|datamash -s -g 1 collapse 2|parallel --pipe --block 1M -N1000 "$selectscript" "$tmp_icd9" 1) <(cut -f 1,5 "$main"|datamash -s -g 1 collapse 2|parallel --pipe --block 1M -N1000 "$selectscript" "$tmp_icd10" 1) | sort | uniq 
 
-#rm "$tmp_icd9" "$tmp_icd10"
+rm "$tmp_icd9" "$tmp_icd10"
 exit 0

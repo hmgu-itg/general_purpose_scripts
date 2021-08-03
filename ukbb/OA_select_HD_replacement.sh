@@ -161,9 +161,9 @@ else
     fi
     grep -v "^#" "$opcs4_codes_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k{print $2;}' > "$tmp_opcs4"
     if [[ -z "${outfile}" ]];then
-	cat <("$selectOAHDscript" -r "$release" -k "${keys2[$key]}" 2>/dev/null) <(tar -xzf "${infile}" hesin_oper.txt -O|tail -n +2|cut -f "${eid2_cn}","${opcs4_cn}","${index_cn}"|datamash -s -g "${new_eid_oper}","${new_index}" collapse "$new_opcs4"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_opcs4" 2)|sort|uniq -d
+	cat <("$selectOAHDscript" -r "$release" -k "${keys2[$key]}" 2>/dev/null) <(tar -xzf "${infile}" hesin_oper.txt -O|tail -n +2|cut -f "${eid2_cn}","${opcs4_cn}","${index_cn}"|datamash -s -g "${new_eid_oper}","${new_index}" collapse "$new_opcs4"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_opcs4" 2|sort|uniq)|sort|uniq -d
     else
-	cat <("$selectOAHDscript" -r "$release" -k "${keys2[$key]}" 2>/dev/null) <(tar -xzf "${infile}" hesin_oper.txt -O|tail -n +2|cut -f "${eid2_cn}","${opcs4_cn}","${index_cn}"|datamash -s -g "${new_eid_oper}","${new_index}" collapse "$new_opcs4"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_opcs4" 2)|sort|uniq -d|gzip - -c > "${outfile}"
+	cat <("$selectOAHDscript" -r "$release" -k "${keys2[$key]}" 2>/dev/null) <(tar -xzf "${infile}" hesin_oper.txt -O|tail -n +2|cut -f "${eid2_cn}","${opcs4_cn}","${index_cn}"|datamash -s -g "${new_eid_oper}","${new_index}" collapse "$new_opcs4"|parallel --pipe --block 10M -N10000 "$selectscript" "$tmp_opcs4" 2|sort|uniq)|sort|uniq -d|gzip - -c > "${outfile}"
     fi
     rm "$tmp_opcs4"
 fi

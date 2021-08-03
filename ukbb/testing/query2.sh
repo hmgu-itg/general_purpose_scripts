@@ -45,8 +45,8 @@ fi
 
 grep -v "^#" "$icdcodes" | awk 'BEGIN{FS="\t";}$1=="TRAIT" && $2=="ICD9"{print $3;}' > "$tmp_icd9"
 grep -v "^#" "$icdcodes" | awk 'BEGIN{FS="\t";}$1=="TRAIT" && $2=="ICD10"{print $3;}' > "$tmp_icd10"
-tail -n +2 "$main"|cut -f 1,5|datamash -s -g 1 collapse 2 > "$tmp_data9"
-tail -n +2 "$main"|cut -f 1,6|datamash -s -g 1 collapse 2 > "$tmp_data10"
+cut -f 1,4 "$main"|datamash -s -g 1 collapse 2 > "$tmp_data9"
+cut -f 1,5 "$main"|datamash -s -g 1 collapse 2 > "$tmp_data10"
 
 cat <("$selectscript" "$tmp_icd9" "$tmp_data9" 1) <("$selectscript" "$tmp_icd10" "$tmp_data10" 1)|sort|uniq 
 

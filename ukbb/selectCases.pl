@@ -4,6 +4,7 @@ use strict;
 
 $\="\n";
 
+my $fh;
 my %h=();
 my $valcol=$ARGV[1];
 open($fh,"<",$ARGV[0]);

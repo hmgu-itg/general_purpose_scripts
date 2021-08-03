@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
 use strict;
 
@@ -15,7 +15,7 @@ sub check{
 
     $f=~s/or/||/ig;
     $f=~s/and/&&/ig;
-    $f=~s/([a-zA-Z\d]+)/defined\(\$h\{\1\}\)/g;
+    $f=~s/([a-zA-Z\d]+)/defined\(\$h\{$1\}\)/g;
 
     eval $f;
 }

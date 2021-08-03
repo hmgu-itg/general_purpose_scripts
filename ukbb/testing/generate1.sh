@@ -6,18 +6,18 @@ source "${upperdir}/functions.sh"
 scriptname="${scriptdir}/process_chunk.pl"
 
 nsamples=$1
-outname1=$2
-outname2=$3
-outname3=$4
+ncases=$2
+n2cases=$3
+outname1=$4
+outname2=$5
+outname3=$6
 
 declare -a opcodes
 declare -a icd10codes
 declare -a icd9codes
-declare -ir out_opcodes=50
-declare -ir out_icd9codes=20
-declare -ir out_icd10codes=100
-declare -ir ncases=200
-declare -ir n2cases=50
+declare -ir out_opcodes=200
+declare -ir out_icd9codes=50
+declare -ir out_icd10codes=200
 
 declare -a expressions=("X And (X Or X Or X Or (X AND X) Or X)" "X And (X Or X Or X)")
 
@@ -92,7 +92,7 @@ for (( i=0; i<$out_opcodes; i++ ));do
 done
 for x in "${!selected_opcodes[@]}";do
     echo $x
-done > "${outname1}"
+done|sort|uniq > "${outname1}"
 echo "expressions done"
 date "+%d-%b-%Y:%H-%M-%S"
 
