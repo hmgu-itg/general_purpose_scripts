@@ -32,5 +32,5 @@ grep -v "^#" "$icdcodes" | awk 'BEGIN{FS="\t";}$1=="TRAIT" && $2=="ICD10"{print 
 
 cat <(cat <(cut -f 1,4 "$main"|datamash -s -g 1 collapse 2|parallel --pipe --block 1M -N1000 "$selectscript" "$tmp_icd9" 1) <(cut -f 1,5 "$main"|datamash -s -g 1 collapse 2|parallel --pipe --block 1M -N1000 "$selectscript" "$tmp_icd10" 1) | sort | uniq ) <(cut -f 1,2,6 "$main"|datamash -s -g 1,2 collapse 3|parallel --pipe --block 10M -N1000 "$selectscript" "$opcodes" 2|sort|uniq)|sort|uniq -d
     
-# rm "$tmp_icd9" "$tmp_icd10"
+rm "$tmp_icd9" "$tmp_icd10"
 exit 0
