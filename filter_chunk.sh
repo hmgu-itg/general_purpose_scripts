@@ -18,6 +18,7 @@ function usage {
     echo "        { -e : <sample exclusion list>; Exclude samples in this file on-the-fly.}"
     echo "        { -b : if a pipe should be used instead of temporary files when computing stats. Prevents rerunning. }"
     echo "        { -c : Collapse multiallelics in output. If set, this flag will create ALT records such as A,C in the output. By default, two records are generated. }"
+    echo "        { -x : Just generate exclusion lists and exit. }"
     exit 0
 }
 
@@ -29,8 +30,9 @@ pipe="no"
 collapse="no"
 n=""
 elist="no"
+justexclude="no"
 
-while getopts "p:f:m:t:o:n:e:bc" optname; do
+while getopts "p:f:m:t:o:n:e:bcx" optname; do
     case "$optname" in
         "p" ) pheno="${OPTARG}";;
         "f" ) flist="${OPTARG}";;
@@ -41,6 +43,7 @@ while getopts "p:f:m:t:o:n:e:bc" optname; do
         "e" ) elist="${OPTARG}";;
         "b" ) pipe="yes";;
         "c" ) collapse="yes";;
+        "x" ) justexclude="yes";;
         "?" ) usage ;;
         *) usage ;;
     esac;
@@ -118,6 +121,7 @@ echo "QCTOOL2 OUTPUT FILE $outname" | ts
 echo "COLLAPSING VARIANTS $collapse" | ts
 echo "PIPE, NO INTERMEDIATE FILES $pipe" | ts
 echo "SAMPLE EXCLUSION FILE $efile" | ts
+echo "PRODUCE XCL LIST AND EXIT: $justexclude"  | ts
 echo "INFO: phenotype name: $pheno_name"  | ts
 dmx_vcf=${outname/%.$pheno_name.qctool.out/.dmx.vcf.gz}
 echo "INTERMEDIATE VCF $dmx_vcf"
@@ -210,7 +214,7 @@ else
     sort "$to_remove" | uniq | sponge "$to_remove"
     echo "INFO: done" | ts
     echo "--------------------------------------------------------------"
-
+    if [[ "$justexclude" == "yes" ]]; then exit 0; fi
     final_vcf=${dmx_vcf/%.dmx.vcf.gz/.filtered."$pheno_name"."$pt".vcf.gz}
     # removing variants with P<threshold, merging back
     echo "INFO: bcftools: creating filtered output VCF" | ts
