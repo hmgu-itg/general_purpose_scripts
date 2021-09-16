@@ -37,7 +37,7 @@ while(<STDIN>){
     }elsif($ARGV[0] eq "cc"){
 	my $val=$ARGV[1];
 	my $flag=0;
-	foreach my $x (@a){if ($x eq $val){$flag=1;break;}}
+	foreach my $x (@a){if ($x eq $val){$flag=1;last;}}
 	print $a[0],$flag;
     }
 }
