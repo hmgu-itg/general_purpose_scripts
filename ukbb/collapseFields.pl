@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 # ARGV[0]: "mean" OR "majority" OR "cc"
-# if ARGV[0]=="cc", then ARGV[1] is the "case" value
+# if ARGV[0]=="cc", then ARGV[1] is the "case" value; ARGV[1] must not be "NA"
 # if ARGV[1] occurs among the input fileds, then output is "1" ("case")
 # otherwise if all input fields are "NA", the output is "NA"
 # otherwise output is "0"
@@ -43,6 +43,10 @@ while(<STDIN>){
 	}
     }elsif($ARGV[0] eq "cc"){
 	my $val=$ARGV[1]; # value corresponding to "case"
+	if ($val eq "NA"){
+	    print STDERR "ERROR: collapseFields.pl: for case/control the case value must not be \"NA\"";
+	    exit 1;
+	}
 	my $flag=0;
 	my $flagNA=1; # if all fields are NA
 	for (my $i=1;$i<scalar(@a);$i++){if ($a[$i] eq $val){$flag=1;$flagNA=0;last;} if ($a[$i] ne "NA"){$flagNA=0;}}
