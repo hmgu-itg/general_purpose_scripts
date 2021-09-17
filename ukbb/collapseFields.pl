@@ -1,5 +1,11 @@
 #!/usr/bin/perl -w
 
+# ARGV[0]: "mean" OR "majority" OR "cc"
+# if ARGV[0]=="cc", then ARGV[1] is the "case" value
+# if ARGV[1] occurs among the input fileds, then output is "1" ("case")
+# otherwise if all input fields are "NA", the output is "NA"
+# otherwise output is "0"
+
 use strict;
 
 $\="\n";
@@ -11,6 +17,7 @@ if ($ARGV[0] ne "mean" && $ARGV[0] ne "majority" && $ARGV[0] ne "cc"){
 }
 
 # first field is ID, skipping when collapsing
+# fields are tab-separated
 while(<STDIN>){
     chomp;
     my @a=split(/\t/,$_,-1);
@@ -35,9 +42,18 @@ while(<STDIN>){
 	    print $a[0],$b[0];
 	}
     }elsif($ARGV[0] eq "cc"){
-	my $val=$ARGV[1];
+	my $val=$ARGV[1]; # value corresponding to "case"
 	my $flag=0;
-	foreach my $x (@a){if ($x eq $val){$flag=1;last;}}
-	print $a[0],$flag;
+	my $flagNA=1; # if all fields are NA
+	for (my $i=1;$i<scalar(@a);$i++){if ($a[$i] eq $val){$flag=1;$flagNA=0;last;} if ($a[$i] ne "NA"){$flagNA=0;}}
+	if ($flag==1){
+	    print $a[0],"1";
+	}
+	elsif($flagNA==1){
+	    print $a[0],"NA";
+	}
+	else{
+	    print $a[0],"0";
+	}
     }
 }
