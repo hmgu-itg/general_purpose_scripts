@@ -56,7 +56,19 @@ while true; do
   esac
 done
 
-# at least one ICD input is needed
+# need at least one ICD input
+if [[ -z "${icd9_file}" && -z "${icd10_file}" ]];then
+    echo "ERROR: ICD inout not specified"
+    exit 1
+fi
+
+if [[ -n "${icd9_file}" ]];then
+    exitIfNotFile "${icd9_file}" "ERROR: file ${icd9_file} does not exist"
+fi
+
+if [[ -n "${icd10_file}" ]];then
+    exitIfNotFile "${icd10_file}" "ERROR: file ${icd10_file} does not exist"
+fi
 
 exitIfEmpty "$project" "ERROR: project not specified"
 exitIfEmpty "$release" "ERROR: release not specified"
@@ -96,7 +108,8 @@ eval echo "INFO: key: $key" "$sfx"
 eval echo "INFO: input file: $infile" "$sfx"
 eval echo "INFO: output prefix: $outprefix" "$sfx"
 eval echo "INFO: output file: $outfile" "$sfx"
-eval echo "INFO: ICD codes: $icd_codes_file" "$sfx"
+eval echo "INFO: ICD9 codes: $icd9_file" "$sfx"
+eval echo "INFO: ICD10 codes: $icd10_file" "$sfx"
 eval echo "" "$sfx"
 
 icd9_cn=$(getTGZColNum "${infile}" "hesin_diag.txt" "diag_icd9")
@@ -110,10 +123,19 @@ eval echo "" "$sfx"
 
 #----------------------------------------------------------------------------------------------------------------
 
+cmd="cat"
+if [[ -n "${icd9_file}" ]];then
+    cmd="${cmd} <(tar -xzf ${infile} hesin_diag.txt -O|tail -n +2|cut -f ${eid_cn},${icd9_cn}|sort -k2,2|join -t$'\t' -1 2 -2 1 - <(sort ${icd9_file}|uniq)|cut -f 2|sort|uniq)"
+fi
+if [[ -n "${icd10_file}" ]];then
+    cmd="${cmd} <(tar -xzf ${infile} hesin_diag.txt -O|tail -n +2|cut -f ${eid_cn},${icd10_cn}|sort -k2,2|join -t$'\t' -1 2 -2 1 - <(sort ${icd10_file}|uniq)|cut -f 2|sort|uniq)"
+fi
+cmd="${cmd}|sort|uniq"
+
 if [[ -z "${outfile}" ]];then
-    cat <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd9_cn}"|sort -k2,2|join -t$'\t' -1 2 -2 1 - <(sort ${icd9_file}|uniq)|cut -f 2|sort|uniq) <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd10_cn}"|sort -k2,2|join -t$'\t' -1 2 -2 1 - <(sort ${icd10_file}|uniq)|cut -f 2|sort|uniq)|sort|uniq
+    eval "$cmd"
 else
-    cat <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd9_cn}"|sort -k2,2|join -t$'\t' -1 2 -2 1 - <(sort ${icd9_file}|uniq)|cut -f 2|sort|uniq) <(tar -xzf "${infile}" hesin_diag.txt -O|tail -n +2|cut -f "${eid_cn}","${icd10_cn}"|sort -k2,2|join -t$'\t' -1 2 -2 1 - <(sort ${icd10_file}|uniq)|cut -f 2|sort|uniq)|sort|uniq|gzip - -c > "${outfile}"
+    eval "$cmd"|gzip - -c > "${outfile}"
 fi
 
 eval date "+%d-%b-%Y:%H-%M-%S" "$sfx"
