@@ -106,10 +106,10 @@ eval echo "" "$sfx"
 eval echo "INFO: project: $project" "$sfx"
 eval echo "INFO: release: $release" "$sfx"
 eval echo "INFO: input file: $infile" "$sfx"
-eval echo "INFO: output prefix: $outprefix" "$sfx"
-eval echo "INFO: output file: $outfile" "$sfx"
 eval echo "INFO: input ICD9 codes: $icd9_file" "$sfx"
 eval echo "INFO: input ICD10 codes: $icd10_file" "$sfx"
+eval echo "INFO: output prefix: $outprefix" "$sfx"
+eval echo "INFO: output file: $outfile" "$sfx"
 eval echo "" "$sfx"
 
 icd9_cn=$(getTGZColNum "${infile}" "hesin_diag.txt" "diag_icd9")
