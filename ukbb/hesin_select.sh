@@ -58,7 +58,7 @@ done
 
 # need at least one ICD input
 if [[ -z "${icd9_file}" && -z "${icd10_file}" ]];then
-    echo "ERROR: ICD inout not specified"
+    echo "ERROR: ICD input not specified"
     exit 1
 fi
 
