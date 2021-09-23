@@ -12,6 +12,7 @@ function usage () {
     echo "Wrapper script for selecting self reported OA cases from a UKBB release"
     echo ""
     echo "Usage: OA_select_SR.sh -r | --release <release of the MAIN dataset>"
+    echo "                       -e | --hesin <release of the HESIN dataset>"
     echo "                       -o | --output <output prefix>"
     echo "                       -c | --config <optional: config file; default: config.txt in script directory>"
     echo "                       -h | --help"
@@ -31,11 +32,13 @@ eval set -- "$OPTS"
 
 config=""
 release=""
+hesin_release=""
 outprefix=""
 while true; do
   case "$1" in
     -h|--help ) usage; shift ;;
     -r|--release ) release=$2; shift 2 ;;
+    -e|--hesin ) hesin_release=$2; shift 2 ;;
     -c|--config ) config=$2; shift 2 ;;
     -o|--output ) outprefix=$2; shift 2 ;;
     --) shift ; break ;;
@@ -43,7 +46,8 @@ while true; do
   esac
 done
 
-exitIfEmpty "$release" "ERROR: release not specified"
+exitIfEmpty "$release" "ERROR: MAIN release not specified"
+exitIfEmpty "$hesin_release" "ERROR: HESIN release not specified"
 exitIfEmpty "$outprefix" "ERROR: output prefix not specified"
 if [[ -z "$config" ]];then
     config="${scriptdir}"/config.txt

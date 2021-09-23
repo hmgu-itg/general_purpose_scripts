@@ -63,11 +63,11 @@ if [[ -z "${icd9_file}" && -z "${icd10_file}" ]];then
 fi
 
 if [[ -n "${icd9_file}" ]];then
-    exitIfNotFile "${icd9_file}" "ERROR: file ${icd9_file} does not exist"
+    exitUnlessExists "${icd9_file}" "ERROR: file ${icd9_file} does not exist"
 fi
 
 if [[ -n "${icd10_file}" ]];then
-    exitIfNotFile "${icd10_file}" "ERROR: file ${icd10_file} does not exist"
+    exitUnlessExists "${icd10_file}" "ERROR: file ${icd10_file} does not exist"
 fi
 
 exitIfEmpty "$project" "ERROR: project not specified"
