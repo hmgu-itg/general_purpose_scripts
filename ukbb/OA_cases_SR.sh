@@ -6,6 +6,7 @@ args=("$@")
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
 script="${scriptdir}/ukbb_select.sh"
+hesin_script="${scriptdir}/hesin_select.sh"
 
 function usage () {
     echo ""
@@ -52,11 +53,19 @@ exitIfEmpty "$outprefix" "ERROR: output prefix not specified"
 if [[ -z "$config" ]];then
     config="${scriptdir}"/config.txt
 fi
+exitIfNotFile "$config" "ERROR: config $config does not exist"
+
+icd_exclusion_file=""
+readValue "$config" OA_CASE_EXCLUSION icd_exclusion_file
+exitIfNotFile "$icd_exclusion_file" "ERROR: OA_CASE_EXCLUSION ($icd_exclusion_file) does not exist"
 
 outfile="${outprefix}".txt
 exitIfExists "$outfile" "ERROR: output file $outfile already exists"
 logfile="${outprefix}".log
+: > "${logfile}"
 
-"$script" -p "OA" -r "$release" --cc 20002,1465 -c "$config" 2>"$logfile" | tail -n +2 | grep "1$" | cut -f 1 >"$outfile" 
+join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <("$script" -p "OA" -r "$release" --cc 20002,1465 -c "$config" 2>"$logfile" | tail -n +2 | grep "1$" | cut -f 1) <("$hesin_script" -p "OA" -r "$hesin_release" --icd9 <(grep ^icd9 "$icd_exclusion_file"| cut -f 2) --icd10 <(grep ^icd10 "$icd_exclusion_file"| cut -f 2) 2>/dev/null) | grep NULL | cut -f 1 >"$outfile"
+
+# "$script" -p "OA" -r "$release" --cc 20002,1465 -c "$config" 2>"$logfile" | tail -n +2 | grep "1$" | cut -f 1 >"$outfile" 
 
 exit 0
