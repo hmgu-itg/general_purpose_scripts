@@ -6,6 +6,8 @@ import csv
 import sys
 import tarfile
 import os
+from itgukbb import utils
+import re
 
 parser=argparse.ArgumentParser()
 parser.add_argument('-i','--input',required=True,action='store',help="Input file")
@@ -30,24 +32,35 @@ if args.config is None:
 else:
     config=args.config
 
-C=dict()
 print("Config: %s" % config)
-if os.path.exists(config):
-    with open(config,"r") as f:
-        for line in f:
-            l=line.rstrip()
-            if l and not l.startswith("#"):
-                x=l.split("\t",1)
-                C[x[0]]=x[1]
-    print(C)
-    sys.exit(0)
-else:
-    print("ERROR: config file %s does not exist" % config,file=sys.stderr)
+C=utils.readConfig(config)
+if C is None:
     sys.exit(1)
-                
+
+#print(C)
+D=utils.readDataDictionary(C["DATA_DICT"])
+#print(D)
+
 #-----------------------------------------------------------------------------------------------------------------------------
 
 df=pd.read_table(infile,sep="\t",nrows=1)
 L=df.columns.values.tolist()
+H=dict()
+for x in L:
+    if x=="f.eid" or x=="RELEASE" or x=="CREATED":
+        continue
+    m=re.match("^f\.(\d+)\.\d+\.\d+",x)
+    if m:
+        key=m.group(1)
+        H.setdefault(key,[]).append(x)
+    else:
+        print("ERROR: column name format error: %s" %(x),file=sys.stderr)
+    
 with open(out_prefix+".txt","w") as f:
-    print(*L,sep="\n",file=f)
+    print("{}\t{}\t{}\t{}".format("Field","Instances","Description","Type"),file=f)
+    for x in H:
+        if x in D:
+            print("{}\t{}\t{}\t{}".format(x,len(H[x]),D[x]["Field"],D[x]["ValueType"]),file=f)
+        else:
+            print("{}\t{}\t{}\t{}".format(x,len(H[x]),"NA","NA"),file=f)
+            print("WARN: %s is not in data dictionary" % x,file=sys.stderr)
