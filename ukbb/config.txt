@@ -14,4 +14,4 @@ HD_OA_ICD	/storage/hmgu/projects/ukbiobank/phenotypes/resources/hospital_diagnos
 HD_OA_OPCS4	/storage/hmgu/projects/ukbiobank/phenotypes/resources/knee_hip_opcs4.txt
 
 # OA ICD codes for case exclusion
-OA_CASE_EXCLUSION  /storage/hmgu/projects/ukbiobank/phenotypes/resources/OA_case_exclusion.txt
+OA_CASE_EXCLUSION	/storage/hmgu/projects/ukbiobank/phenotypes/resources/OA_case_exclusion.txt
