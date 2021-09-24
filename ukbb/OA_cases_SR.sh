@@ -31,6 +31,7 @@ if [ $? != 0 ] ; then echo "ERROR: failed parsing options" >&2 ; usage ; exit 1 
 
 eval set -- "$OPTS"
 
+declare -A available_projects
 config=""
 release=""
 hesin_release=""
@@ -54,6 +55,12 @@ if [[ -z "$config" ]];then
     config="${scriptdir}"/config.txt
 fi
 exitIfNotFile "$config" "ERROR: config $config does not exist"
+readAArray "$config" PROJECTS available_projects
+project="OA"
+if [[ -z "${available_projects[$project]}" ]];then
+    echo "ERROR: project $project is not defined in $config"
+    exit 1
+fi
 
 icd_exclusion_file=""
 readValue "$config" OA_CASE_EXCLUSION icd_exclusion_file
