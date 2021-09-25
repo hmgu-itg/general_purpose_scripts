@@ -5,6 +5,11 @@ import pandas as pd
 import csv
 import sys
 import tarfile
+import logging
+import os
+from itgukbb import utils
+
+verbosity=logging.INFO
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--project','-p',required=True,action='store',help="Project name")
@@ -13,6 +18,7 @@ parser.add_argument('-icd9','--icd9',required=False,action='store',help="List of
 parser.add_argument('-icd10','--icd10',required=False,action='store',help="List of ICD10 codes")
 parser.add_argument('-o','--output',required=True,action='store',help="Output prefix")
 parser.add_argument('--config','-c',required=False,action='store',help="Config file")
+parser.add_argument("--verbose", "-v", help="Verbosity level; default: info",required=False,choices=("debug","info","warning","error"),default="info")
 
 if len(sys.argv[1:])==0:
     parser.print_help()
@@ -30,7 +36,28 @@ if args.icd9 is None and args.icd10 is None:
 project=args.project
 release=args.release
 out_prefix=args.output
-logF=open(out_prefix+".log","w")
+logF=out_prefix+".log"
+
+if args.verbose is not None:
+    if args.verbose=="debug":
+        verbosity=logging.DEBUG
+    elif args.verbose=="warning":
+        verbosity=logging.WARNING
+    elif args.verbose=="error":
+        verbosity=logging.ERROR
+
+LOGGER=logging.getLogger("hesin_select")
+LOGGER.setLevel(verbosity)
+ch=logging.FileHandler(logF,'w')
+ch.setLevel(verbosity)
+formatter=logging.Formatter('%(levelname)s - %(name)s - %(funcName)s -%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
+ch.setFormatter(formatter)
+LOGGER.addHandler(ch)
+LOGGER.addHandler(logging.StreamHandler(sys.stdout))
+
+logging.getLogger("itgukbb.utils").addHandler(ch)
+logging.getLogger("itgukbb.utils").addHandler(logging.StreamHandler(sys.stdout))
+logging.getLogger("itgukbb.utils").setLevel(verbosity)
 
 icd9codes=list()
 icd10codes=list()
@@ -50,7 +77,10 @@ if args.config is None:
 else:
     config=args.config
 
-print("Config: %s" % config)
+for arg in vars(args):
+    LOGGER.info("INPUT OPTIONS: %s : %s" % (arg, getattr(args, arg)))
+LOGGER.info("")
+LOGGER.info("config file: %s" % config)
 C=utils.readConfig(config)
 if C is None:
     sys.exit(1)
@@ -58,6 +88,10 @@ if C is None:
 infile=utils.getProjectFileName(C,project,release,"HESIN")
 if infile is None:
     sys.exit(1)
+
+LOGGER.info("input file: %s" % infile)
+outfile=out_prefix+".txt"
+LOGGER.info("output file: %s" % outfile)
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
@@ -67,5 +101,5 @@ with tarfile.open(infile,"r:*") as tar:
         L=df.loc[df["diag_icd10"].isin(icd10codes)]["eid"].unique().tolist()
     if icd9codes:
         L.extend(x for x in df.loc[df["diag_icd9"].isin(icd9codes)]["eid"].unique().tolist() if not x in L)
-    with open(out_prefix+".txt","w") as f:
+    with open(outfile,"w") as f:
         print(*L,sep="\n",file=f)

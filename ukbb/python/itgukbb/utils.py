@@ -2,6 +2,11 @@ import os
 import sys
 import pandas as pd
 import csv
+import logging
+
+LOGGER=logging.getLogger(__name__)
+
+#-----------------------------------------------------------------------------------------------------------------------------
 
 def readConfig(fname):
     C=dict()
@@ -14,12 +19,12 @@ def readConfig(fname):
                     C[x[0]]=x[1]
         return C
     else:
-        print("ERROR: config file %s does not exist" % fname,file=sys.stderr)
+        LOGGER.error("config file %s does not exist" % fname)
         return None
 
 def getProjectFileName(config_dict,project,release,project_type):
     if project_type!="MAIN" and project_type!="HESIN":
-        print("ERROR: wrong project type (%s); must be either MAIN or HESIN" %project_type)
+        LOGGER.error("wrong project type (%s); must be either MAIN or HESIN" %project_type)
         return None        
     sfx=None
     for x in config_dict["PROJECTS"].split(","):
@@ -27,14 +32,14 @@ def getProjectFileName(config_dict,project,release,project_type):
         if a[0]==project:
             sfx=a[1]
     if sfx is None:
-        print("ERROR: could not find project %s" %project)
+        LOGGER.error("could not find project %s" %project)
         return None
     if project_type=="MAIN":
         fname=os.path.join(config_dict["DATA_PATH"],sfx,"releases","phenotypes_r"+release+".txt.gz")
     else:
         fname=os.path.join(config_dict["DATA_PATH"],sfx,"releases","hesin_r"+release+".tar.gz")
     if not os.path.exists(fname):
-        print("ERROR: project file %s does not exist" %fname)
+        LOGGER.error("project file %s does not exist" %fname)
         return None
     else:
         return fname
@@ -44,7 +49,7 @@ def readDataDictionary(fname):
         df=pd.read_table(fname,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["FieldID","Field","ValueType"])
         return df.set_index("FieldID").T.to_dict()
     else:
-        print("ERROR: dictionary file %s does not exist" % fname,file=sys.stderr)
+        LOGGER.error("dictionary file %s does not exist" % fname)
         return None
 
 def customMean(L):
@@ -97,5 +102,5 @@ def addSummaryColumn(df,columns,new_name,values,method):
         c0=min(H,key=H.get)
         df[new_name]=df[c0]
     else:
-        print("ERROR: unknown method %s" % (method))
+        LOGGER.error("unknown method %s" % (method))
     return df
