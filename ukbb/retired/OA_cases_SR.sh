@@ -5,12 +5,12 @@ args=("$@")
 
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
-script="${scriptdir}/ukbb_select.py"
-hesin_script="${scriptdir}/hesin_select.py"
+script="${scriptdir}/ukbb_select.sh"
+hesin_script="${scriptdir}/hesin_select.sh"
 
 function usage () {
     echo ""
-    echo "Wrapper script for selecting self-reported OA cases from a UKBB release"
+    echo "Wrapper script for selecting self reported OA cases from a UKBB release"
     echo ""
     echo "Usage: OA_select_SR.sh -r | --release <release of the MAIN dataset>"
     echo "                       -e | --hesin <release of the HESIN dataset>"
@@ -55,29 +55,16 @@ if [[ -z "$config" ]];then
     config="${scriptdir}"/config.txt
 fi
 exitIfNotFile "$config" "ERROR: config $config does not exist"
+readAArray "$config" PROJECTS available_projects
+project="OA"
+if [[ -z "${available_projects[$project]}" ]];then
+    echo "ERROR: project $project is not defined in $config"
+    exit 1
+fi
+
 icd_exclusion_file=""
 readValue "$config" OA_CASE_EXCLUSION icd_exclusion_file
 exitIfNotFile "$icd_exclusion_file" "ERROR: OA_CASE_EXCLUSION ($icd_exclusion_file) does not exist"
-
-outfile="${outprefix}".txt
-logfile="${outprefix}".log
-out_dir=$(dirname "$outfile")
-
-tmp_ukbb_out=$(mktemp -p "$out_dir" temp_ukbb_XXXXXXXX)
-tmp_hesin_out=$(mktemp -p "$out_dir" temp_hesin_XXXXXXXX)
-
-PYTHONPATH="${scriptdir}"/python "${script}" -p OA -r "$release" -o "$tmp_ukbb_out" --cc 20002:1465
-
-tmp_icd9=$(mktemp -p "$out_dir" temp_icd9_XXXXXXXX)
-tmp_icd10=$(mktemp -p "$out_dir" temp_icd10_XXXXXXXX)
-grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd9"
-grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd10"
-PYTHONPATH="${scriptdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tmp_hesin_out" --icd9 "$tmp_icd9" --icd10 "$tmp_icd10"
-
-
-
-
-
 
 outfile="${outprefix}".txt
 exitIfExists "$outfile" "ERROR: output file $outfile already exists"
