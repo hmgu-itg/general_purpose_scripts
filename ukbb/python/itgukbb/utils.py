@@ -17,6 +17,28 @@ def readConfig(fname):
         print("ERROR: config file %s does not exist" % fname,file=sys.stderr)
         return None
 
+def getProjectFileName(config_dict,project,release,project_type):
+    if project_type!="MAIN" and project_type!="HESIN":
+        print("ERROR: wrong project type (%s); must be either MAIN or HESIN" %project_type)
+        return None        
+    sfx=None
+    for x in config_dict["PROJECTS"].split(","):
+        a=x.split(":")
+        if a[0]==project:
+            sfx=a[1]
+    if sfx is None:
+        print("ERROR: could not find project %s" %project)
+        return None
+    if project_type=="MAIN":
+        fname=os.path.join(config_dict["DATA_PATH"],sfx,"releases","phenotypes_r"+release+".txt.gz")
+    else:
+        fname=os.path.join(config_dict["DATA_PATH"],sfx,"releases","hesin_r"+release+".tar.gz")
+    if not os.path.exists(fname):
+        print("ERROR: project file %s does not exist" %fname)
+        return None
+    else:
+        return fname
+    
 def readDataDictionary(fname):
     if os.path.exists(fname):
         df=pd.read_table(fname,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["FieldID","Field","ValueType"])
@@ -30,7 +52,7 @@ def customMean(L):
     c=0
     for x in L:
         if x!="NA":
-            s+=x
+            s+=float(x)
             c+=1
     if c==0:
         return "NA"

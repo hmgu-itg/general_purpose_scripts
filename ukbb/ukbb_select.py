@@ -4,13 +4,13 @@ import argparse
 import pandas as pd
 import csv
 import sys
-import tarfile
 import os
 from itgukbb import utils
 import re
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--input','-i',required=True,action='store',help="Input file")
+parser.add_argument('--project','-p',required=True,action='store',help="Project name")
+parser.add_argument('--release','-r',required=True,action='store',help="Release")
 parser.add_argument('--output','-o',required=True,action='store',help="Output prefix")
 parser.add_argument('--config','-c',required=False,action='store',help="Config file")
 parser.add_argument('--list','-l',required=False,action='store_true',help="Output column information")
@@ -29,8 +29,9 @@ try:
 except:
     sys.exit(1)
 
+project=args.project
+release=args.release
 to_list=args.list
-infile=args.input
 out_prefix=args.output
 logF=open(out_prefix+".log","w")
 
@@ -46,6 +47,10 @@ C=utils.readConfig(config)
 if C is None:
     sys.exit(1)
 
+infile=utils.getProjectFileName(C,project,release,"MAIN")
+if infile is None:
+    sys.exit(1)
+    
 # key: field
 D=utils.readDataDictionary(C["DATA_DICT"])
 
@@ -116,7 +121,7 @@ else:
                 s.remove(f)
         tmp.clear()
 
-    # check field type
+    # check field types
     tmp.clear()
     for f in ccfields:
         t=D[f]["ValueType"]
@@ -152,6 +157,35 @@ else:
             for x in H[f]:
                 to_keep.add(x)
 
+#-----------------------------------------------------------------------------------------------------------------------------
+
     print("INFO: reading columns %s" % repr(to_keep),file=sys.stderr)
     df=pd.read_table(infile,skiprows=[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=to_keep)
-    df.to_csv(out_prefix+".txt",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    to_keep=list()
+    to_keep.append("f.eid")
+    for c in allfields:
+        for f in H[c]:
+            to_keep.append(f)
+    for c in ccfields:
+        print("INFO: creating CC column for %s" %c)
+        s="_".join(str(e) for e in ccfields[c])
+        new_colname="cc-"+c+"-"+s
+        df=utils.addSummaryColumn(df,H[c],new_colname,list(ccfields[c]),"cc")
+        to_keep.append(new_colname)
+    for c in majfields:
+        print("INFO: creating majority column for %s" %c)
+        new_colname="majority-"+c
+        df=utils.addSummaryColumn(df,H[c],new_colname,None,"majority")
+        to_keep.append(new_colname)
+    for c in meanfields:
+        print("INFO: creating mean column for %s" %c)
+        new_colname="mean-"+c
+        df=utils.addSummaryColumn(df,H[c],new_colname,None,"mean")
+        to_keep.append(new_colname)
+    for c in minmissfields:
+        print("INFO: creating min missing column for %s" %c)
+        new_colname="min_missing-"+c
+        df=utils.addSummaryColumn(df,H[c],new_colname,None,"minmissing")
+        to_keep.append(new_colname)
+    print("INFO: writing columns %s" % repr(to_keep),file=sys.stderr)
+    df.to_csv(out_prefix+".txt",sep="\t",columns=to_keep,index=False,quotechar='"',quoting=csv.QUOTE_NONE)

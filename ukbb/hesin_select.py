@@ -7,10 +7,12 @@ import sys
 import tarfile
 
 parser=argparse.ArgumentParser()
-parser.add_argument('-i','--input',required=True,action='store',help="Input file")
+parser.add_argument('--project','-p',required=True,action='store',help="Project name")
+parser.add_argument('--release','-r',required=True,action='store',help="Release")
 parser.add_argument('-icd9','--icd9',required=False,action='store',help="List of ICD9 codes")
 parser.add_argument('-icd10','--icd10',required=False,action='store',help="List of ICD10 codes")
 parser.add_argument('-o','--output',required=True,action='store',help="Output prefix")
+parser.add_argument('--config','-c',required=False,action='store',help="Config file")
 
 if len(sys.argv[1:])==0:
     parser.print_help()
@@ -25,7 +27,8 @@ if args.icd9 is None and args.icd10 is None:
     print("ERROR: no ICD codes given",file=sys.stderr)
     sys.exit(1)
     
-infile=args.input
+project=args.project
+release=args.release
 out_prefix=args.output
 logF=open(out_prefix+".log","w")
 
@@ -39,6 +42,22 @@ if not args.icd9 is None:
 if not args.icd10 is None:
     with open(args.icd10,"r") as f:
         icd10codes=f.read().splitlines()
+
+#-----------------------------------------------------------------------------------------------------------------------------
+
+if args.config is None:
+    config=os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])),"config.txt")
+else:
+    config=args.config
+
+print("Config: %s" % config)
+C=utils.readConfig(config)
+if C is None:
+    sys.exit(1)
+
+infile=utils.getProjectFileName(C,project,release,"HESIN")
+if infile is None:
+    sys.exit(1)
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
