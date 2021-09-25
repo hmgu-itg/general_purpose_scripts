@@ -95,11 +95,14 @@ LOGGER.info("output file: %s" % outfile)
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
+L=list()
 with tarfile.open(infile,"r:*") as tar:
     df=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","diag_icd9","diag_icd10"])
     if icd10codes:
         L=df.loc[df["diag_icd10"].isin(icd10codes)]["eid"].unique().tolist()
     if icd9codes:
         L.extend(x for x in df.loc[df["diag_icd9"].isin(icd9codes)]["eid"].unique().tolist() if not x in L)
+    LOGGER.info("output %d ID(s)" %len(L))
     with open(outfile,"w") as f:
-        print(*L,sep="\n",file=f)
+        if len(L):
+            print("\n".join(L),file=f)
