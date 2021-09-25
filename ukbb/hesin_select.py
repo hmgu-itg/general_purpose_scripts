@@ -16,7 +16,7 @@ parser.add_argument('--project','-p',required=True,action='store',help="Project 
 parser.add_argument('--release','-r',required=True,action='store',help="Release")
 parser.add_argument('-icd9','--icd9',required=False,action='store',help="List of ICD9 codes")
 parser.add_argument('-icd10','--icd10',required=False,action='store',help="List of ICD10 codes")
-parser.add_argument('-o','--output',required=True,action='store',help="Output prefix")
+parser.add_argument('-o','--output',required=True,action='store',help="Output file")
 parser.add_argument('--config','-c',required=False,action='store',help="Config file")
 parser.add_argument("--verbose", "-v", help="Verbosity level; default: info",required=False,choices=("debug","info","warning","error"),default="info")
 
@@ -35,8 +35,7 @@ if args.icd9 is None and args.icd10 is None:
     
 project=args.project
 release=args.release
-out_prefix=args.output
-logF=out_prefix+".log"
+outfname=args.output
 
 if args.verbose is not None:
     if args.verbose=="debug":
@@ -48,15 +47,13 @@ if args.verbose is not None:
 
 LOGGER=logging.getLogger("hesin_select")
 LOGGER.setLevel(verbosity)
-ch=logging.FileHandler(logF,'w')
+ch=logging.StreamHandler(sys.stderr)
 ch.setLevel(verbosity)
 formatter=logging.Formatter('%(levelname)s - %(name)s - %(funcName)s -%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
 ch.setFormatter(formatter)
 LOGGER.addHandler(ch)
-LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 
 logging.getLogger("itgukbb.utils").addHandler(ch)
-logging.getLogger("itgukbb.utils").addHandler(logging.StreamHandler(sys.stdout))
 logging.getLogger("itgukbb.utils").setLevel(verbosity)
 
 icd9codes=list()
@@ -90,8 +87,7 @@ if infile is None:
     sys.exit(1)
 
 LOGGER.info("input file: %s" % infile)
-outfile=out_prefix+".txt"
-LOGGER.info("output file: %s" % outfile)
+LOGGER.info("output file: %s" % outfname)
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
@@ -103,6 +99,6 @@ with tarfile.open(infile,"r:*") as tar:
     if icd9codes:
         L.extend(x for x in df.loc[df["diag_icd9"].isin(icd9codes)]["eid"].unique().tolist() if not x in L)
     LOGGER.info("output %d ID(s)" %len(L))
-    with open(outfile,"w") as f:
+    with open(outfname,"w") as f:
         if len(L):
             print("\n".join(L),file=f)

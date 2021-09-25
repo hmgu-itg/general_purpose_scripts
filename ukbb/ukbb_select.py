@@ -14,7 +14,7 @@ verbosity=logging.INFO
 parser=argparse.ArgumentParser()
 parser.add_argument('--project','-p',required=True,action='store',help="Project name")
 parser.add_argument('--release','-r',required=True,action='store',help="Release")
-parser.add_argument('--output','-o',required=True,action='store',help="Output prefix")
+parser.add_argument('--output','-o',required=True,action='store',help="Output file")
 parser.add_argument('--config','-c',required=False,action='store',help="Config file")
 parser.add_argument('--list','-l',required=False,action='store_true',help="Output column information")
 parser.add_argument('--majority','-majority',required=False,action='append',help="Output most frequent value, over all instances")
@@ -36,8 +36,7 @@ except:
 project=args.project
 release=args.release
 to_list=args.list
-out_prefix=args.output
-logF=out_prefix+".log"
+outfname=args.output
 
 if args.verbose is not None:
     if args.verbose=="debug":
@@ -49,15 +48,13 @@ if args.verbose is not None:
 
 LOGGER=logging.getLogger("ukbb_select")
 LOGGER.setLevel(verbosity)
-ch=logging.FileHandler(logF,'w')
+ch=logging.StreamHandler(sys.stderr)
 ch.setLevel(verbosity)
 formatter=logging.Formatter('%(levelname)s - %(name)s - %(funcName)s -%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
 ch.setFormatter(formatter)
 LOGGER.addHandler(ch)
-LOGGER.addHandler(logging.StreamHandler(sys.stdout))
 
 logging.getLogger("itgukbb.utils").addHandler(ch)
-logging.getLogger("itgukbb.utils").addHandler(logging.StreamHandler(sys.stdout))
 logging.getLogger("itgukbb.utils").setLevel(verbosity)
 
 #-----------------------------------------------------------------------------------------------------------------------------
@@ -99,7 +96,7 @@ for x in df.columns.values.tolist():
 
 if to_list:
     LOGGER.info("output field info")
-    with open(out_prefix+".txt","w") as f:
+    with open(outfname,"w") as f:
         print("{}\t{}\t{}\t{}".format("Field","Instances","Description","Type"),file=f)
         for x in H:
             if x in D:
@@ -217,4 +214,4 @@ else:
         df=utils.addSummaryColumn(df,H[c],new_colname,None,"minmissing")
         to_keep.append(new_colname)
     LOGGER.info("writing columns %s" % ", ".join(str(e) for e in to_keep))
-    df.to_csv(out_prefix+".txt",sep="\t",columns=to_keep,index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    df.to_csv(outfname,sep="\t",columns=to_keep,index=False,quotechar='"',quoting=csv.QUOTE_NONE)

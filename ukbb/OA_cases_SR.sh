@@ -31,7 +31,6 @@ if [ $? != 0 ] ; then echo "ERROR: failed parsing options" >&2 ; usage ; exit 1 
 
 eval set -- "$OPTS"
 
-declare -A available_projects
 config=""
 release=""
 hesin_release=""
@@ -65,16 +64,25 @@ out_dir=$(dirname "$outfile")
 
 tmp_ukbb_out=$(mktemp -p "$out_dir" temp_ukbb_XXXXXXXX)
 tmp_hesin_out=$(mktemp -p "$out_dir" temp_hesin_XXXXXXXX)
+tmp_icd9=$(mktemp -p "$out_dir" temp_icd9_XXXXXXXX)
+tmp_icd10=$(mktemp -p "$out_dir" temp_icd10_XXXXXXXX)
 
 PYTHONPATH="${scriptdir}"/python "${script}" -p OA -r "$release" -o "$tmp_ukbb_out" --cc 20002:1465
 
-tmp_icd9=$(mktemp -p "$out_dir" temp_icd9_XXXXXXXX)
-tmp_icd10=$(mktemp -p "$out_dir" temp_icd10_XXXXXXXX)
 grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd9"
 grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd10"
 PYTHONPATH="${scriptdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tmp_hesin_out" --icd9 "$tmp_icd9" --icd10 "$tmp_icd10"
 
+join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(tail -n +2 "$tmp_ukbb_out".txt|grep 1$|cut -f 1|sort) <(sort "$tmp_hesin_out".txt) | grep NULL | cut -f 1 >"$outfile"
 
+if [[ -e "$tmp_ukbb_out".log ]];then
+    cat "$tmp_ukbb_out".log > "$logfile"
+fi
+if [[ -e "$tmp_hesin_out".log ]];then
+    cat "$tmp_hesin_out".log >> "$logfile"
+fi
+
+rm -f "$tmp_icd9" "$tmp_icd10" "$tmp_ukbb_out".txt "$tmp_hesin_out".txt "$tmp_ukbb_out".log "$tmp_hesin_out".log
 
 
 
