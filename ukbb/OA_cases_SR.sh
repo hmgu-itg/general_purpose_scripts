@@ -60,84 +60,41 @@ exitIfNotFile "$icd_exclusion_file" "ERROR: OA_CASE_EXCLUSION ($icd_exclusion_fi
 
 outfile="${outprefix}".txt
 logfile="${outprefix}".log
+: > "${logfile}"
 out_dir=$(dirname "$outfile")
 
 tmp_ukbb_out=$(mktemp -p "$out_dir" temp_ukbb_XXXXXXXX)
+if [[ $? -ne 0 ]];then
+    echo "ERROR: could not create temp UKBB output file"|tee -a "$logfile"
+    exit 1
+fi
 tmp_hesin_out=$(mktemp -p "$out_dir" temp_hesin_XXXXXXXX)
-tmp_icd9=$(mktemp -p "$out_dir" temp_icd9_XXXXXXXX)
-tmp_icd10=$(mktemp -p "$out_dir" temp_icd10_XXXXXXXX)
-
-PYTHONPATH="${scriptdir}"/python "${script}" -p OA -r "$release" -o "$tmp_ukbb_out" --cc 20002:1465
-
-grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd9"
-grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd10"
-PYTHONPATH="${scriptdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tmp_hesin_out" --icd9 "$tmp_icd9" --icd10 "$tmp_icd10"
-
-join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(tail -n +2 "$tmp_ukbb_out".txt|grep 1$|cut -f 1|sort) <(sort "$tmp_hesin_out".txt) | grep NULL | cut -f 1 >"$outfile"
-
-if [[ -e "$tmp_ukbb_out".log ]];then
-    cat "$tmp_ukbb_out".log > "$logfile"
+if [[ $? -ne 0 ]];then
+    echo "ERROR: could not create temp HESIN output file"|tee -a "$logfile"
+    rm -f "$tmp_ukbb_out"
+    exit 1
 fi
-if [[ -e "$tmp_hesin_out".log ]];then
-    cat "$tmp_hesin_out".log >> "$logfile"
-fi
-
-rm -f "$tmp_icd9" "$tmp_icd10" "$tmp_ukbb_out".txt "$tmp_hesin_out".txt "$tmp_ukbb_out".log "$tmp_hesin_out".log
-
-
-
-
-outfile="${outprefix}".txt
-exitIfExists "$outfile" "ERROR: output file $outfile already exists"
-logfile="${outprefix}".log
-: > "${logfile}"
-
-# create temp files
-out_dir=$(dirname "$outfile")
 tmp_icd9=$(mktemp -p "$out_dir" temp_icd9_XXXXXXXX)
 if [[ $? -ne 0 ]];then
     echo "ERROR: could not create temp ICD9 file"|tee -a "$logfile"
+    rm -f "$tmp_ukbb_out" "$tmp_hesin_out"
     exit 1
 fi
-
 tmp_icd10=$(mktemp -p "$out_dir" temp_icd10_XXXXXXXX)
 if [[ $? -ne 0 ]];then
     echo "ERROR: could not create temp ICD10 file"|tee -a "$logfile"
-    rm -f "$tmp_icd9"
+    rm -f "$tmp_ukbb_out" "$tmp_hesin_out" "$tmp_icd9"
     exit 1
 fi
 
-tmp_icd_excl=$(mktemp -p "$out_dir" temp_icd_excl_XXXXXXXX)
-if [[ $? -ne 0 ]];then
-    echo "ERROR: could not create temp ICD exclusion file"|tee -a "$logfile"
-    rm -f "$tmp_icd9"
-    rm -f "$tmp_icd10"
-    exit 1
-fi
+PYTHONPATH="${scriptdir}"/python "${script}" -p OA -r "$release" -o "$tmp_ukbb_out" --cc 20002:1465 2>>"$logfile"
 
-tmp_sr_oa=$(mktemp -p "$out_dir" temp_sr_oa_XXXXXXXX)
-if [[ $? -ne 0 ]];then
-    echo "ERROR: could not create temp SR OA inclusion file"|tee -a "$logfile"
-    rm -f "$tmp_icd9"
-    rm -f "$tmp_icd10"
-    rm -f "$tmp_icd_excl"
-    exit 1
-fi
-
-# save exclusion ICD codes
 grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd9"
 grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd10"
+PYTHONPATH="${scriptdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tmp_hesin_out" --icd9 "$tmp_icd9" --icd10 "$tmp_icd10" 2>>"$logfile"
 
-# save IDs having exclusion ICD codes
-"$hesin_script" -p "OA" -r "$hesin_release" --icd9 "$tmp_icd9" --icd10 "$tmp_icd10" 2>>"$logfile" | sort >"$tmp_icd_excl" 
+join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(tail -n +2 "$tmp_ukbb_out"|grep 1$|cut -f 1|sort) <(sort "$tmp_hesin_out")|grep NULL|cut -f 1 >"$outfile"
 
-# save self-reported OA cases
-"$script" -p "OA" -r "$release" --cc 20002,1465 -c "$config" 2>>"$logfile" | tail -n +2 | grep "1$" | cut -f 1 | sort >"$tmp_sr_oa"
-
-# output self-reported OA cases without exclusion ICD codes
-join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 "$tmp_sr_oa" "$tmp_icd_excl" | grep NULL | cut -f 1 >"$outfile"
-
-# delete temp files
-rm -f "$tmp_icd9" "$tmp_icd10" "$tmp_icd_excl" "$tmp_sr_oa"
+rm -f "$tmp_icd9" "$tmp_icd10" "$tmp_ukbb_out" "$tmp_hesin_out"
 
 exit 0
