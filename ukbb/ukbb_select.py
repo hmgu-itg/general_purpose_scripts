@@ -106,16 +106,10 @@ if to_list:
                 LOGGER.warning("%s is not in data dictionary" % x)
 else:
     LOGGER.info("selecting fields")
-    ccfields=dict() # field --> set of "case" values
+    ccfields=set() # set of f:v1,v2,v3 ... strings
     if not args.cc is None:
         for x in args.cc:
-            a=x.split(":",1)
-            if len(a)!=2:
-                LOGGER.error("wrong --cc option value: %s" % x)
-                continue
-            b=a[1].split(",")
-            for z in b:
-                ccfields.setdefault(a[0],set()).add(z)
+            ccfields.add(x)
     majfields=set()
     if not args.majority is None:
         for x in args.majority:
@@ -135,27 +129,34 @@ else:
 
     # check field availability
     tmp=set()
-    for s in [ccfields,majfields,meanfields,minmissfields,allfields]:
+    for f in ccfields:
+        x=f.split(":")[0]
+        if x not in H:
+            LOGGER.warning("field %s is not in input header" % x)
+            tmp.add(f)
+    for f in tmp:
+        ccfields.remove(f)
+        
+    tmp.clear()
+    for s in [majfields,meanfields,minmissfields,allfields]:
         for f in s:
             if not f in H:
                 LOGGER.warning("field %s is not in input header" % f)
                 tmp.add(f)
         for f in tmp:
-            if s==ccfields:
-                del s[f]
-            else:
-                s.remove(f)
+            s.remove(f)
         tmp.clear()
 
     # check field types
     tmp.clear()
     for f in ccfields:
-        t=D[f]["ValueType"]
+        x=f.split(":")[0]
+        t=D[x]["ValueType"]
         if t!="Categorical single" and t!="Categorical multiple":
-            LOGGER.warning("case/control field %s has type %s; only \"Categorical single\" or \"Categorical multiple\" type is allowed for case/control" % (f,t))
+            LOGGER.warning("case/control field %s has type %s; only \"Categorical single\" or \"Categorical multiple\" type is allowed for case/control" % (x,t))
             tmp.add(f)
     for x in tmp:
-        del ccfields[x]
+        ccfields.remove(x)
     tmp.clear()
 
     for f in majfields:
@@ -176,42 +177,47 @@ else:
         del meanfields[x]
     tmp.clear()
 
+#-----------------------------------------------------------------------------------------------------------------------------
+
     to_keep=set()
     to_keep.add("f.eid")
-    for s in [ccfields,majfields,meanfields,minmissfields,allfields]:
+    for f in ccfields:
+        z=f.split(":")[0]
+        for x in H[z]:
+            to_keep.add(x)
+    for s in [majfields,meanfields,minmissfields,allfields]:
         for f in s:
             for x in H[f]:
                 to_keep.add(x)
-
-#-----------------------------------------------------------------------------------------------------------------------------
-
     LOGGER.info("reading columns %s" % ", ".join(str(e) for e in to_keep))
     df=pd.read_table(infile,skiprows=[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=to_keep)
-    to_keep=list()
-    to_keep.append("f.eid")
+    
+    to_keep.clear()
+    to_keep.add("f.eid")
     for c in allfields:
         for f in H[c]:
-            to_keep.append(f)
+            to_keep.add(f)
     for c in ccfields:
-        LOGGER.info("creating CC column for %s" %c)
-        s="_".join(str(e) for e in ccfields[c])
-        new_colname="cc-"+c+"-"+s
-        df=utils.addSummaryColumn(df,H[c],new_colname,list(ccfields[c]),"cc")
-        to_keep.append(new_colname)
+        z=c.split(":")
+        LOGGER.info("creating CC column for %s and values %s" %(z[0],z[1]))
+        s="_".join(str(e) for e in z[1].split(","))
+        new_colname="cc-"+z[0]+"-"+s
+        df=utils.addSummaryColumn(df,H[z[0]],new_colname,z[1].split(","),"cc")
+        to_keep.add(new_colname)
     for c in majfields:
         LOGGER.info("creating majority column for %s" %c)
         new_colname="majority-"+c
         df=utils.addSummaryColumn(df,H[c],new_colname,None,"majority")
-        to_keep.append(new_colname)
+        to_keep.add(new_colname)
     for c in meanfields:
         LOGGER.info("creating mean column for %s" %c)
         new_colname="mean-"+c
         df=utils.addSummaryColumn(df,H[c],new_colname,None,"mean")
-        to_keep.append(new_colname)
+        to_keep.add(new_colname)
     for c in minmissfields:
         LOGGER.info("creating min missing column for %s" %c)
         new_colname="min_missing-"+c
         df=utils.addSummaryColumn(df,H[c],new_colname,None,"minmissing")
-        to_keep.append(new_colname)
+        to_keep.add(new_colname)
     LOGGER.info("writing columns %s" % ", ".join(str(e) for e in to_keep))
-    df.to_csv(outfname,sep="\t",columns=to_keep,index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    df.to_csv(outfname,sep="\t",columns=list(to_keep),index=False,quotechar='"',quoting=csv.QUOTE_NONE)
