@@ -66,26 +66,34 @@ LOGGER.addHandler(ch)
 logging.getLogger("itgukbb.utils").addHandler(ch)
 logging.getLogger("itgukbb.utils").setLevel(verbosity)
 
-icd9codes=list()
-icd10codes=list()
-opcs3codes=list()
-opcs4codes=list()
+icd9codes=set()
+icd10codes=set()
+opcs3codes=set()
+opcs4codes=set()
 
 if not args.icd9 is None:
     with open(args.icd9,"r") as f:
-        icd9codes=f.read().splitlines()
+        for l in f.read().splitlines():
+            if not re.match("^\s*$",l) and not re.match("^#.*",l):
+                icd9codes.add(l)
 
 if not args.icd10 is None:
     with open(args.icd10,"r") as f:
-        icd10codes=f.read().splitlines()
+        for l in f.read().splitlines():
+            if not re.match("^\s*$",l) and not re.match("^#.*",l):
+                icd10codes.add(l)
 
 if not args.opcs3 is None:
     with open(args.opcs3,"r") as f:
-        opcs3codes=f.read().splitlines()
+        for l in f.read().splitlines():
+            if not re.match("^\s*$",l) and not re.match("^#.*",l):
+                opcs3codes.add(l)
 
 if not args.opcs4 is None:
     with open(args.opcs4,"r") as f:
-        opcs4codes=f.read().splitlines()
+        for l in f.read().splitlines():
+            if not re.match("^\s*$",l) and not re.match("^#.*",l):
+                opcs4codes.add(l)
 
 # TODO: at least one list should be provided
         
