@@ -7,7 +7,15 @@ import sys
 import tarfile
 import logging
 import os
+import re
 from itgukbb import utils
+import functools as ft
+
+def tramsformExpr(string):
+    return re.sub(r"(\w+)",lambda x:"(\""+x.group(1)+"\" in L)" if (x.group(1).lower()!="and" and x.group(1).lower()!="or") else x.group(1),string)
+
+def testF(L,L2):
+    return ft.reduce(lambda a,b:a or b,list(map(lambda x:eval(x),L2)))
 
 verbosity=logging.INFO
 
@@ -16,6 +24,8 @@ parser.add_argument('--project','-p',required=True,action='store',help="Project 
 parser.add_argument('--release','-r',required=True,action='store',help="Release")
 parser.add_argument('-icd9','--icd9',required=False,action='store',help="List of ICD9 codes")
 parser.add_argument('-icd10','--icd10',required=False,action='store',help="List of ICD10 codes")
+parser.add_argument('-oper3','--oper3',required=False,action='store',help="List of OPCS3 codes")
+parser.add_argument('-oper4','--oper4',required=False,action='store',help="List of OPCS4 codes")
 parser.add_argument('-o','--output',required=True,action='store',help="Output file")
 parser.add_argument('--config','-c',required=False,action='store',help="Config file")
 parser.add_argument("--verbose", "-v", help="Verbosity level; default: info",required=False,choices=("debug","info","warning","error"),default="info")
@@ -58,6 +68,8 @@ logging.getLogger("itgukbb.utils").setLevel(verbosity)
 
 icd9codes=list()
 icd10codes=list()
+opcs3codes=list()
+opcs4codes=list()
 
 if not args.icd9 is None:
     with open(args.icd9,"r") as f:
@@ -67,6 +79,16 @@ if not args.icd10 is None:
     with open(args.icd10,"r") as f:
         icd10codes=f.read().splitlines()
 
+if not args.opcs3 is None:
+    with open(args.opcs3,"r") as f:
+        opcs3codes=f.read().splitlines()
+
+if not args.opcs4 is None:
+    with open(args.opcs4,"r") as f:
+        opcs4codes=f.read().splitlines()
+
+# TODO: at least one list should be provided
+        
 #-----------------------------------------------------------------------------------------------------------------------------
 
 if args.config is None:
@@ -91,13 +113,25 @@ LOGGER.info("output file: %s" % outfname)
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
+Licd9=set()
+Licd10=set()
+Loper3=set()
+Loper4=set()
 L=list()
 with tarfile.open(infile,"r:*") as tar:
-    df=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","diag_icd9","diag_icd10"])
+    df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","diag_icd9","diag_icd10"])
+    df_oper=pd.read_table(tar.extractfile("hesin_oper.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","oper3","oper4"])
+    df_diag2=df_diag.groupby(["eid","ins_index"],as_index=False).agg({"diag_icd9":lambda x:list(x),"diag_icd10":lambda x:list(x)})
+    df_oper2=df_oper.groupby(["eid","ins_index"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})
     if icd10codes:
-        L=df.loc[df["diag_icd10"].isin(icd10codes)]["eid"].unique().tolist()
+        Licd10=set(df_diag2[df_diag2.apply(lambda x:testF(x["diag_icd10"],[transformExpr(z) for z in icd10codes]))==True,axis=1]["eid"].tolist())
     if icd9codes:
-        L.extend(x for x in df.loc[df["diag_icd9"].isin(icd9codes)]["eid"].unique().tolist() if not x in L)
+        Licd9=set(df_diag2[df_diag2.apply(lambda x:testF(x["diag_icd9"],[transformExpr(z) for z in icd9codes]))==True,axis=1]["eid"].tolist())
+    if opcs3codes:
+        Loper3=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper3"],[transformExpr(z) for z in opcs3codes]))==True,axis=1]["eid"].tolist())
+    if opcs4codes:
+        Loper4=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper4"],[transformExpr(z) for z in opcs4codes]))==True,axis=1]["eid"].tolist())
+    L=list(Licd10.union(Licd9,Loper3,Loper4))
     LOGGER.info("output %d ID(s)" %len(L))
     with open(outfname,"w") as f:
         if len(L):
