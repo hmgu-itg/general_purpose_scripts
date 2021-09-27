@@ -12,7 +12,7 @@ from itgukbb import utils
 import functools as ft
 
 def tramsformExpr(string):
-    return re.sub(r"(\w+)",lambda x:"(\""+x.group(1)+"\" in L)" if (x.group(1).lower()!="and" and x.group(1).lower()!="or") else x.group(1),string)
+    return re.sub(r"(\w+)",lambda x:"(\""+x.group(1)+"\" in L)" if (x.group(1).lower()!="and" and x.group(1).lower()!="or") else x.group(1).lower(),string)
 
 def testF(L,L2):
     return ft.reduce(lambda a,b:a or b,list(map(lambda x:eval(x),L2)))
