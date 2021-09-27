@@ -11,11 +11,11 @@ import re
 from itgukbb import utils
 import functools as ft
 
-def tramsformExpr(string):
+def transformExpr(string):
     return re.sub(r"(\w+)",lambda x:"(\""+x.group(1)+"\" in L)" if (x.group(1).lower()!="and" and x.group(1).lower()!="or") else x.group(1).lower(),string)
 
-def testF(L,L2):
-    return ft.reduce(lambda a,b:a or b,list(map(lambda x:eval(x),L2)))
+def testF(L1,L2):
+    return ft.reduce(lambda a,b:a or b,list(map(lambda x:eval(x,{},{"L":L1}),L2)))
 
 verbosity=logging.INFO
 
@@ -132,13 +132,13 @@ with tarfile.open(infile,"r:*") as tar:
     df_diag2=df_diag.groupby(["eid","ins_index"],as_index=False).agg({"diag_icd9":lambda x:list(x),"diag_icd10":lambda x:list(x)})
     df_oper2=df_oper.groupby(["eid","ins_index"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})
     if icd10codes:
-        Licd10=set(df_diag2[df_diag2.apply(lambda x:testF(x["diag_icd10"],[transformExpr(z) for z in icd10codes]))==True,axis=1]["eid"].tolist())
+        Licd10=set(df_diag2[df_diag2.apply(lambda x:testF(x["diag_icd10"],[transformExpr(z) for z in icd10codes])==True,axis=1)]["eid"].tolist())
     if icd9codes:
-        Licd9=set(df_diag2[df_diag2.apply(lambda x:testF(x["diag_icd9"],[transformExpr(z) for z in icd9codes]))==True,axis=1]["eid"].tolist())
+        Licd9=set(df_diag2[df_diag2.apply(lambda x:testF(x["diag_icd9"],[transformExpr(z) for z in icd9codes])==True,axis=1)]["eid"].tolist())
     if opcs3codes:
-        Loper3=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper3"],[transformExpr(z) for z in opcs3codes]))==True,axis=1]["eid"].tolist())
+        Loper3=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper3"],[transformExpr(z) for z in opcs3codes])==True,axis=1)]["eid"].tolist())
     if opcs4codes:
-        Loper4=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper4"],[transformExpr(z) for z in opcs4codes]))==True,axis=1]["eid"].tolist())
+        Loper4=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper4"],[transformExpr(z) for z in opcs4codes])==True,axis=1)]["eid"].tolist())
     L=list(Licd10.union(Licd9,Loper3,Loper4))
     LOGGER.info("output %d ID(s)" %len(L))
     with open(outfname,"w") as f:
