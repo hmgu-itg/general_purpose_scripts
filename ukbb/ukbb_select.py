@@ -192,32 +192,33 @@ else:
     LOGGER.info("reading columns %s" % ", ".join(str(e) for e in to_keep))
     df=pd.read_table(infile,skiprows=[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=to_keep)
     
-    to_keep.clear()
-    to_keep.add("f.eid")
+    to_keep=list()
+    to_keep.append("f.eid")
     for c in allfields:
         for f in H[c]:
-            to_keep.add(f)
+            to_keep.append(f)
     for c in ccfields:
         z=c.split(":")
-        LOGGER.info("creating CC column for %s and values %s" %(z[0],z[1]))
+        LOGGER.info("creating CC column for %s and value(s) %s" %(z[0],z[1]))
         s="_".join(str(e) for e in z[1].split(","))
         new_colname="cc-"+z[0]+"-"+s
         df=utils.addSummaryColumn(df,H[z[0]],new_colname,z[1].split(","),"cc")
-        to_keep.add(new_colname)
+        if not new_colname in to_keep:
+            to_keep.append(new_colname) 
     for c in majfields:
         LOGGER.info("creating majority column for %s" %c)
         new_colname="majority-"+c
         df=utils.addSummaryColumn(df,H[c],new_colname,None,"majority")
-        to_keep.add(new_colname)
+        to_keep.append(new_colname)
     for c in meanfields:
         LOGGER.info("creating mean column for %s" %c)
         new_colname="mean-"+c
         df=utils.addSummaryColumn(df,H[c],new_colname,None,"mean")
-        to_keep.add(new_colname)
+        to_keep.append(new_colname)
     for c in minmissfields:
         LOGGER.info("creating min missing column for %s" %c)
         new_colname="min_missing-"+c
         df=utils.addSummaryColumn(df,H[c],new_colname,None,"minmissing")
-        to_keep.add(new_colname)
+        to_keep.append(new_colname)
     LOGGER.info("writing columns %s" % ", ".join(str(e) for e in to_keep))
-    df.to_csv(outfname,sep="\t",columns=list(to_keep),index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    df.to_csv(outfname,sep="\t",columns=to_keep,index=False,quotechar='"',quoting=csv.QUOTE_NONE)
