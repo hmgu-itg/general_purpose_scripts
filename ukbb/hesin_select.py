@@ -39,10 +39,6 @@ try:
 except:
     sys.exit(1)
 
-if args.icd9 is None and args.icd10 is None:
-    print("ERROR: no ICD codes given",file=sys.stderr)
-    sys.exit(1)
-    
 project=args.project
 release=args.release
 outfname=args.output
@@ -65,6 +61,12 @@ LOGGER.addHandler(ch)
 
 logging.getLogger("itgukbb.utils").addHandler(ch)
 logging.getLogger("itgukbb.utils").setLevel(verbosity)
+
+#----------------------------------------------------------------------------------------------------------------------------------
+
+if args.icd9 is None and args.icd10 is None and args.oper3 is None and args.oper4 is None:
+    LOGGER.error("no ICD/OPCS codes given")
+    sys.exit(1)
 
 icd9codes=set()
 icd10codes=set()
@@ -95,8 +97,6 @@ if not args.opcs4 is None:
             if not re.match("^\s*$",l) and not re.match("^#.*",l):
                 opcs4codes.add(l)
 
-# TODO: at least one list should be provided
-        
 #-----------------------------------------------------------------------------------------------------------------------------
 
 if args.config is None:
@@ -133,12 +133,16 @@ with tarfile.open(infile,"r:*") as tar:
     df_oper2=df_oper.groupby(["eid","ins_index"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})
     if icd10codes:
         Licd10=set(df_diag2[df_diag2.apply(lambda x:testF(x["diag_icd10"],[transformExpr(z) for z in icd10codes])==True,axis=1)]["eid"].tolist())
+        LOGGER.info("%d IDs match ICD10 codes" % len(Licd10))
     if icd9codes:
         Licd9=set(df_diag2[df_diag2.apply(lambda x:testF(x["diag_icd9"],[transformExpr(z) for z in icd9codes])==True,axis=1)]["eid"].tolist())
+        LOGGER.info("%d IDs match ICD9 codes" % len(Licd9))
     if opcs3codes:
         Loper3=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper3"],[transformExpr(z) for z in opcs3codes])==True,axis=1)]["eid"].tolist())
+        LOGGER.info("%d IDs match OPCS3 codes" % len(Loper3))
     if opcs4codes:
         Loper4=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper4"],[transformExpr(z) for z in opcs4codes])==True,axis=1)]["eid"].tolist())
+        LOGGER.info("%d IDs match OPCS4 codes" % len(Loper4))
     L=list(Licd10.union(Licd9,Loper3,Loper4))
     LOGGER.info("output %d ID(s)" %len(L))
     with open(outfname,"w") as f:
