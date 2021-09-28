@@ -85,14 +85,14 @@ if not args.icd10 is None:
             if not re.match("^\s*$",l) and not re.match("^#.*",l):
                 icd10codes.add(l)
 
-if not args.opcs3 is None:
-    with open(args.opcs3,"r") as f:
+if not args.oper3 is None:
+    with open(args.oper3,"r") as f:
         for l in f.read().splitlines():
             if not re.match("^\s*$",l) and not re.match("^#.*",l):
                 opcs3codes.add(l)
 
-if not args.opcs4 is None:
-    with open(args.opcs4,"r") as f:
+if not args.oper4 is None:
+    with open(args.oper4,"r") as f:
         for l in f.read().splitlines():
             if not re.match("^\s*$",l) and not re.match("^#.*",l):
                 opcs4codes.add(l)
@@ -121,6 +121,8 @@ LOGGER.info("output file: %s" % outfname)
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
+# assuming ICD lists don't contain logical expressions
+
 Licd9=set()
 Licd10=set()
 Loper3=set()
@@ -128,21 +130,23 @@ Loper4=set()
 L=list()
 with tarfile.open(infile,"r:*") as tar:
     df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","diag_icd9","diag_icd10"])
-    df_oper=pd.read_table(tar.extractfile("hesin_oper.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","oper3","oper4"])
-    df_diag2=df_diag.groupby(["eid","ins_index"],as_index=False).agg({"diag_icd9":lambda x:list(x),"diag_icd10":lambda x:list(x)})
-    df_oper2=df_oper.groupby(["eid","ins_index"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})
     if icd10codes:
-        Licd10=set(df_diag2[df_diag2.apply(lambda x:testF(x["diag_icd10"],[transformExpr(z) for z in icd10codes])==True,axis=1)]["eid"].tolist())
+        Licd10=set(df_diag.loc[df_diag["diag_icd10"].isin(icd10codes)]["eid"].tolist())
         LOGGER.info("%d IDs match ICD10 codes" % len(Licd10))
     if icd9codes:
-        Licd9=set(df_diag2[df_diag2.apply(lambda x:testF(x["diag_icd9"],[transformExpr(z) for z in icd9codes])==True,axis=1)]["eid"].tolist())
+        Licd9=set(df_diag.loc[df_diag["diag_icd9"].isin(icd9codes)]["eid"].tolist())
         LOGGER.info("%d IDs match ICD9 codes" % len(Licd9))
-    if opcs3codes:
-        Loper3=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper3"],[transformExpr(z) for z in opcs3codes])==True,axis=1)]["eid"].tolist())
-        LOGGER.info("%d IDs match OPCS3 codes" % len(Loper3))
-    if opcs4codes:
-        Loper4=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper4"],[transformExpr(z) for z in opcs4codes])==True,axis=1)]["eid"].tolist())
-        LOGGER.info("%d IDs match OPCS4 codes" % len(Loper4))
+
+    if opcs3codes or opcs4codes:
+        df_oper=pd.read_table(tar.extractfile("hesin_oper.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","oper3","oper4"])
+        df_oper2=df_oper.groupby(["eid","ins_index"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})
+        if opcs3codes:
+            Loper3=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper3"],[transformExpr(z) for z in opcs3codes])==True,axis=1)]["eid"].tolist())
+            LOGGER.info("%d IDs match OPCS3 codes" % len(Loper3))
+        if opcs4codes:
+            Loper4=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper4"],[transformExpr(z) for z in opcs4codes])==True,axis=1)]["eid"].tolist())
+            LOGGER.info("%d IDs match OPCS4 codes" % len(Loper4))
+        
     L=list(Licd10.union(Licd9,Loper3,Loper4))
     LOGGER.info("output %d ID(s)" %len(L))
     with open(outfname,"w") as f:
