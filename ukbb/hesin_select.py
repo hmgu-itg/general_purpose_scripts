@@ -17,6 +17,12 @@ def transformExpr(string):
 def testF(L1,L2):
     return ft.reduce(lambda a,b:a or b,list(map(lambda x:eval(x,{},{"L":L1}),L2)))
 
+def testF2(L1,L2):
+    for x in L1:
+        if ft.reduce(lambda a,b:a or b,list(map(lambda c:eval(c,{},{"L":x}),L2))):
+            return True
+    return False
+
 verbosity=logging.INFO
 
 parser=argparse.ArgumentParser()
@@ -129,22 +135,29 @@ Loper3=set()
 Loper4=set()
 L=list()
 with tarfile.open(infile,"r:*") as tar:
-    df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","diag_icd9","diag_icd10"])
-    if icd10codes:
-        Licd10=set(df_diag.loc[df_diag["diag_icd10"].isin(icd10codes)]["eid"].tolist())
-        LOGGER.info("%d IDs match ICD10 codes" % len(Licd10))
-    if icd9codes:
-        Licd9=set(df_diag.loc[df_diag["diag_icd9"].isin(icd9codes)]["eid"].tolist())
-        LOGGER.info("%d IDs match ICD9 codes" % len(Licd9))
+    if icd9codes or icd10codes:
+        df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","diag_icd9","diag_icd10"])
+        if icd10codes:
+            Licd10=set(df_diag.loc[df_diag["diag_icd10"].isin(icd10codes)]["eid"].tolist())
+            LOGGER.info("%d IDs match ICD10 codes" % len(Licd10))
+        if icd9codes:
+            Licd9=set(df_diag.loc[df_diag["diag_icd9"].isin(icd9codes)]["eid"].tolist())
+            LOGGER.info("%d IDs match ICD9 codes" % len(Licd9))
 
     if opcs3codes or opcs4codes:
         df_oper=pd.read_table(tar.extractfile("hesin_oper.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","oper3","oper4"])
         df_oper2=df_oper.groupby(["eid","ins_index"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})
+        df_oper2=df_oper2[["eid","oper3","oper4"]]
+        df_oper2=df_oper2.groupby(["eid"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})
+        L3=[transformExpr(z) for z in opcs3codes]
+        L4=[transformExpr(z) for z in opcs4codes]
         if opcs3codes:
-            Loper3=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper3"],[transformExpr(z) for z in opcs3codes])==True,axis=1)]["eid"].tolist())
+            # Loper3=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper3"],L3)==True,axis=1)]["eid"].tolist())
+            Loper3=set(df_oper2[df_oper2.apply(lambda x:testF2(x["oper3"],L3)==True,axis=1)]["eid"].tolist())
             LOGGER.info("%d IDs match OPCS3 codes" % len(Loper3))
         if opcs4codes:
-            Loper4=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper4"],[transformExpr(z) for z in opcs4codes])==True,axis=1)]["eid"].tolist())
+            # Loper4=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper4"],L4)==True,axis=1)]["eid"].tolist())
+            Loper4=set(df_oper2[df_oper2.apply(lambda x:testF2(x["oper4"],L4)==True,axis=1)]["eid"].tolist())
             LOGGER.info("%d IDs match OPCS4 codes" % len(Loper4))
         
     L=list(Licd10.union(Licd9,Loper3,Loper4))
