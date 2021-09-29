@@ -1,5 +1,18 @@
 
-# return an associative array with field names as keys
+# return an associative array with column names as keys and 1-based column numbers as values
+function getColNumbers {
+    local fname=$1
+    local cmd=$2
+    local -n arname=$3
+
+    arname=()
+
+    while read i x;do
+	arname[$i]=$x
+    done < <(eval "$cmd $fname"|head -n 1|perl -lne '$,=" ";@a=split(/\t/,$_,-1);for ($i=0;$i<scalar(@a);$i++){print $i+1,$a[$i];}')
+}
+
+# return an array with field names
 function getColNames {
     local fname=$1
     local cmd=$2
@@ -7,7 +20,7 @@ function getColNames {
 
     arname=()
 
-    # don't save f.eid, CREATED, RELEASE
+    # without f.eid, CREATED, RELEASE
     while read x;do
 	arname+=($x)
     done < <(eval "$cmd $fname"|head -n 1|perl -lne '$,=" ";@a=split(/\t/,$_,-1);%H=();for ($i=0;$i<scalar(@a);$i++){if ($a[$i]=~/^f\.(\d+)\.\d+\.\d+$/){$H{$1}=1;}}foreach $k (sort {$a <=> $b} keys %H){print $k;}')
