@@ -72,6 +72,7 @@ echo ""|tee -a "$logfile"
 echo "MAIN TABLE: $main_fname" | tee -a "$logfile"
 echo "DIAG TABLE: $diag_fname" | tee -a "$logfile"
 echo "OPER TABLE: $oper_fname" | tee -a "$logfile"
+echo "IDs TO EXCLUDE: $exfile" | tee -a "$logfile"
 echo "OUTPUT DIR: $outdir" | tee -a "$logfile"
 echo "OUTPUT FILE: $outfile" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
@@ -106,7 +107,7 @@ if [[ ! -z "$exfile" ]];then
     echo "EID COLUMN: $eid_col" | tee -a "$logfile"
     echo "TOTAL COLUMNS: $ncols" | tee -a "$logfile"
     echo "FORMAT STRING: $fmt_str" | tee -a "$logfile"
-    cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2"$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
+    cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2 "$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
     
     echo "EXCLUDING SAMPLES FROM $exfile IN MAIN" | tee -a "$logfile"
     tmp_fname="$tmpdir"/hesin_diag.txt
@@ -119,7 +120,7 @@ if [[ ! -z "$exfile" ]];then
     echo "EID COLUMN: $eid_col" | tee -a "$logfile"
     echo "TOTAL COLUMNS: $ncols" | tee -a "$logfile"
     echo "FORMAT STRING: $fmt_str" | tee -a "$logfile"
-    cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2"$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
+    cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2 "$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
     
     echo "EXCLUDING SAMPLES FROM $exfile IN MAIN" | tee -a "$logfile"
     tmp_fname="$tmpdir"/hesin_oper.txt
@@ -132,7 +133,7 @@ if [[ ! -z "$exfile" ]];then
     echo "EID COLUMN: $eid_col" | tee -a "$logfile"
     echo "TOTAL COLUMNS: $ncols" | tee -a "$logfile"
     echo "FORMAT STRING: $fmt_str" | tee -a "$logfile"
-    cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2"$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
+    cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2 "$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
 fi
 
 cd "$tmpdir" && tar -zcf "$outfile" hesin.txt hesin_diag.txt hesin_oper.txt RELEASE CREATED && cd -
