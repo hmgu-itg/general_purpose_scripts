@@ -25,7 +25,7 @@ if [[ $# -eq 0 ]];then
     usage
 fi
 
-OPTS=$(getopt -o hc:r:o: -l help,release:,config:,output: -n 'OA_select_SR' -- "$@")
+OPTS=$(getopt -o hc:e:r:o: -l help,hesin:,release:,config:,output: -n 'OA_select_SR' -- "$@")
 
 if [ $? != 0 ] ; then echo "ERROR: failed parsing options" >&2 ; usage ; exit 1 ; fi
 
