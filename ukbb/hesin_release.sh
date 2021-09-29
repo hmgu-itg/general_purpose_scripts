@@ -97,7 +97,7 @@ cat "$oper_fname" |parallel --block 100M --pipe -N100000 "$replace_script" > "$t
 
 if [[ ! -z "$exfile" ]];then
     echo "" | tee -a "$logfile"
-    echo "EXCLUDING SAMPLES FROM $exfile IN MAIN" | tee -a "$logfile"
+    echo "EXCLUDING SAMPLES FROM MAIN" | tee -a "$logfile"
     tmp_fname="$tmpdir"/hesin.txt
     eid_col=$(getColNum "$tmp_fname" "eid" "cat")
     ncols=$(head -n 1 "$tmp_fname"| tr '\t' '\n'| wc -l)
@@ -111,7 +111,7 @@ if [[ ! -z "$exfile" ]];then
     cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2 "$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
     
     echo "" | tee -a "$logfile"
-    echo "EXCLUDING SAMPLES FROM $exfile IN DIAG" | tee -a "$logfile"
+    echo "EXCLUDING SAMPLES FROM DIAG" | tee -a "$logfile"
     tmp_fname="$tmpdir"/hesin_diag.txt
     eid_col=$(getColNum "$tmp_fname" "eid" "cat")
     ncols=$(head -n 1 "$tmp_fname"| tr '\t' '\n'| wc -l)
@@ -125,7 +125,7 @@ if [[ ! -z "$exfile" ]];then
     cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2 "$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
     
     echo "" | tee -a "$logfile"
-    echo "EXCLUDING SAMPLES FROM $exfile IN OPER" | tee -a "$logfile"
+    echo "EXCLUDING SAMPLES FROM OPER" | tee -a "$logfile"
     tmp_fname="$tmpdir"/hesin_oper.txt
     eid_col=$(getColNum "$tmp_fname" "eid" "cat")
     ncols=$(head -n 1 "$tmp_fname"| tr '\t' '\n'| wc -l)
