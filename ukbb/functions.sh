@@ -8,7 +8,7 @@ function getColNumbers {
     arname=()
 
     while read i x;do
-	arname[$i]=$x
+	arname[$x]=$i
     done < <(eval "$cmd $fname"|head -n 1|perl -lne '$,=" ";@a=split(/\t/,$_,-1);for ($i=0;$i<scalar(@a);$i++){print $i+1,$a[$i];}')
 }
 

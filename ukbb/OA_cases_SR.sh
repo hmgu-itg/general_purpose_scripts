@@ -91,6 +91,11 @@ fi
 echo "Wrapper script: current dir: ${PWD}" >> "$logfile"
 echo "Wrapper script: command line: $scriptname ${args[@]}" >> "$logfile"
 echo ""  >> "$logfile"
+echo "Wrapper script: MAIN release: $release"  >> "$logfile"
+echo "Wrapper script: HESIN release: $hesin_release"  >> "$logfile"
+echo "Wrapper script: output prefix: $outprefix"  >> "$logfile"
+echo "Wrapper script: output file: $outfile"  >> "$logfile"
+echo ""  >> "$logfile"
 
 # --------------------------------------------------------------------------------------------------------
 

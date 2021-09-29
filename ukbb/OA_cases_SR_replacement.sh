@@ -103,33 +103,51 @@ fi
 echo "Wrapper script: current dir: ${PWD}" >> "$logfile"
 echo "Wrapper script: command line: $scriptname ${args[@]}" >> "$logfile"
 echo "" >> "$logfile"
+echo "Wrapper script: MAIN release: $release"  >> "$logfile"
+echo "Wrapper script: HESIN release: $hesin_release"  >> "$logfile"
+echo "Wrapper script: key: $key"  >> "$logfile"
+echo "Wrapper script: output prefix: $outprefix"  >> "$logfile"
+echo "Wrapper script: output file: $outfile"  >> "$logfile"
+echo ""  >> "$logfile"
 
 # --------------------------------------------------------------------------------------------------------
 
 PYTHONPATH="${scriptdir}"/python "${script}" -p OA -r "$release" -o "$tmp_ukbb_out" --cc 20002:1465 --cc 20004:1318 --cc 20004:1319 2>>"$logfile"
 # select cases based on key
+declare -A colnumbers
+getColNumbers "$tmp_ukbb_out" "cat" colnumbers
+if [[ "$key" == "THR" ]];then
+    tail -n +2 "$tmp_ukbb_out" | awk -v a="${colnumbers[f.eid]}" -v b="${colnumbers[cc-20002-1465]}" -v c="${colnumbers[cc-20004-1318]}" 'BEGIN{FS="\t";}$b=="1" && $c=="1"{print $a;}' | sponge "$tmp_ukbb_out"
+fi
+if [[ "$key" == "TKR" ]];then
+    tail -n +2 "$tmp_ukbb_out" | awk -v a="${colnumbers[f.eid]}" -v b="${colnumbers[cc-20002-1465]}" -v c="${colnumbers[cc-20004-1319]}" 'BEGIN{FS="\t";}$b=="1" && $c=="1"{print $a;}' | sponge "$tmp_ukbb_out"
+fi
+if [[ "$key" == "TJR" ]];then
+    tail -n +2 "$tmp_ukbb_out" | awk -v a="${colnumbers[f.eid]}" -v b="${colnumbers[cc-20002-1465]}" -v c="${colnumbers[cc-20004-1318]}" -v d="${colnumbers[cc-20004-1319]}" 'BEGIN{FS="\t";}$b=="1" && ($c=="1" || $d=="1"){print $a;}' | sponge "$tmp_ukbb_out"
+fi
 
+# exclusion
 grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd9"
 grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd10"
 PYTHONPATH="${scriptdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tmp_hesin_out" --icd9 "$tmp_icd9" --icd10 "$tmp_icd10" 2>>"$logfile"
 
-join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(tail -n +2 "$tmp_ukbb_out"|grep 1$|cut -f 1|sort) <(sort "$tmp_hesin_out")|grep NULL|cut -f 1 >"$outfile"
+join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(sort "$tmp_ukbb_out") <(sort "$tmp_hesin_out")|grep NULL|cut -f 1 >"$outfile"
 
 rm -f "$tmp_icd9" "$tmp_icd10" "$tmp_ukbb_out" "$tmp_hesin_out"
 
 
-if [[ "$key" == "TJR" ]];then
-    if [[ -z "${outfile}" ]];then
-	cat <("$fullsname" -c "$config" -r "$release" -k "TKR" 2>/dev/null) <("$fullsname" -c "$config" -r "$release" -k "THR" 2>/dev/null)|sort|uniq
-    else
-	cat <("$fullsname" -c "$config" -r "$release" -k "TKR" 2>/dev/null) <("$fullsname" -c "$config" -r "$release" -k "THR" 2>/dev/null)|sort|uniq|gzip - -c >"$outfile" 
-    fi
-else
-    if [[ -z "${outfile}" ]];then 
-	"$script" -p "OA" -r "$release" --cc 20002,1465 --cc 20004,"${keys2[$key]}" -c "$config" | tail -n +2 | awk 'BEGIN{FS="\t";}$2=="1" && $3=="1"{print $1;}'
-    else
-	"$script" -p "OA" -r "$release" --cc 20002,1465 --cc 20004,"${keys2[$key]}" -c "$config" | tail -n +2 | awk 'BEGIN{FS="\t";}$2=="1" && $3=="1"{print $1;}'| gzip - -c >"$outfile" 
-    fi
-fi
+# if [[ "$key" == "TJR" ]];then
+#     if [[ -z "${outfile}" ]];then
+# 	cat <("$fullsname" -c "$config" -r "$release" -k "TKR" 2>/dev/null) <("$fullsname" -c "$config" -r "$release" -k "THR" 2>/dev/null)|sort|uniq
+#     else
+# 	cat <("$fullsname" -c "$config" -r "$release" -k "TKR" 2>/dev/null) <("$fullsname" -c "$config" -r "$release" -k "THR" 2>/dev/null)|sort|uniq|gzip - -c >"$outfile" 
+#     fi
+# else
+#     if [[ -z "${outfile}" ]];then 
+# 	"$script" -p "OA" -r "$release" --cc 20002,1465 --cc 20004,"${keys2[$key]}" -c "$config" | tail -n +2 | awk 'BEGIN{FS="\t";}$2=="1" && $3=="1"{print $1;}'
+#     else
+# 	"$script" -p "OA" -r "$release" --cc 20002,1465 --cc 20004,"${keys2[$key]}" -c "$config" | tail -n +2 | awk 'BEGIN{FS="\t";}$2=="1" && $3=="1"{print $1;}'| gzip - -c >"$outfile" 
+#     fi
+# fi
 
 exit 0
