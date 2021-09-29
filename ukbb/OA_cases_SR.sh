@@ -59,6 +59,7 @@ readValue "$config" OA_CASE_EXCLUSION icd_exclusion_file
 exitIfNotFile "$icd_exclusion_file" "ERROR: OA_CASE_EXCLUSION ($icd_exclusion_file) does not exist"
 
 outfile="${outprefix}".txt
+exitIfExists "$outfile" "ERROR: output file $outfile already exists"
 logfile="${outprefix}".log
 : > "${logfile}"
 out_dir=$(dirname "$outfile")
@@ -86,6 +87,12 @@ if [[ $? -ne 0 ]];then
     rm -f "$tmp_ukbb_out" "$tmp_hesin_out" "$tmp_icd9"
     exit 1
 fi
+
+echo "Wrapper script: current dir: ${PWD}" >> "$logfile"
+echo "Wrapper script: command line: $scriptname ${args[@]}" >> "$logfile"
+echo ""  >> "$logfile"
+
+# --------------------------------------------------------------------------------------------------------
 
 PYTHONPATH="${scriptdir}"/python "${script}" -p OA -r "$release" -o "$tmp_ukbb_out" --cc 20002:1465 2>>"$logfile"
 
