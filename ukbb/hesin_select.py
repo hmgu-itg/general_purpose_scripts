@@ -11,6 +11,7 @@ import re
 from itgukbb import utils
 import functools as ft
 
+# convert: (A and B) --> ((A in L) and (B in L))
 def transformExpr(string):
     return re.sub(r"(\w+)",lambda x:"(\""+x.group(1)+"\" in L)" if (x.group(1).lower()!="and" and x.group(1).lower()!="or") else x.group(1).lower(),string)
 
@@ -127,6 +128,13 @@ LOGGER.info("output file: %s" % outfname)
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
+# detect if there are logical expressions in OPCS3/4 lists
+expression_flag=False
+if opcs3codes:
+    expression_flag=expression_flag or ft.reduce(lambda a,b:a or b,list(map(lambda x:not re.search("\s",x) is None,opcs3codes)))
+if opcs4codes:
+    expression_flag=expression_flag or ft.reduce(lambda a,b:a or b,list(map(lambda x:not re.search("\s",x) is None,opcs4codes)))
+
 # assuming ICD lists don't contain logical expressions
 
 Licd9=set()
@@ -146,20 +154,26 @@ with tarfile.open(infile,"r:*") as tar:
 
     if opcs3codes or opcs4codes:
         df_oper=pd.read_table(tar.extractfile("hesin_oper.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","oper3","oper4"])
-        df_oper2=df_oper.groupby(["eid","ins_index"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})
-        df_oper2=df_oper2[["eid","oper3","oper4"]]
-        df_oper2=df_oper2.groupby(["eid"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})
-        L3=[transformExpr(z) for z in opcs3codes]
-        L4=[transformExpr(z) for z in opcs4codes]
-        if opcs3codes:
-            # Loper3=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper3"],L3)==True,axis=1)]["eid"].tolist())
-            Loper3=set(df_oper2[df_oper2.apply(lambda x:testF2(x["oper3"],L3)==True,axis=1)]["eid"].tolist())
-            LOGGER.info("%d IDs match OPCS3 codes" % len(Loper3))
-        if opcs4codes:
-            # Loper4=set(df_oper2[df_oper2.apply(lambda x:testF(x["oper4"],L4)==True,axis=1)]["eid"].tolist())
-            Loper4=set(df_oper2[df_oper2.apply(lambda x:testF2(x["oper4"],L4)==True,axis=1)]["eid"].tolist())
-            LOGGER.info("%d IDs match OPCS4 codes" % len(Loper4))
-        
+        if expression_flag:
+            L3=[transformExpr(z) for z in opcs3codes]
+            L4=[transformExpr(z) for z in opcs4codes]
+            df_oper2=df_oper.groupby(["eid","ins_index"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})
+            df_oper2=df_oper2[["eid","oper3","oper4"]]
+            df_oper2=df_oper2.groupby(["eid"],as_index=False).agg({"oper3":lambda x:list(x),"oper4":lambda x:list(x)})        
+            if opcs3codes:
+                Loper3=set(df_oper2[df_oper2.apply(lambda x:testF2(x["oper3"],L3)==True,axis=1)]["eid"].tolist())
+                LOGGER.info("%d IDs match OPCS3 codes" % len(Loper3))
+            if opcs4codes:
+                Loper4=set(df_oper2[df_oper2.apply(lambda x:testF2(x["oper4"],L4)==True,axis=1)]["eid"].tolist())
+                LOGGER.info("%d IDs match OPCS4 codes" % len(Loper4))
+        else:
+            if opcs3codes:
+                Loper3=set(df_oper.loc[df_oper["oper3"].isin(opcs3codes)]["eid"].tolist())
+                LOGGER.info("%d IDs match OPCS3 codes" % len(Loper3))
+            if opcs4codes:
+                Loper4=set(df_oper.loc[df_oper["oper4"].isin(opcs4codes)]["eid"].tolist())
+                LOGGER.info("%d IDs match OPCS4 codes" % len(Loper4))
+            
     L=list(Licd10.union(Licd9,Loper3,Loper4))
     LOGGER.info("output %d ID(s)" %len(L))
     with open(outfname,"w") as f:
