@@ -100,7 +100,7 @@ grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd9]"
 grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd10]"
 PYTHONPATH="${upperdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tempfiles[tmp_hesin_out]" --icd9 "$tempfiles[tmp_icd9]" --icd10 "$tempfiles[tmp_icd10]" 2>>"$logfile"
 
-join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(tail -n +2 "$tempfiles[tmp_ukbb_out]"|grep 1$|cut -f 1|sort) <(sort "tempfiles[$tmp_hesin_out]")|grep NULL|cut -f 1 >"$outfile"
+join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(tail -n +2 "$tempfiles[tmp_ukbb_out]"|grep 1$|cut -f 1|sort) <(sort "$tempfiles[tmp_hesin_out]")|grep NULL|cut -f 1 >"$outfile"
 
 # delete temp files
 for fn in "${tempfiles[@]}";do

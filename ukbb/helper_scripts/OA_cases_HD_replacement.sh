@@ -129,7 +129,7 @@ fi
 PYTHONPATH="${upperdir}"/python "$hesin_script" -p "OA" -r "$hesin_release" --oper4 "$tempfiles[tmp_opcs4_incl]" -o "$tempfiles[tmp_inclusion_opcs4_out]" 2>>"$logfile"
 
 # taking intersection
-cat "$tempfiles[tmp_inclusion_icd_out]" "$tempfiles[tmp_inclusion_opcs4_out]"|sort|uniq -d > "$tmp_inclusion_out"
+cat "$tempfiles[tmp_inclusion_icd_out]" "$tempfiles[tmp_inclusion_opcs4_out]"|sort|uniq -d > "$tempfiles[tmp_inclusion_out]"
 
 # exclusion ICD codes
 grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd9_excl]"
