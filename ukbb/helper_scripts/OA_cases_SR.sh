@@ -4,9 +4,10 @@ scriptname=$0
 args=("$@")
 
 scriptdir=$(dirname $(readlink -f $0))
-source "${scriptdir}/functions.sh"
-script="${scriptdir}/ukbb_select.py"
-hesin_script="${scriptdir}/hesin_select.py"
+upperdir=$(dirname $scriptdir)
+source "${upperdir}/functions.sh"
+script="${upperdir}/ukbb_select.py"
+hesin_script="${upperdir}/hesin_select.py"
 
 function usage () {
     echo ""
@@ -51,7 +52,7 @@ exitIfEmpty "$release" "ERROR: MAIN release not specified"
 exitIfEmpty "$hesin_release" "ERROR: HESIN release not specified"
 exitIfEmpty "$outprefix" "ERROR: output prefix not specified"
 if [[ -z "$config" ]];then
-    config="${scriptdir}"/config.txt
+    config="${upperdir}"/config.txt
 fi
 exitIfNotFile "$config" "ERROR: config $config does not exist"
 icd_exclusion_file=""
@@ -64,29 +65,23 @@ logfile="${outprefix}".log
 : > "${logfile}"
 out_dir=$(dirname "$outfile")
 
-tmp_ukbb_out=$(mktemp -p "$out_dir" temp_ukbb_XXXXXXXX)
-if [[ $? -ne 0 ]];then
-    echo "ERROR: could not create temp UKBB output file"|tee -a "$logfile"
+# --------------------------------------------------------------------------------------------------------
+
+# create temp files
+declare -A tempfiles
+tempfiles["tmp_ukbb_out"]="tmp_XXXXXXX"
+tempfiles["tmp_hesin_out"]="tmp_XXXXXXX"
+tempfiles["tmp_icd9"]="tmp_XXXXXXX"
+tempfiles["tmp_icd10"]="tmp_XXXXXXX"
+
+if createTempFiles "$out_dir" tempfiles;then
+    echo "INFO: created temporary files"|tee -a "$logfile"
+else
+    echo "ERROR: failed to create temporary files"|tee -a "$logfile"
     exit 1
 fi
-tmp_hesin_out=$(mktemp -p "$out_dir" temp_hesin_XXXXXXXX)
-if [[ $? -ne 0 ]];then
-    echo "ERROR: could not create temp HESIN output file"|tee -a "$logfile"
-    rm -f "$tmp_ukbb_out"
-    exit 1
-fi
-tmp_icd9=$(mktemp -p "$out_dir" temp_icd9_XXXXXXXX)
-if [[ $? -ne 0 ]];then
-    echo "ERROR: could not create temp ICD9 file"|tee -a "$logfile"
-    rm -f "$tmp_ukbb_out" "$tmp_hesin_out"
-    exit 1
-fi
-tmp_icd10=$(mktemp -p "$out_dir" temp_icd10_XXXXXXXX)
-if [[ $? -ne 0 ]];then
-    echo "ERROR: could not create temp ICD10 file"|tee -a "$logfile"
-    rm -f "$tmp_ukbb_out" "$tmp_hesin_out" "$tmp_icd9"
-    exit 1
-fi
+
+# --------------------------------------------------------------------------------------------------------
 
 echo "Wrapper script: current dir: ${PWD}" >> "$logfile"
 echo "Wrapper script: command line: $scriptname ${args[@]}" >> "$logfile"
@@ -99,14 +94,21 @@ echo ""  >> "$logfile"
 
 # --------------------------------------------------------------------------------------------------------
 
-PYTHONPATH="${scriptdir}"/python "${script}" -p OA -r "$release" -o "$tmp_ukbb_out" --cc 20002:1465 2>>"$logfile"
+PYTHONPATH="${upperdir}"/python "${script}" -p OA -r "$release" -o "$tempfiles[tmp_ukbb_out]" --cc 20002:1465 2>>"$logfile"
 
-grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd9"
-grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tmp_icd10"
-PYTHONPATH="${scriptdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tmp_hesin_out" --icd9 "$tmp_icd9" --icd10 "$tmp_icd10" 2>>"$logfile"
+grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd9]"
+grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd10]"
+PYTHONPATH="${upperdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tempfiles[tmp_hesin_out]" --icd9 "$tempfiles[tmp_icd9]" --icd10 "$tempfiles[tmp_icd10]" 2>>"$logfile"
 
-join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(tail -n +2 "$tmp_ukbb_out"|grep 1$|cut -f 1|sort) <(sort "$tmp_hesin_out")|grep NULL|cut -f 1 >"$outfile"
+join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(tail -n +2 "$tempfiles[tmp_ukbb_out]"|grep 1$|cut -f 1|sort) <(sort "tempfiles[$tmp_hesin_out]")|grep NULL|cut -f 1 >"$outfile"
 
-rm -f "$tmp_icd9" "$tmp_icd10" "$tmp_ukbb_out" "$tmp_hesin_out"
+# delete temp files
+for fn in "${tempfiles[@]}";do
+    if [[ -f "$fn" ]];then
+	rm -v "$fn"
+    fi
+done
+
+date "+%d-%b-%Y:%H-%M-%S"|tee -a "$logfile"
 
 exit 0

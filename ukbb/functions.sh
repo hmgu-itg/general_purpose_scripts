@@ -1,14 +1,48 @@
 
+# create temp files
+# upon success the input associative arry contains names of the created files as values
+function createTempFiles {
+    local dirname=$1
+    # associative array, values: templates for mktemp
+    local -n local_fnames=$2
+
+    declare -a temp
+    g=0
+    for k in "${!local_fnames[@]}";do
+	t="${local_fnames[$k]}"
+	f=$(mktemp -p "$dirname" "$t")
+	if [[ $? -ne 0 ]];then
+	    echo "ERROR: could not create temporary file" >&2
+	    g=1
+	    break
+	else
+	    echo "INFO: created temporary file $f" >&2
+	    local_fnames[$k]="$f"
+	    temp+=("$f")
+	fi
+    done
+    
+    if [[ "$g" -eq 1 ]];then
+	for f in "${temp[@]}";do
+	    echo "INFO: removing $f" >&2
+	    rm "$f"
+	done
+	return 1
+    else
+	return 0
+    fi
+}
+
 # return an associative array with column names as keys and 1-based column numbers as values
 function getColNumbers {
     local fname=$1
     local cmd=$2
-    local -n arname=$3
+    local -n local_arname=$3
 
-    arname=()
+    local_arname=()
 
     while read i x;do
-	arname[$x]=$i
+	local_arname[$x]=$i
     done < <(eval "$cmd $fname"|head -n 1|perl -lne '$,=" ";@a=split(/\t/,$_,-1);for ($i=0;$i<scalar(@a);$i++){print $i+1,$a[$i];}')
 }
 
@@ -32,12 +66,12 @@ function getCols {
     local fname=$1
     local cmd=$2
     local field=$3
-    local -n arname=$4
+    local -n local_arname=$4
 
-    arname=()
+    local_arname=()
     
     while read i x;do
-	arname[$i]=$x
+	local_arname[$i]=$x
     done < <(eval "$cmd $fname"|head -n 1|perl -slne '$,=" ";@a=split(/\t/,$_,-1);for ($i=0;$i<scalar(@a);$i++){if ($a[$i]=~/^f\.$f\.\d+\.\d+$/){print $i+1,$a[$i];}}' -- -f=$field)
 }
 
@@ -49,9 +83,9 @@ function getCols {
 function readValue {
     local fname=$1
     local key=$2
-    local -n name=$3
+    local -n local_name=$3
 
-    name=$(cat "$fname"|grep -v "#"|grep -m 1 "^$key" "$fname"|cut -f 2)
+    local_name=$(cat "$fname"|grep -v "#"|grep -m 1 "^$key" "$fname"|cut -f 2)
 }
 
 # read associative array from a tab separated file
@@ -62,12 +96,12 @@ function readValue {
 function readAArray {
     local fname=$1
     local key=$2
-    local -n arname=$3
+    local -n local_arname=$3
 
-    arname=()
+    local_arname=()
     
     while read x z;do
-	arname["$x"]="$z"
+	local_arname["$x"]="$z"
     done < <(cat "$fname"|grep -v "#"|grep -m 1 "^$key" "$fname"|cut -f 2|tr ',' '\n'|tr ':' ' ')
 }
 
