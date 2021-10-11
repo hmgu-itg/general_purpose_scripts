@@ -92,19 +92,21 @@ fi
 
 # --------------------------------------------------------------------------------------------------------
 
-echo "Wrapper script: current dir: ${PWD}" >> "$logfile"
-echo "Wrapper script: command line: $scriptname ${args[@]}" >> "$logfile"
-echo "" >> "$logfile"
-echo "Wrapper script: MAIN release: $release"  >> "$logfile"
-echo "Wrapper script: HESIN release: $hesin_release"  >> "$logfile"
-echo "Wrapper script: key: $key"  >> "$logfile"
-echo "Wrapper script: output prefix: $outprefix"  >> "$logfile"
-echo "Wrapper script: output file: $outfile"  >> "$logfile"
-echo ""  >> "$logfile"
+echo "Wrapper script: current dir: ${PWD}" | tee -a "$logfile"
+echo "Wrapper script: command line: $scriptname ${args[@]}" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
+echo "Wrapper script: MAIN release: $release"  | tee -a "$logfile"
+echo "Wrapper script: HESIN release: $hesin_release"  | tee -a "$logfile"
+echo "Wrapper script: key: $key"  | tee -a "$logfile"
+echo "Wrapper script: output prefix: $outprefix"  | tee -a "$logfile"
+echo "Wrapper script: output file: $outfile"  | tee -a "$logfile"
+echo ""  | tee -a "$logfile"
 
 # --------------------------------------------------------------------------------------------------------
+echo "RUNNING ${script}" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
 
-PYTHONPATH="${upperdir}"/python "${script}" -p OA -r "$release" -o "$tempfiles[tmp_ukbb_out]" --cc 20002:1465 --cc 20004:1318 --cc 20004:1319 2>>"$logfile"
+PYTHONPATH="${upperdir}"/python "${script}" -p OA -r "$release" -o "$tempfiles[tmp_ukbb_out]" --cc 20002:1465 --cc 20004:1318 --cc 20004:1319  2> >(tee -a "$logfile" >&2)
 # select cases based on key
 declare -A colnumbers
 getColNumbers "$tempfiles[tmp_ukbb_out]" "cat" colnumbers
@@ -121,8 +123,14 @@ fi
 # exclusion
 grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd9]"
 grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd10]"
-PYTHONPATH="${upperdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tempfiles[tmp_hesin_out]" --icd9 "$tempfiles[tmp_icd9]" --icd10 "$tempfiles[tmp_icd10]" 2>>"$logfile"
 
+echo "" | tee -a "$logfile"
+echo "RUNNING ${hesin_script}" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
+
+PYTHONPATH="${upperdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tempfiles[tmp_hesin_out]" --icd9 "$tempfiles[tmp_icd9]" --icd10 "$tempfiles[tmp_icd10]" 2> >(tee -a "$logfile" >&2)
+
+# combining inclusion and exclusion
 join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(sort "$tempfiles[tmp_ukbb_out]") <(sort "$tempfiles[tmp_hesin_out]")|grep NULL|cut -f 1 >"$outfile"
 
 # delete temp files

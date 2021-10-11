@@ -16,7 +16,7 @@ function createTempFiles {
 	    g=1
 	    break
 	else
-	    echo "INFO: created temporary file $f" >&2
+	    #echo "INFO: created temporary file $f" >&2
 	    local_fnames[$k]="$f"
 	    temp+=("$f")
 	fi

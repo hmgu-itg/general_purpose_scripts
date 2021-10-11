@@ -83,29 +83,37 @@ fi
 
 # --------------------------------------------------------------------------------------------------------
 
-echo "Wrapper script: current dir: ${PWD}" >> "$logfile"
-echo "Wrapper script: command line: $scriptname ${args[@]}" >> "$logfile"
-echo ""  >> "$logfile"
-echo "Wrapper script: MAIN release: $release"  >> "$logfile"
-echo "Wrapper script: HESIN release: $hesin_release"  >> "$logfile"
-echo "Wrapper script: output prefix: $outprefix"  >> "$logfile"
-echo "Wrapper script: output file: $outfile"  >> "$logfile"
-echo ""  >> "$logfile"
+echo "Wrapper script: current dir: ${PWD}"| tee -a "$logfile"
+echo "Wrapper script: command line: $scriptname ${args[@]}" | tee -a "$logfile"
+echo ""  | tee -a "$logfile"
+echo "Wrapper script: MAIN release: $release"  | tee -a "$logfile"
+echo "Wrapper script: HESIN release: $hesin_release"  | tee -a "$logfile"
+echo "Wrapper script: output prefix: $outprefix"  | tee -a "$logfile"
+echo "Wrapper script: output file: $outfile"  | tee -a "$logfile"
+echo ""  | tee -a "$logfile"
 
 # --------------------------------------------------------------------------------------------------------
 
-PYTHONPATH="${upperdir}"/python "${script}" -p OA -r "$release" -o "$tempfiles[tmp_ukbb_out]" --cc 20002:1465 2>>"$logfile"
+echo "RUNNING ${script}" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
+
+PYTHONPATH="${upperdir}"/python "${script}" -p OA -r "$release" -o "$tempfiles[tmp_ukbb_out]" --cc 20002:1465 2> >(tee -a "$logfile" >&2)
 
 grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd9]"
 grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd10]"
-PYTHONPATH="${upperdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tempfiles[tmp_hesin_out]" --icd9 "$tempfiles[tmp_icd9]" --icd10 "$tempfiles[tmp_icd10]" 2>>"$logfile"
+
+echo ""  | tee -a "$logfile"
+echo "RUNNING ${hesin_script}" | tee -a "$logfile"
+echo ""  | tee -a "$logfile"
+
+PYTHONPATH="${upperdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "$tempfiles[tmp_hesin_out]" --icd9 "$tempfiles[tmp_icd9]" --icd10 "$tempfiles[tmp_icd10]" 2> >(tee -a "$logfile" >&2)
 
 join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(tail -n +2 "$tempfiles[tmp_ukbb_out]"|grep 1$|cut -f 1|sort) <(sort "$tempfiles[tmp_hesin_out]")|grep NULL|cut -f 1 >"$outfile"
 
 # delete temp files
 for fn in "${tempfiles[@]}";do
     if [[ -f "$fn" ]];then
-	rm -v "$fn"
+	rm "$fn"
     fi
 done
 
