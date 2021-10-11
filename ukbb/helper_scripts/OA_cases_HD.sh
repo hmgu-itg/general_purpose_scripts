@@ -107,22 +107,22 @@ echo ""|tee -a "$logfile"
 #----------------------------------------------------------------------------------------------------------------
 
 # inclusion ICD codes
-grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}' > "$tempfiles[tmp_icd9_incl]"
-grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}' > "$tempfiles[tmp_icd10_incl]"
-PYTHONPATH="${upperdir}"/python "$hesin_script" -p "OA" -r "$hesin_release" --icd9 "$tempfiles[tmp_icd9_incl]" --icd10 "$tempfiles[tmp_icd10_incl]" -o "$tempfiles[tmp_inclusion_out]" 2> >(tee -a "$logfile" >&2)
+grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}' > "${tempfiles[tmp_icd9_incl]}"
+grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}' > "${tempfiles[tmp_icd10_incl]}"
+PYTHONPATH="${upperdir}"/python "$hesin_script" -p "OA" -r "$hesin_release" --icd9 "${tempfiles[tmp_icd9_incl]}" --icd10 "${tempfiles[tmp_icd10_incl]}" -o "${tempfiles[tmp_inclusion_out]}" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
 # exclusion ICD codes
-grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd9_excl]"
-grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "$tempfiles[tmp_icd10_excl]"
-PYTHONPATH="${upperdir}"/python "$hesin_script" -p "OA" -r "$hesin_release" --icd9 "$tempfiles[tmp_icd9_excl]" --icd10 "$tempfiles[tmp_icd10_excl]" -o "$tempfiles[tmp_exclusion_out]" 2> >(tee -a "$logfile" >&2)
+grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "${tempfiles[tmp_icd9_excl]}"
+grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "${tempfiles[tmp_icd10_excl]}"
+PYTHONPATH="${upperdir}"/python "$hesin_script" -p "OA" -r "$hesin_release" --icd9 "${tempfiles[tmp_icd9_excl]}" --icd10 "${tempfiles[tmp_icd10_excl]}" -o "${tempfiles[tmp_exclusion_out]}" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
 # only output samples in inclusion that are not in exclusion
-join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 "$tempfiles[tmp_inclusion_out]" "$tempfiles[tmp_exclusion_out]" | grep NULL | cut -f 1  > "${outfile}"
+join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 "${tempfiles[tmp_inclusion_out]}" "${tempfiles[tmp_exclusion_out]}" | grep NULL | cut -f 1  > "${outfile}"
 
 # delete temp files
 for fn in "${tempfiles[@]}";do
     if [[ -f "$fn" ]];then
-	rm -v "$fn"
+	rm "$fn"
     fi
 done
 
