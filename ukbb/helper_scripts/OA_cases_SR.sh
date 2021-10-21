@@ -98,6 +98,9 @@ echo "RUNNING ${script}" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
 
 PYTHONPATH="${upperdir}"/python "${script}" -p OA -r "$release" -o "${tempfiles[tmp_ukbb_out]}" --cc 20002:1465 > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+n=$(tail -n +2 "${tempfiles[tmp_ukbb_out]}"|grep 1$|cut -f 1| wc -l)
+echo "" | tee -a "$logfile"
+echo "INFO: $n samples meet inclusion criteria" | tee -a "$logfile"
 
 grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "${tempfiles[tmp_icd9]}"
 grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "${tempfiles[tmp_icd10]}"
@@ -107,8 +110,15 @@ echo "RUNNING ${hesin_script}" | tee -a "$logfile"
 echo ""  | tee -a "$logfile"
 
 PYTHONPATH="${upperdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "${tempfiles[tmp_hesin_out]}" --icd9 "${tempfiles[tmp_icd9]}" --icd10 "${tempfiles[tmp_icd10]}" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+n=$(cat "${tempfiles[tmp_hesin_out]}"| wc -l)
+echo "" | tee -a "$logfile"
+echo "INFO: $n samples meet exclusion criteria" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
 
 join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(tail -n +2 "${tempfiles[tmp_ukbb_out]}"|grep 1$|cut -f 1|sort) <(sort "${tempfiles[tmp_hesin_out]}")|grep NULL|cut -f 1 >"$outfile"
+n=$(cat "$outfile"| wc -l)
+echo "INFO: final set: $n samples" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
 
 # delete temp files
 for fn in "${tempfiles[@]}";do

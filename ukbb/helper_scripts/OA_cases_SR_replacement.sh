@@ -121,6 +121,10 @@ if [[ "$key" == "TJR" ]];then
     tail -n +2 "${tempfiles[tmp_ukbb_out]}" | awk -v a="${colnumbers[f.eid]}" -v b="${colnumbers[cc-20002-1465]}" -v c="${colnumbers[cc-20004-1318]}" -v d="${colnumbers[cc-20004-1319]}" 'BEGIN{FS="\t";}$b=="1" && ($c=="1" || $d=="1"){print $a;}'|sponge "${tempfiles[tmp_ukbb_out]}"
 fi
 
+n=$(cat "${tempfiles[tmp_ukbb_out]}"| wc -l)
+echo "" | tee -a "$logfile"
+echo "INFO: $n samples meet inclusion criteria" | tee -a "$logfile"
+
 # exclusion
 grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "${tempfiles[tmp_icd9]}"
 grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "${tempfiles[tmp_icd10]}"
@@ -131,8 +135,16 @@ echo "" | tee -a "$logfile"
 
 PYTHONPATH="${upperdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "${tempfiles[tmp_hesin_out]}" --icd9 "${tempfiles[tmp_icd9]}" --icd10 "${tempfiles[tmp_icd10]}" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
+n=$(cat "${tempfiles[tmp_hesin_out]}"| wc -l)
+echo "" | tee -a "$logfile"
+echo "INFO: $n samples meet exclusion criteria" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
+
 # combining inclusion and exclusion
 join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(sort "${tempfiles[tmp_ukbb_out]}") <(sort "${tempfiles[tmp_hesin_out]}")|grep NULL|cut -f 1 >"$outfile"
+n=$(cat "$outfile"| wc -l)
+echo "INFO: final set: $n samples" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
 
 # delete temp files
 for fn in "${tempfiles[@]}";do

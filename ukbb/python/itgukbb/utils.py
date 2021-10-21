@@ -66,7 +66,7 @@ def customMean(L):
 
 def customMajority(L):
     H=dict()
-    f=1
+    f=1 # flag, if all elements are "NA"
     for x in L:
         if x!="NA":
             f=0
@@ -76,8 +76,11 @@ def customMajority(L):
     else:
         return max(H,key=H.get)
 
+# returns NA if all elements in L are NA
+# returns 1 if at least one element in L occurs in "values"
+# otherwise returns 0
 def customCC(L,values):
-    f=1
+    f=1 # flag, if all elements are "NA"
     for x in L:
         if x!="NA":
             f=0
@@ -88,6 +91,7 @@ def customCC(L,values):
     else:
         return 0
 
+# adds a new column to DF
 def addSummaryColumn(df,columns,new_name,values,method):
     if method=="mean":
         df[new_name]=df[columns].agg(customMean,axis="columns")

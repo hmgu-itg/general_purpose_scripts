@@ -11,20 +11,18 @@ import re
 from itgukbb import utils
 import functools as ft
 
-# convert: (A and B) --> ((A in L) and (B in L))
+# helper function, example: converts string "(A and B)" to string "((A in L) and (B in L))"
 def transformExpr(string):
     return re.sub(r"(\w+)",lambda x:"(\""+x.group(1)+"\" in L)" if (x.group(1).lower()!="and" and x.group(1).lower()!="or") else x.group(1).lower(),string)
-
-def testF(L1,L2):
-    return ft.reduce(lambda a,b:a or b,list(map(lambda x:eval(x,{},{"L":L1}),L2)))
 
 def testF2(L1,L2):
     for x in L1:
         if ft.reduce(lambda a,b:a or b,list(map(lambda c:eval(c,{},{"L":x}),L2))):
             return True
     return False
-
 verbosity=logging.INFO
+
+# given ICD and OPCS input lists, each ID in the return list satisfies at least one criterion (i.e. union)
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--project','-p',required=True,action='store',help="Project name")
@@ -113,12 +111,12 @@ else:
 
 for arg in vars(args):
     LOGGER.info("INPUT OPTIONS: %s : %s" % (arg, getattr(args, arg)))
+
 LOGGER.info("")
 LOGGER.info("config file: %s" % config)
 C=utils.readConfig(config)
 if C is None:
     sys.exit(1)
-
 infile=utils.getProjectFileName(C,project,release,"HESIN")
 if infile is None:
     sys.exit(1)
@@ -127,16 +125,13 @@ LOGGER.info("input file: %s" % infile)
 LOGGER.info("output file: %s" % outfname)
 
 #-----------------------------------------------------------------------------------------------------------------------------
-
-# detect if there are logical expressions in OPCS3/4 lists
+# assuming ICD lists don't contain logical expressions
+# detect if there are logical expressions in OPCS3/4 lists: just checking if there are empty character in an element
 expression_flag=False
 if opcs3codes:
     expression_flag=expression_flag or ft.reduce(lambda a,b:a or b,list(map(lambda x:not re.search("\s",x) is None,opcs3codes)))
 if opcs4codes:
     expression_flag=expression_flag or ft.reduce(lambda a,b:a or b,list(map(lambda x:not re.search("\s",x) is None,opcs4codes)))
-
-# assuming ICD lists don't contain logical expressions
-
 Licd9=set()
 Licd10=set()
 Loper3=set()
@@ -151,7 +146,6 @@ with tarfile.open(infile,"r:*") as tar:
         if icd9codes:
             Licd9=set(df_diag.loc[df_diag["diag_icd9"].isin(icd9codes)]["eid"].tolist())
             LOGGER.info("%d IDs match ICD9 codes" % len(Licd9))
-
     if opcs3codes or opcs4codes:
         df_oper=pd.read_table(tar.extractfile("hesin_oper.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","oper3","oper4"])
         if expression_flag:
@@ -173,7 +167,6 @@ with tarfile.open(infile,"r:*") as tar:
             if opcs4codes:
                 Loper4=set(df_oper.loc[df_oper["oper4"].isin(opcs4codes)]["eid"].tolist())
                 LOGGER.info("%d IDs match OPCS4 codes" % len(Loper4))
-            
     L=list(Licd10.union(Licd9,Loper3,Loper4))
     LOGGER.info("output %d ID(s)" %len(L))
     with open(outfname,"w") as f:

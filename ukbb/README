@@ -21,7 +21,7 @@ HD ThumbOA
 HD SpineOA
 HD FingerOA
 HD HipKneeOA
-from the HESIN dataset, include samples having at least one ICD code from "OA_case_includion_HD_ICD.txt", using appropriate value in the first column for filtering
+from the HESIN dataset, include samples having at least one ICD code from "OA_case_inclusion_HD_ICD.txt", using appropriate value in the first column for filtering
 
 OPCS4 TKR cases:
 First get all HD KneeOA cases (see above); then keep only those samples having OPCS4 code combinations from "OA_case_inclusion_knee_hip_OPCS4.txt" (first column == "TKR")

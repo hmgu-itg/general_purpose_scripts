@@ -16,6 +16,7 @@ parser.add_argument('--project','-p',required=True,action='store',help="Project 
 parser.add_argument('--release','-r',required=True,action='store',help="Release")
 parser.add_argument('--output','-o',required=True,action='store',help="Output file")
 parser.add_argument('--config','-c',required=False,action='store',help="Config file")
+parser.add_argument('--describe','-d',required=False,action='store',help="Describe a data field")
 parser.add_argument('--list','-l',required=False,action='store_true',help="Output column information")
 parser.add_argument('--majority','-majority',required=False,action='append',help="Output most frequent value, over all instances")
 parser.add_argument('--mean','-mean',required=False,action='append',help="Output mean, over all instances")
@@ -36,6 +37,7 @@ except:
 project=args.project
 release=args.release
 to_list=args.list
+d_field=args.describe
 outfname=args.output
 
 if args.verbose is not None:
@@ -80,6 +82,7 @@ LOGGER.info("input file: %s" % infile)
 # key: field
 D=utils.readDataDictionary(C["DATA_DICT"])
 
+# only the header line
 df=pd.read_table(infile,sep="\t",nrows=1)
 H=dict() # short field name --> list of matching full names
 for x in df.columns.values.tolist():
@@ -94,6 +97,28 @@ for x in df.columns.values.tolist():
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
+if d_field:
+    if not d_field in H:
+        LOGGER.error("%s is not in input header" % d_field)
+        sys.exit(1)
+    if not d_field in D:
+        LOGGER.error("%s is not in data dictionary" % d_field)
+        sys.exit(1)
+    txt="-" * int(0.85*os.get_terminal_size().columns)
+    print(txt.center(os.get_terminal_size().columns))
+    print(pd.DataFrame([["Field",d_field],["Field description",D[d_field]["Field"]],["Field type",D[d_field]["ValueType"]],["Instances",len(H[d_field])]],columns=["A","B"]).to_string(index=False,header=False))
+    print(txt.center(os.get_terminal_size().columns))
+    if D[d_field]["ValueType"]=="Categorical single" or D[d_field]["ValueType"]=="Categorical multiple":
+        df=pd.read_table(infile,skiprows=[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=H[d_field])
+        df=df.apply(pd.Series.value_counts).fillna(0).astype(int)
+        df["Count"]=df.agg("sum",axis=1)
+        df.index.name="Value"
+        df.reset_index(inplace=True)
+        print(df.to_string(index=False,columns=["Value","Count"]))
+        print(txt.center(os.get_terminal_size().columns))
+    sys.exit(0)
+
+# just output info about available fields and exit
 if to_list:
     LOGGER.info("output field info")
     with open(outfname,"w") as f:
@@ -190,6 +215,7 @@ else:
             for x in H[f]:
                 to_keep.add(x)
     LOGGER.info("reading columns %s" % ", ".join(str(e) for e in to_keep))
+    # skip second row
     df=pd.read_table(infile,skiprows=[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=to_keep)
     
     to_keep=list()
@@ -200,8 +226,7 @@ else:
     for c in ccfields:
         z=c.split(":")
         LOGGER.info("creating CC column for %s and value(s) %s" %(z[0],z[1]))
-        s="_".join(str(e) for e in z[1].split(","))
-        new_colname="cc-"+z[0]+"-"+s
+        new_colname="cc-"+z[0]+"-"+"_".join(str(e) for e in z[1].split(","))
         df=utils.addSummaryColumn(df,H[z[0]],new_colname,z[1].split(","),"cc")
         if not new_colname in to_keep:
             to_keep.append(new_colname) 
