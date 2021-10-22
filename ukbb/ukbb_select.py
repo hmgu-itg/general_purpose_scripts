@@ -97,6 +97,7 @@ for x in df.columns.values.tolist():
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
+# describe a field and exit
 if d_field:
     if not d_field in H:
         LOGGER.error("%s is not in input header" % d_field)
