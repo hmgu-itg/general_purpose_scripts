@@ -14,7 +14,7 @@ verbosity=logging.INFO
 parser=argparse.ArgumentParser()
 parser.add_argument('--project','-p',required=True,action='store',help="Project name")
 parser.add_argument('--release','-r',required=True,action='store',help="Release")
-parser.add_argument('--output','-o',required=True,action='store',help="Output file")
+parser.add_argument('--output','-o',required=False,action='store',help="Output file")
 parser.add_argument('--config','-c',required=False,action='store',help="Config file")
 parser.add_argument('--describe','-d',required=False,action='store',help="Describe a data field")
 parser.add_argument('--list','-l',required=False,action='store_true',help="Output column information")
@@ -121,15 +121,17 @@ if d_field:
 
 # just output info about available fields and exit
 if to_list:
-    LOGGER.info("output field info")
-    with open(outfname,"w") as f:
-        print("{}\t{}\t{}\t{}".format("Field","Instances","Description","Type"),file=f)
-        for x in H:
-            if x in D:
-                print("{}\t{}\t{}\t{}".format(x,len(H[x]),D[x]["Field"],D[x]["ValueType"]),file=f)
-            else:
-                print("{}\t{}\t{}\t{}".format(x,len(H[x]),"NA","NA"),file=f)
-                LOGGER.warning("%s is not in data dictionary" % x)
+    f=sys.stdout
+    if outfname:
+        f=open(outfname,"w")
+    print("{}\t{}\t{}\t{}".format("Field","Instances","Description","Type"),file=f)
+    for x in H:
+        if x in D:
+            print("{}\t{}\t{}\t{}".format(x,len(H[x]),D[x]["Field"],D[x]["ValueType"]),file=f)
+        else:
+            print("{}\t{}\t{}\t{}".format(x,len(H[x]),"NA","NA"),file=f)
+            LOGGER.warning("%s is not in data dictionary" % x)
+    sys.exit(0)
 else:
     LOGGER.info("selecting fields")
     ccfields=set() # set of f:v1,v2,v3 ... strings
@@ -247,4 +249,7 @@ else:
         df=utils.addSummaryColumn(df,H[c],new_colname,None,"minmissing")
         to_keep.append(new_colname)
     LOGGER.info("writing columns %s" % ", ".join(str(e) for e in to_keep))
-    df.to_csv(outfname,sep="\t",columns=to_keep,index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    if outfname:
+        df.to_csv(outfname,sep="\t",columns=to_keep,index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    else:
+        print(df.to_string(index=False,columns=to_keep))        
