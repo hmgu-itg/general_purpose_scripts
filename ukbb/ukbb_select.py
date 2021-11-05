@@ -11,18 +11,18 @@ import logging
 
 verbosity=logging.INFO
 
-parser=argparse.ArgumentParser()
+parser=argparse.ArgumentParser(description="This script queries the main phenotype table of a project and outputs information about the provided input fields")
 parser.add_argument('--project','-p',required=True,action='store',help="Project name")
-parser.add_argument('--release','-r',required=True,action='store',help="Release")
+parser.add_argument('--release','-r',required=True,action='store',help="Project release")
 parser.add_argument('--output','-o',required=False,action='store',help="Output file")
 parser.add_argument('--config','-c',required=False,action='store',help="Config file")
-parser.add_argument('--describe','-d',required=False,action='store',help="Describe a data field")
-parser.add_argument('--list','-l',required=False,action='store_true',help="Output column information")
-parser.add_argument('--majority','-majority',required=False,action='append',help="Output most frequent value, over all instances")
-parser.add_argument('--mean','-mean',required=False,action='append',help="Output mean, over all instances")
-parser.add_argument('--min-missing','-min-missing',required=False,action='append',help="Output instance with least NAs",dest="min_missing")
-parser.add_argument('--all','-a',required=False,action='append',help="Output all instances")
-parser.add_argument('--cc','-cc',required=False,action='append',help="Recode as case/control (1/0)")
+parser.add_argument('--describe','-d',metavar="FIELD",required=False,action='store',help="Describe the input data field")
+parser.add_argument('--list','-l',required=False,action='store_true',help="Output information about every field in the input project table")
+parser.add_argument('--majority','-majority',metavar="FIELD",required=False,action='append',help="For a given field, output the most frequent value, over all instances.  The input field has to have type \"Categorical single\". This option can be specified multiple times")
+parser.add_argument('--mean','-mean',metavar="FIELD",required=False,action='append',help="For a given field, output the mean value, over all instances. The input field has to be integer or continuous. This option can be specified multiple times")
+parser.add_argument('--min-missing','-min-missing',metavar="FIELD",required=False,action='append',help="For a given field, output the instance with the least number of NAs. This option can be specified multiple times",dest="min_missing")
+parser.add_argument('--all','-a',metavar="FIELD",required=False,action='append',help="For a given field, output all its instances. This option can be specified multiple times")
+parser.add_argument('--cc','-cc',metavar="FIELD:<COMMA SEPARATED LIST OF CASE VALUES>",required=False,action='append',help="For a given field and a list of \"case\" values, output its case/control (1/0) encoding. The input field has to have type \"Categorical single\" or \"Categorical multiple\". This option can be specified multiple times")
 parser.add_argument("--verbose", "-v", help="Verbosity level; default: info",required=False,choices=("debug","info","warning","error"),default="info")
 
 if len(sys.argv[1:])==0:

@@ -28,7 +28,7 @@ def filterFunction(L1,L2):
 def main():
     verbosity=logging.INFO
 
-    parser=argparse.ArgumentParser()
+    parser=argparse.ArgumentParser(description="This script selects samples that have certain ICD/OPCS codes in HESIN DIAG/OPER tables. Given ICD and OPCS input lists, each ID in the output list satisfies at least one ICD or OPCS inclusion criterion.")
     parser.add_argument('--project','-p',required=True,action='store',help="Project name")
     parser.add_argument('--release','-r',required=True,action='store',help="Release")
     parser.add_argument('-icd9','--icd9',required=False,action='store',help="List of ICD9 codes")
