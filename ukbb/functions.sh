@@ -1,4 +1,19 @@
 
+# get total number of CPUs
+function totalCPUs {
+    echo $(grep ^processor /proc/cpuinfo|wc -l)
+}
+
+# get fraction of free CPUs
+# a CPU is free if its idle time percentage is > 95%
+function getFreeCPUs {
+    local frac=1.0
+    if [[ $# -ne 0 ]];then frac=$1;fi
+    if (( $(echo "$frac > 1.0"|bc -l) ));then frac=1.0;fi
+    totalfree=$(mpstat -P ALL 1 1 | sed 's/  */ /g' | awk 'BEGIN{c=0;}/Average:/ && $2 ~ /[0-9]/ && $12>95.0 {c=c+1;}END{print c;}')
+    echo "${totalfree}*${frac}"| bc -l | awk '{print int($1);}'
+}
+
 # create temp files
 # upon success the input associative arry contains names of the created files as values
 function createTempFiles {
