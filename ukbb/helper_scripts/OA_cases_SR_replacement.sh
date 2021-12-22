@@ -106,9 +106,11 @@ echo ""  | tee -a "$logfile"
 echo "RUNNING ${script}" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
 
+# CASE INCLUSION
+# first we create an output file with eid and three case-control columns for SR OA, SR hip replacement and SR knee replacement
 PYTHONPATH="${upperdir}"/python "${script}" -p OA -r "$release" -o "${tempfiles[tmp_ukbb_out]}" --cc 20002:1465 --cc 20004:1318 --cc 20004:1319 > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
-# select cases based on key
+# select cases based on the key: THR, TKR or TJR
 declare -A colnumbers
 getColNumbers "${tempfiles[tmp_ukbb_out]}" "cat" colnumbers
 if [[ "$key" == "THR" ]];then
@@ -125,7 +127,7 @@ n=$(cat "${tempfiles[tmp_ukbb_out]}"| wc -l)
 echo "" | tee -a "$logfile"
 echo "INFO: $n samples meet inclusion criteria" | tee -a "$logfile"
 
-# exclusion
+# CASE EXCLUSION
 grep ^icd9 "$icd_exclusion_file"| cut -f 2 > "${tempfiles[tmp_icd9]}"
 grep ^icd10 "$icd_exclusion_file"| cut -f 2 > "${tempfiles[tmp_icd10]}"
 
@@ -133,6 +135,7 @@ echo "" | tee -a "$logfile"
 echo "RUNNING ${hesin_script}" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
 
+# create output file with samples having ICDs from exclusion criteria
 PYTHONPATH="${upperdir}"/python "${hesin_script}" -p OA -r "$hesin_release" -o "${tempfiles[tmp_hesin_out]}" --icd9 "${tempfiles[tmp_icd9]}" --icd10 "${tempfiles[tmp_icd10]}" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
 n=$(cat "${tempfiles[tmp_hesin_out]}"| wc -l)
@@ -140,9 +143,9 @@ echo "" | tee -a "$logfile"
 echo "INFO: $n samples meet exclusion criteria" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
 
-# combining inclusion and exclusion
+# final output: from the list of samples meeting inclusion criteria, remove samples meeting exclusion criteria
 join -1 1 -2 1 -a 1 -t$'\t' -e NULL -o 1.1,2.1 <(sort "${tempfiles[tmp_ukbb_out]}") <(sort "${tempfiles[tmp_hesin_out]}")|grep NULL|cut -f 1 >"$outfile"
-n=$(cat "$outfile"| wc -l)
+n=$(cat "$outfile"|wc -l)
 echo "INFO: final set: $n samples" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
 

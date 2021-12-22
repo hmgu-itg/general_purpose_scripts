@@ -6,6 +6,13 @@ args=("$@")
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
 
+totalcpus=$(totalCPUs)
+echo "Total CPUs: $totalcpus"
+frac=0.5
+echo "Fraction: $frac"
+echo $(getFreeCPUs $frac)
+exit 0
+
 declare -A fn
 fn["key1"]="temp_test_XXXXXX"
 fn["key2"]="temp_test_XXXXXX"

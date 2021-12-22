@@ -36,7 +36,7 @@ def main():
     parser.add_argument('-oper3','--oper3',required=False,action='store',help="List of OPCS3 codes")
     parser.add_argument('-oper4','--oper4',required=False,action='store',help="List of OPCS4 codes")
     parser.add_argument('-o','--output',required=True,action='store',help="Output file")
-    parser.add_argument('-n','--n',required=False,action='store',help="Number of dask partitions",type=int)
+    parser.add_argument('-n','--n',required=False,action='store',help="Number of dask partitions",type=int,default=1)
     parser.add_argument('--config','-c',required=False,action='store',help="Config file")
     parser.add_argument("--verbose", "-v", help="Verbosity level; default: info",required=False,choices=("debug","info","warning","error"),default="info")
 
@@ -52,10 +52,7 @@ def main():
     project=args.project
     release=args.release
     outfname=args.output
-
-    npart=1
-    if args.n:
-        npart=args.n
+    npart=args.n
 
     if args.verbose is not None:
         if args.verbose=="debug":
@@ -111,6 +108,12 @@ def main():
                 if not re.match("^\s*$",l) and not re.match("^#.*",l):
                     opcs4codes.add(l)
 
+    LOGGER.info("")
+    LOGGER.info("ICD9: %d codes" % len(icd9codes))
+    LOGGER.info("ICD10: %d codes" % len(icd10codes))
+    LOGGER.info("OPCS3: %d codes" % len(opcs3codes))
+    LOGGER.info("OPCS4: %d codes" % len(opcs4codes))
+    LOGGER.info("")
 #-----------------------------------------------------------------------------------------------------------------------------
 
     if args.config is None:
@@ -131,7 +134,7 @@ def main():
         sys.exit(1)
 
     LOGGER.info("input file: %s" % infile)
-    LOGGER.info("output file: %s" % outfname)
+    LOGGER.info("")
 
 #-----------------------------------------------------------------------------------------------------------------------------
 # assuming ICD lists don't contain logical expressions
