@@ -9,6 +9,8 @@ From: ubuntu:18.04
         #export PERL_MM_USE_DEFAULT
         #PERL_EXTUTILS_AUTOINSTALL="--defaultdeps"
         #export PERL_EXTUTILS_AUTOINSTALL
+	PYTHONPATH=/lustre/groups/itg/teams/data-informatics/software/general_purpose_scripts/ukbb/python:$PYTHONPATH
+	export PYTHONPATH
 	PYTHONIOENCODING=UTF-8
 	export PYTHONIOENCODING
 %post
