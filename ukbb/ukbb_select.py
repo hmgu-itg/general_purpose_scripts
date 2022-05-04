@@ -23,6 +23,7 @@ parser.add_argument('--mean','-mean',metavar="FIELD",required=False,action='appe
 parser.add_argument('--min-missing','-min-missing',metavar="FIELD",required=False,action='append',help="For a given field, output the instance with the least number of NAs. This option can be specified multiple times",dest="min_missing")
 parser.add_argument('--all','-a',metavar="FIELD",required=False,action='append',help="For a given field, output all its instances. This option can be specified multiple times")
 parser.add_argument('--cc','-cc',metavar="FIELD:<COMMA SEPARATED LIST OF CASE VALUES>",required=False,action='append',help="For a given field and a list of \"case\" values, output its case/control (1/0) encoding. The input field has to have type \"Categorical single\" or \"Categorical multiple\". This option can be specified multiple times")
+parser.add_argument("--names", "-n",required=False,action='store_true',help="Use field names instead of IDs; default: false")
 parser.add_argument("--verbose", "-v", help="Verbosity level; default: info",required=False,choices=("debug","info","warning","error"),default="info")
 
 if len(sys.argv[1:])==0:
@@ -39,6 +40,7 @@ release=args.release
 to_list=args.list
 d_field=args.describe
 outfname=args.output
+use_names=args.names
 
 if args.verbose is not None:
     if args.verbose=="debug":
@@ -84,8 +86,9 @@ D=utils.readDataDictionary(C["DATA_DICT"])
 
 # only the header line
 df=pd.read_table(infile,sep="\t",nrows=1)
-H=dict() # short field name --> list of matching full names
+H=dict() # short field name --> list of matching full names: 123 --> [ f.123.1.1, f.123.1.2, ... ]
 for x in df.columns.values.tolist():
+    # skip these
     if x=="f.eid" or x=="RELEASE" or x=="CREATED":
         continue
     m=re.match("^f\.(\d+)\.\d+\.\d+$",x)
@@ -217,7 +220,7 @@ else:
         for f in s:
             for x in H[f]:
                 to_keep.add(x)
-    LOGGER.info("reading columns %s" % ", ".join(str(e) for e in to_keep))
+    # LOGGER.info("reading columns %s" % ", ".join(str(e) for e in to_keep))
     # skip second row
     df=pd.read_table(infile,skiprows=[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=to_keep)
     
@@ -249,6 +252,64 @@ else:
         df=utils.addSummaryColumn(df,H[c],new_colname,None,"minmissing")
         to_keep.append(new_colname)
     LOGGER.info("writing columns %s" % ", ".join(str(e) for e in to_keep))
+    rename_mapper=dict()
+    if use_names:
+        for c in to_keep:
+            if c=="f.eid":
+                rename_mapper[c]="eid"
+                continue
+            m=re.match("^f\.(\d+)\.\d+\.\d+$",c)
+            if m:
+                s=m.group(1)
+                if s in D:
+                    s=D[s]["Field"]
+                else:
+                    LOGGER.warn("Field %s is not in data dictionary" % s)
+                rename_mapper[c]=re.sub(r"^f\.(\d+)(\.\d+\.\d+)$",s+"\\2",c)
+                continue
+            m=re.match("^cc-(\d+)-.*$",c)
+            if m:
+                s=m.group(1)
+                if s in D:
+                    s=D[s]["Field"]
+                else:
+                    LOGGER.warn("Field %s is not in data dictionary" % s)
+                rename_mapper[c]=re.sub(r"^cc-(\d+)-(.*)$","cc-"+s+"-\\2",c)
+                continue
+            m=re.match("^majority-(\d+)$",c)
+            if m:
+                s=m.group(1)
+                if s in D:
+                    s=D[s]["Field"]
+                else:
+                    LOGGER.warn("Field %s is not in data dictionary" % s)
+                rename_mapper[c]="majority-"+s
+                continue
+            m=re.match("^mean-(\d+)$",c)
+            if m:
+                s=m.group(1)
+                if s in D:
+                    s=D[s]["Field"]
+                else:
+                    LOGGER.warn("Field %s is not in data dictionary" % s)
+                rename_mapper[c]="mean-"+s
+                continue
+            m=re.match("^min_missing-(\d+)$",c)
+            if m:
+                s=m.group(1)
+                if s in D:
+                    s=D[s]["Field"]
+                else:
+                    LOGGER.warn("Field %s is not in data dictionary" % s)
+                rename_mapper[c]="min_missing-"+s
+                continue
+        to_keep=list(rename_mapper.values())
+    else:
+        # just rename f.eid --> eid
+        rename_mapper["f.eid"]="eid"
+        to_keep=["eid" if x=="e.eid" else x for x in to_keep]
+    LOGGER.debug(rename_mapper)
+    df.rename(columns=rename_mapper,inplace=True)
     if outfname:
         df.to_csv(outfname,sep="\t",columns=to_keep,index=False,quotechar='"',quoting=csv.QUOTE_NONE)
     else:
