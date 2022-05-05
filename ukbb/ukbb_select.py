@@ -251,7 +251,7 @@ else:
         new_colname="min_missing-"+c
         df=utils.addSummaryColumn(df,H[c],new_colname,None,"minmissing")
         to_keep.append(new_colname)
-    LOGGER.info("writing columns %s" % ", ".join(str(e) for e in to_keep))
+    #LOGGER.info("writing columns %s" % ", ".join(str(e) for e in to_keep))
     rename_mapper=dict()
     if use_names:
         for c in to_keep:
