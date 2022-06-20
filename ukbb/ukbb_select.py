@@ -307,7 +307,7 @@ else:
     else:
         # just rename f.eid --> eid
         rename_mapper["f.eid"]="eid"
-        to_keep=["eid" if x=="e.eid" else x for x in to_keep]
+        to_keep=["eid" if x=="f.eid" else x for x in to_keep]
     LOGGER.debug(rename_mapper)
     df.rename(columns=rename_mapper,inplace=True)
     if outfname:
