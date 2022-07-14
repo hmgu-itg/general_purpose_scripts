@@ -15,9 +15,9 @@ from itgukbb import utils
 def main():
     verbosity=logging.INFO
 
-    parser=argparse.ArgumentParser(description="Given patient ID and ICD10 code, get the date of the first diagnose.")
+    parser=argparse.ArgumentParser(description="Given patient ID and ICD10 code, get the date of the first diagnosis.")
     parser.add_argument('--project','-p',required=True,action='store',help="Project name")
-    parser.add_argument('--release','-r',required=True,action='store',help="Release")
+    parser.add_argument('--release','-r',required=True,action='store',help="Project release")
     parser.add_argument('-icd10','--icd10',required=True,action='store',help="ICD10 code")
     parser.add_argument('-id','--id',required=True,action='store',help="Patient ID")
     parser.add_argument('--config','-c',required=False,action='store',help="Config file")
@@ -86,16 +86,10 @@ def main():
         JT=pd.merge(df_main,df_diag,on=["eid","ins_index"],how="inner")
         JT=JT[(JT["diag_icd10"]==icd10) & (JT["eid"]==ID)]
         if (len(JT)==0):        
-            LOGGER.error("Could not find any records for ID=%s and ICD10=%s" %(ID,icd10))
+            LOGGER.info("Could not find any records for ID=%s, ICD10=%s" %(ID,icd10))
         else:
             JT["epistart_fmt"]=pd.to_datetime(JT["epistart"])
             JT.sort_values(by="epistart_fmt",ascending=True,inplace=True)
-            #print(JT)
-            #JT=JT.head(1)
-            # print(JT)
-            # JT.rename(columns={"eid":"ID","epistart":"Date","diag_icd10":"ICD10"},inplace=True)
-            # print(JT)
-            # print(JT.to_csv(sep="\t",index=False,columns=["ID","Date","ICD10"]))
             print(JT.head(1).rename(columns={"eid":"ID","epistart":"Date","diag_icd10":"ICD10"}).to_csv(sep="\t",index=False,columns=["ID","Date","ICD10"]),end='')
         
 if __name__=="__main__":
