@@ -48,7 +48,7 @@ function createTempFiles {
     fi
 }
 
-# return an associative array with column names as keys and 1-based column numbers as values
+# return an associative array with column names as keys and 1-based column numbers as values, input is tab separated
 function getColNumbers {
     local fname=$1
     local cmd=$2
@@ -61,6 +61,21 @@ function getColNumbers {
     done < <(eval "$cmd $fname"|head -n 1|perl -lne '$,=" ";@a=split(/\t/,$_,-1);for ($i=0;$i<scalar(@a);$i++){print $i+1,$a[$i];}')
 }
 
+# return an associative array with column names as keys and 1-based column numbers as values, field separator is provided
+function getColNumbersSep {
+    local fname=$1
+    local cmd=$2
+    local sep=$3
+    local -n local_arname=$4
+
+    local_arname=()
+
+    while read i x;do
+	local_arname[$x]=$i
+    done < <(eval "$cmd $fname"|head -n 1|perl -slane '$,=" ";@a=split(/$sep/,$_,-1);for ($i=0;$i<scalar(@a);$i++){print $i+1,$a[$i];}' -- -sep="$sep")
+}
+
+# tab separated input
 # return an array with field names
 function getColNames {
     local fname=$1
