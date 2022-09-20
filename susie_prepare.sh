@@ -16,7 +16,7 @@ function usage () {
     echo ""
     echo "Preparing input data for SUSIE"
     echo ""
-    echo "Usage: susie_prepare.sh -i <input.signal.txt> -o <output> -p <LD.panel.prefix> -a <effect allele column; default:\"allele1\">"
+    echo "Usage: susie_prepare.sh -i <input.signal.txt> -o <output> -p <LD.panel.prefix> -a <effect allele column; default:\"allele1\"> -k <keep temp files>"
     echo ""
     echo "Input file is space separated, required columns: chromosome"
     echo "                                               : position"
@@ -46,12 +46,14 @@ input_fname=""
 output_fname=""
 panel_prefix=""
 eff_colname="allele1"
-while getopts "hi:o:p:a:" opt; do
+keep="NO"
+while getopts "hi:o:p:a:k" opt; do
     case $opt in
         i)input_fname=($OPTARG);;
         o)output_fname=($OPTARG);;
         p)panel_prefix=($OPTARG);;
         a)eff_colname=($OPTARG);;
+	k)keep="YES";;
         h)usage;;
         *)usage;;
     esac
@@ -183,6 +185,8 @@ paste -d ' ' "${t_file}" "${c_file}" > "${output_fname}"
 pigz -f -p 24 "${output_fname}"
 
 #echo "DEBUG: deleting ${tmpdir}"
-rm -rf "${tmpdir}"
+if [[ $keep == "NO" ]];then
+    rm -rf "${tmpdir}"
+fi
 
 exit 0
