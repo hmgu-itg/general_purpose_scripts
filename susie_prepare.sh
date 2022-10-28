@@ -6,17 +6,20 @@ args=("$@")
 scriptdir=$(dirname $(readlink -f $scriptname))
 source "${scriptdir}/ukbb/functions.sh"
 
-function switchIdAlleles {
+# id: ref. panel ID: "chr:pos:A1:A2"
+# ea: input EA
+function getEffectAllele {
     local id=$1
+    local ea=$2
     
-    echo $id|perl -lne '/^(.*)_([[:alpha:]])_([[:alpha:]])$/;print $1."_".$3."_".$2;'
+    echo $id|tr '_' ':'|perl -slne '@a=split(/:/); if ($x eq $a[2] || $x eq $a[3]){print $x;exit 0;} if ($x eq "D"){if (length($a[2])>length($a[3])){print $a[3];}elsif(length($a[3])>length($a[2])){print $a[2];}else{print "NA";}exit 0;} if ($x eq "I"){if (length($a[2])>length($a[3])){print $a[3];}elsif(length($a[3])>length($a[2])){print $a[3];}else{print "NA";}exit 0;} print "NA";' -- -x=$ea
 }
 
 function usage () {
     echo ""
     echo "Preparing input data for SUSIE"
     echo ""
-    echo "Usage: susie_prepare.sh -i <input.signal.txt> -o <output> -p <LD.panel.prefix> -a <effect allele column; default:\"allele1\"> -k <keep temp files>"
+    echo "Usage: susie_prepare.sh -i <input.signal.txt> -o <output> -m <ID.mapping.txt> -p <LD.panel.prefix> -a <effect allele column; default:\"allele1\"> -t <threads; default: 1> -k <keep temp files>"
     echo ""
     echo "Input file is space separated, required columns: chromosome"
     echo "                                               : position"
@@ -29,30 +32,31 @@ function usage () {
     exit 0
 }
 
-# original ID --> original ID
-# new ID --> original ID
+#ref. panel ID --> input ID
 declare -A id_mapping
-
 declare -A input_colnames
-
-# original ID --> effect allele
+# input ID --> effect allele
 declare -A ref_alleles
 
 if [[ $# -eq 0 ]];then
     usage
 fi
 
+mapping_fname=""
 input_fname=""
 output_fname=""
 panel_prefix=""
 eff_colname="allele1"
 keep="NO"
-while getopts "hi:o:p:a:k" opt; do
+threads=1
+while getopts "hi:t:o:p:a:m:k" opt; do
     case $opt in
         i)input_fname=($OPTARG);;
+        m)mapping_fname=($OPTARG);;
         o)output_fname=($OPTARG);;
         p)panel_prefix=($OPTARG);;
         a)eff_colname=($OPTARG);;
+        t)threads=($OPTARG);;
 	k)keep="YES";;
         h)usage;;
         *)usage;;
@@ -61,6 +65,7 @@ done
 shift "$((OPTIND-1))"
 
 exitIfEmpty "$input_fname" "ERROR: no input specified"
+exitIfEmpty "$mapping_fname" "ERROR: no ID mapping specified"
 exitIfEmpty "$output_fname" "ERROR: no output prefix specified"
 exitIfEmpty "$panel_prefix" "ERROR: no LD panel prefix specified"
 exitUnlessExists "$input_fname" "ERROR: $input_fname does not exist"
@@ -98,15 +103,20 @@ ndup=$(tail -n +2 $input_fname| cut -d ' ' -f $chromosome_column,$position_colum
 if [[ $ndup -ne "0" ]];then
     echo "ERROR: there are chr:pos duplicates in input"
     exit 1
+else
+    echo $(date) "DEBUG: no duplicates detected"
 fi
 
 # create ID mapping
-while read id;do
-    id_mapping[$id]=$id
-    id_mapping[$(switchIdAlleles $id)]=$id
-done < <(tail -n +2 $input_fname| cut -d ' ' -f $rsid_column)
+# ref. panel ID --> input ID
+while read id id2;do
+    id_mapping[$id2]=$id
+done < <(join -1 1 -2 1 <(tail -n +2 $input_fname|cut -d ' ' -f $rsid_column|sort) <(grep -v "^#" $mapping_fname|sort -t ' ' -k1,1))
 
-# create "old ID" --> "ref allele" mapping
+echo "Mapped IDs in input: ${#id_mapping[@]}"
+echo $(date) "DEBUG: ID mapping done"
+
+# create "input ID" --> "effect allele" mapping
 if [[ "$rsid_column" -lt "$eff_column" ]];then
     while read id a;do
 	ref_alleles[$id]=$a
@@ -117,36 +127,46 @@ else
     done < <(tail -n +2 $input_fname| cut -d ' ' -f $rsid_column,$eff_column)
 fi
 
+echo $(date) "DEBUG: EA mapping done"
+
 # create temp dir
 bname=$(basename $(realpath $output_fname))
 tmpdir=$(mktemp -d -p $(dirname $(realpath $output_fname)) ${bname}_XXXXXXXX)
-#echo "DEBUG: created $tmpdir"
 
-# use effect allele as reference allele
+# use effect allele as reference allele in PLINK
 ref_file=${tmpdir}/ref
 for id in "${!id_mapping[@]}"
 do
-    oldID=${id_mapping[${id}]}
-    a=${ref_alleles[$oldID]}
-    echo $id $a
-done > ${ref_file}
+    id2=${id_mapping[${id}]}
+    a=${ref_alleles[${id2}]}
+    a2=$(getEffectAllele $id $a)
+    if [[ $a2 == "NA" ]];then
+	echo "ERROR: could not get effect allele for $id ($a); skipping"
+    else
+	echo $id $a2 >> ${ref_file}
+    fi
+done
+
+echo $(date) "DEBUG: reference alleles saved in ${ref_file}"
 
 # IDs to extract
 ex_file=${tmpdir}/ex
 for i in "${!id_mapping[@]}"
 do
-  echo "$i"
+  echo "${id_mapping[${i}]}"
 done > ${ex_file}
 
-#echo "Extracting $(cat ${ex_file}| wc -l) variants (including IDs with switched alleles)"
+echo $(date) "DEBUG: IDs to be extracted saved in ${ex_file}"
 
 # using PLINK to create correlation matrix
 res=${tmpdir}/plink_output
-plink --bfile "${panel_prefix}" --extract "${ex_file}" --out "${res}" --reference-allele "${ref_file}"  --r square spaces --write-snplist 1>/dev/null 2>&1
+plink --threads $threads --bfile "${panel_prefix}" --extract "${ex_file}" --out "${res}" --reference-allele "${ref_file}"  --r square spaces --write-snplist 1>/dev/null 2>&1
 
 if [[ $? -ne 0 ]];then
     echo "ERROR: PLINK failed"
     exit 1
+else
+    echo $(date) "DEBUG: PLINK finished"
 fi
 
 # number of variants in PLINK output
@@ -168,6 +188,7 @@ while read id;do
     oldID=${id_mapping[$id]}
     awk -v x="$oldID" -v r="$rsid_column" -v n="$n_samples" -v b="$beta_column" -v s="$se_column" '{if ($r==x){print x,n,$b,$s;exit 0;}}' "$input_fname" >>  "${t_file}"
 done < <(cat ${res}.snplist)
+echo $(date) "DEBUG: output part 1 finished"
 
 n2=$(tail -n +2 ${t_file}|wc -l)
 if [[ "${n_out}" -ne "${n2}" ]];then
@@ -182,7 +203,9 @@ done < <(cat <(tail -n +2 ${t_file}|cut -d ' ' -f 1) <(tail -n +2 ${input_fname}
 
 # combine two temp files
 paste -d ' ' "${t_file}" "${c_file}" > "${output_fname}"
-pigz -f -p 24 "${output_fname}"
+echo $(date) "DEBUG: output finished; compressing"
+pigz -f -p $threads "${output_fname}"
+echo $(date) "DEBUG: compressing done"
 
 #echo "DEBUG: deleting ${tmpdir}"
 if [[ $keep == "NO" ]];then

@@ -12,27 +12,20 @@ spec<-matrix(c(
 ), byrow=TRUE, ncol=5)
 opt<-getopt(spec)
 
-## if help was asked for print a friendly message
-## and exit with a non-zero error code
 if ( !is.null(opt$help) | is.null(opt$input)) {
   cat(getopt(spec, usage=TRUE))
   q(status=1)
 }
 
-## set some reasonable defaults for the options that are needed,
-## but were not specified.
 if ( is.null(opt$iterations   ) ) { opt$iterations   = 100    }
 if ( is.null(opt$lambda ) ) { opt$lambda = FALSE }
-
-## args<-commandArgs(trailingOnly=T)
 
 ## input file
 infile<-opts$input
 
 ## number of iterations
 n_iter<-opt$iterations
-## if (length(args)>1){n_iter<-as.integer(args[2]);}
-cat(sprintf("Iterations: %d\n",n_iter))
+cat(sprintf("Max iterations: %d\n",n_iter))
 
 df<-fread(infile,na.strings="nan")
 M<-data.matrix(df[,-c("ID","beta","se","N")])
