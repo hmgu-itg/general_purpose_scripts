@@ -88,11 +88,11 @@ log_fname="${output_prefix}".log
 : > "${log_fname}"
 
 echo "INPUT: $input_fname" | tee -a "${log_fname}"
-echo "PANEL PREFIX: $panel_prefix" | tee -a "${log_fname}"
-echo "MAPPING: $mapping_fname" | tee -a "${log_fname}"
+echo "REF PANEL PREFIX: $panel_prefix" | tee -a "${log_fname}"
+echo "ID MAPPING: $mapping_fname" | tee -a "${log_fname}"
 echo "OUTPUT: $output_prefix" | tee -a "${log_fname}"
-echo "KEEP: $keep" | tee -a "${log_fname}"
-echo "MAC: $mac" | tee -a "${log_fname}"
+echo "KEEP TEMP FILES: $keep" | tee -a "${log_fname}"
+echo "MAC THRESHOLD: $mac" | tee -a "${log_fname}"
 echo "THREADS: $threads" | tee -a "${log_fname}"
 echo "EA COLNAME: $eff_colname" | tee -a "${log_fname}"
 echo "NEA COLNAME: $neff_colname" | tee -a "${log_fname}"
@@ -127,7 +127,7 @@ echo "NEA COLUMN: $neff_column" | tee -a "${log_fname}"
 # total number of input variants
 echo "Input variants: $(tail -n +2 ${input_fname}|wc -l)" | tee -a "${log_fname}"
 
-# create ID mapping
+# ID mapping
 # ref. panel ID --> input ID
 # identity mapping for variants common to input and ref. panel, if no mapping_fname is provided
 if [[ -z "${mapping_fname}" ]];then
@@ -143,7 +143,7 @@ fi
 echo "Mapped IDs in input: ${#id_mapping[@]}" | tee -a "${log_fname}"
 echo $(date) "DEBUG: ID mapping done" | tee -a "${log_fname}"
 
-# create "input ID" --> "effect allele" mapping
+# "input ID" --> "effect allele" mapping
 if [[ "$rsid_column" -lt "$eff_column" ]];then
     while read id a;do
 	ref_alleles[$id]=$a
@@ -155,7 +155,7 @@ else
 fi
 echo $(date) "DEBUG: EA mapping done" | tee -a "${log_fname}"
 
-# create "input ID" --> "non-effect allele" mapping
+# "input ID" --> "non-effect allele" mapping
 if [[ "$rsid_column" -lt "$neff_column" ]];then
     while read id a;do
 	nref_alleles[$id]=$a
@@ -172,7 +172,7 @@ output_fname="${output_prefix}".txt
 bname=$(basename $(realpath $output_fname))
 tmpdir=$(mktemp -d -p $(dirname $(realpath $output_fname)) ${bname}_XXXXXXXX)
 
-# use effect allele as reference allele in PLINK
+# use effect allele as PLINK reference allele
 ref_file=${tmpdir}/ref
 # IDs to extract
 ex_file=${tmpdir}/ex
@@ -233,7 +233,7 @@ fi
 
 # report unmatched variant entries
 while read id;do
-    awk -v x="$id" -v r="$rsid_column" 'BEGIN{OFS="\t";}{if ($r==x){print "NOT INCLUDED",$0;exit 0;}}' "$input_fname"
+    awk -v x="$id" -v r="$rsid_column" 'BEGIN{OFS="\t";}{if ($r==x){print "NOT INCLUDED",$0;exit 0;}}' "$input_fname" >> "${log_fname}"
 done < <(cat <(tail -n +2 ${t_file}|cut -d ' ' -f 1) <(tail -n +2 ${input_fname}|cut -d ' ' -f 1)|sort|uniq -u)
 
 # combine two temp files

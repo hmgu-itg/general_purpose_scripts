@@ -6,13 +6,13 @@ import argparse
 import re
 from bisect import bisect_left
 
-parser = argparse.ArgumentParser(description="Map GO2 variant IDs to UKBB reference panel variant IDs")
+parser = argparse.ArgumentParser(description="Map GO2 variant IDs to 1KG reference panel variant IDs")
 parser.add_argument('--input','-i',required=True,action="store",help="GO2 ID list")
-parser.add_argument('--ukbb','-u',required=True,action="store",help="UKBB ID list")
+parser.add_argument('--g','-g',required=True,action="store",help="1KG ID list")
 args=parser.parse_args()
 
 go2fname=args.input
-ukbbfname=args.ukbb
+kfname=args.g
 
 #---------------------------------------------------------------------------------------------------------------------------
 # if sorted L contains x
@@ -31,7 +31,7 @@ def switchAlleles(var):
         print("ERROR: %s is malformed" %(var),file=sys.stderr)
         return None
 
-def findGO2InUKBBList(var,L):
+def findGO2In1KGList(var,L):
     out=list()
     if isSNP(var):
         if binarySearch(L,var):
@@ -63,35 +63,33 @@ def isSNP(var):
 #---------------------------------------------------------------------------------------------------------------------------
 
 go2_list=list()
-ukbb_list=list()
+k_list=list()
 
 with open(go2fname) as f:
     for line in f: 
         line=line.strip()
         go2_list.append(line)
 
-with open(ukbbfname) as f:
-    ukbb_list=f.read().splitlines()
-
-go2_list=sorted(go2_list)
-ukbb_list=sorted(ukbb_list)
-
-dups=set()
-for v in go2_list:
-    v2=switchAlleles(v)
-    if binarySearch(go2_list,v2):
-        dups.add(v)
-        dups.add(v2)
-
-for v in go2_list:
-    if v in dups:
-        print("# DUPLICATE %s" %(v),file=sys.stdout)
-    else:
-        L=findGO2InUKBBList(v,ukbb_list)
-        if len(L)==0:
-            print("# NOT FOUND %s" %(v),file=sys.stdout)
-        elif len(L)==2:
-            print("# AMBIGUOUS %s %s" %(v,L[0]),file=sys.stdout)
-            print("# AMBIGUOUS %s %s" %(v,L[1]),file=sys.stdout)
+k_new2old=dict()
+with open(kfname) as f:
+    for line in f: 
+        line=line.strip()
+        L=line.split()
+        L1=L[1].split(sep=":")
+        if len(L1)==4:
+            if re.match("rs\d+",L1[0]):
+                new_id=L[0]+":"+L1[1]+"_"+L1[2]+"_"+L1[3]
+            else:
+                new_id=L1[0]+":"+L1[1]+"_"+L1[2]+"_"+L1[3]
+            k_list.append(new_id)
+            k_new2old[new_id]=L[1]
         else:
-            print("%s %s" %(v,L[0]),file=sys.stdout)
+            print("SKIPPING %s" %(L[1]),file=sys.stderr)
+
+k_list=sorted(k_list)
+
+for v in go2_list:
+    if binarySearch(k_list,v):
+        print("%s %s" %(v,k_new2old[v]),file=sys.stdout)
+    else:
+        print("# NOT FOUND %s" %(v),file=sys.stdout)

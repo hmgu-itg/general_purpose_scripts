@@ -24,7 +24,7 @@ def binarySearch(L,x):
         return False
 
 def switchAlleles(var):
-    m=re.match("(\d+:\d+)_([A-Z])_([A-Z])",var)
+    m=re.match("(\d+:\d+)_([A-Z]+)_([A-Z]+)$",var)
     if m:
         return m.group(1)+"_"+m.group(3)+"_"+m.group(2)
     else:

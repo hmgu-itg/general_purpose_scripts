@@ -64,14 +64,15 @@ done
 
 total=$(cat $argfile|wc -l)
 
-if [[ ${max_running} == "NA" && ${total} > ${max_array_size} ]];then
+if [[ ${max_running} == "NA" && ${total} -gt ${max_array_size} ]];then
     echo "ERROR: argument file (${argfile}) is too large: (${total} lines)"
     echo "ERROR: no <max running jobs> is specified and on this cluster MaxArraySize=${max_array_size}"
     echo "ERROR: either use -r <max running jobs> with the value less than ${max_array_size} or split your argument file into chunks with #lines < ${max_array_size} each"
     exit 1
 fi
 
-if [[ ${max_running} > ${max_array_size} ]];then
+
+if [[ ${max_running} -gt ${max_array_size} ]];then
     echo "ERROR: <max running jobs> is too large ( > ${max_array_size})"
     exit 1
 fi
