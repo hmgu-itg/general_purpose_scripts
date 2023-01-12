@@ -6,9 +6,11 @@ library("getopt")
 
 spec<-matrix(c(
   'input','i',1,"character","Input file",
+  'exclude','x',1,"character","List of variant IDs to exclude",
   'iterations','t',1,"integer","Max number of iterations (default: 100)",
   'help','h',0,"logical","Help message",
   'lambda','l',0,"logical","Estimate lambda",
+  'noprior','n',0,"logical","Skip prior variance check",
   'coverage','c',1,"double","Required coverage (default: 0.95)",
   'purity','p',1,"double","Purity threshold (default: 0.5)"
 ), byrow=TRUE, ncol=5)
@@ -19,10 +21,19 @@ if ( !is.null(opt$help) | is.null(opt$input)) {
   q(status=1)
 }
 
+## IDs to exclude
+exclude_list=character()
+if ( ! is.null(opt$exclude) ){
+    df<-read.table(opt$exclude)
+    exclude_list<-df$V1
+    cat(sprintf("Variant IDs to exclude: %d\n",length(exclude_list)))
+}
+
 if ( is.null(opt$purity   ) ) { opt$purity   = 0.5    }
 if ( is.null(opt$coverage   ) ) { opt$coverage   = 0.95    }
 if ( is.null(opt$iterations   ) ) { opt$iterations   = 100    }
 if ( is.null(opt$lambda ) ) { opt$lambda = FALSE }
+if ( is.null(opt$noprior ) ) { opt$noprior = FALSE }
 
 ## input file
 infile<-opt$input
@@ -35,6 +46,8 @@ cat(sprintf("Max iterations: %d\n",n_iter))
 ## coverage
 C<-opt$coverage
 cat(sprintf("Coverage: %.2f\n",C))
+cat(sprintf("Check prior variance: %s\n",!opt$noprior))
+cat(sprintf("Estimate lambda: %s\n",opt$lambda))
 
 ## purity
 P<-opt$purity
@@ -55,11 +68,18 @@ for (idx in 1:length(z)){
     if (z[idx]){
         cat(sprintf("Excluding %s\n",df$ID[idx]))
         }
-    }
-id_fixed<-df$ID[!z]
-beta_fixed<-df$beta[!z]
-se_fixed<-df$se[!z]
-M<-M[!z,!z]
+}
+if (length(z[z==TRUE])>0){
+    id_fixed<-df$ID[!z]
+    beta_fixed<-df$beta[!z]
+    se_fixed<-df$se[!z]
+    M<-M[!z,!z]
+}else
+{
+    id_fixed<-df$ID
+    beta_fixed<-df$beta
+    se_fixed<-df$se
+}
 
 ## keep rows/columns where there are no NA
 ## z<-rowSums(is.na(M))==0
@@ -83,6 +103,18 @@ while (max_nan>0){
     idx<-which.max(z)
 }
 
+## excluding variants specified with -x
+if (length(exclude_list)!=0){
+    idx_exclude<-match(exclude_list,id_fixed)
+    idx_exclude<-idx_exclude[!is.na(idx_exclude)]
+    if (length(idx_exclude)!=0){
+        id_fixed<-id_fixed[-idx_exclude]
+        beta_fixed<-beta_fixed[-idx_exclude]
+        se_fixed<-se_fixed[-idx_exclude]
+        M<-M[-idx_exclude,-idx_exclude]
+        }
+    }
+
 cat(sprintf("Analyzing: %d variants\n",nrow(M)))
 
 if (opt$lambda){
@@ -90,7 +122,8 @@ if (opt$lambda){
     cat(sprintf("Estimated lambda: %.2E\n",lambda))
 }
 
-res<-susie_rss(bhat=beta_fixed,shat=se_fixed,n=df$N[1],R=M,max_iter=n_iter)
+res<-susie_rss(bhat=beta_fixed,shat=se_fixed,n=df$N[1],R=M,max_iter=n_iter,check_prior=!opt$noprior)
+
 if (res$converged == TRUE){
     cat(paste(c("Convergence:",res$converged),collapse=" "))
     cat(sprintf(" after %d iterations\n",res$niter))
