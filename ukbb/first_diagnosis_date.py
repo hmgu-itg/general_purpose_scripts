@@ -70,7 +70,7 @@ def main():
         sys.exit(1)
     else:
         LOGGER.info(str(len(id_list))+" patient ID(s) provided")
-        LOGGER.debug(",".join(id_list))
+        # LOGGER.debug(",".join(id_list))
 
 #----------------------------------------------------------------------------------------------------------------------------------
 
@@ -102,7 +102,7 @@ def main():
         JT=pd.merge(df_main,df_diag,on=["eid","ins_index"],how="inner")
         JT=JT[(JT["diag_icd10"]==icd10) & (JT["eid"].isin(id_list))]
         if (len(JT)==0):        
-            LOGGER.info("Could not find any records for ID=%s, ICD10=%s" %(",".join(id_list),icd10))
+            LOGGER.info("Could not find any records for ICD10=%s" %(icd10))
         else:
             found_ids=list(set(JT["eid"].tolist()))
             not_found_ids=list(set(id_list)-set(found_ids))
