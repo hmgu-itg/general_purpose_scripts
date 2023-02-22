@@ -101,22 +101,27 @@ def main():
         df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","diag_icd10"])
         JT=pd.merge(df_main,df_diag,on=["eid","ins_index"],how="inner")
         JT=JT[(JT["diag_icd10"]==icd10) & (JT["eid"].isin(id_list))]
+        # print(JT.to_csv(sep="\t",index=False),end='',file=sys.stderr)
         if (len(JT)==0):        
             LOGGER.info("Could not find any records for ICD10=%s" %(icd10))
         else:
             found_ids=list(set(JT["eid"].tolist()))
+            found_ids_with_NA=list(set(JT[JT["epistart"]=="NA"]["eid"].tolist()))
+            LOGGER.debug("IDs with epistart==NA: %s" %(",".join(found_ids_with_NA)))
             not_found_ids=list(set(id_list)-set(found_ids))
-            JT["epistart_fmt"]=pd.to_datetime(JT["epistart"],dayfirst=True)
+            JT["epistart_fmt"]=pd.to_datetime(JT["epistart"],dayfirst=True,errors="coerce")
+            # print(JT.to_csv(sep="\t",index=False),end='',file=sys.stderr)
             # JT.sort_values(by="epistart_fmt",ascending=True,inplace=True)
             # print(JT.to_csv(sep="\t",index=False),end='',file=sys.stderr)
             # only interested in the earliest date
             idx=JT.groupby(["eid"])["epistart_fmt"].transform(min)==JT["epistart_fmt"]
-            # print(JT[idx])
+            # print(JT[idx],file=sys.stderr)
             # sometimes for the same ID and ICD10 there are multiple entries with the same date, so we need drop_duplicates
             print(JT[idx][["eid","epistart","diag_icd10"]].drop_duplicates().rename(columns={"eid":"ID","epistart":"Date","diag_icd10":"ICD10"}).to_csv(sep="\t",index=False),end='')
-            # also output NAs for the rest of the IDs
-            print(pd.DataFrame({"A":not_found_ids,"B":"NA","C":icd10}).to_csv(header=False,index=False,sep="\t"))
-            #print(JT.head(1).rename(columns={"eid":"ID","epistart":"Date","diag_icd10":"ICD10"}).to_csv(sep="\t",index=False,columns=["ID","Date","ICD10"]),end='')
+            # output NAs for IDs not found in data
+            print(pd.DataFrame({"A":not_found_ids,"B":"NA","C":icd10}).to_csv(header=False,index=False,sep="\t"),end='')
+            # output NAs for IDs in data having "NA" in the "epistart" column
+            print(pd.DataFrame({"A":found_ids_with_NA,"B":"NA","C":icd10}).to_csv(header=False,index=False,sep="\t"),end='')
         
 if __name__=="__main__":
     main()
