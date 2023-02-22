@@ -5,9 +5,11 @@ import pandas as pd
 import csv
 import sys
 import os
-from itgukbb import utils
 import re
 import logging
+
+# sys.path.append('./python')
+from itgukbb import utils
 
 verbosity=logging.INFO
 
