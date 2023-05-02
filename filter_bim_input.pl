@@ -8,6 +8,11 @@ my $fh;
 my @N;
 my %D;
 
+# given a BIM and a SUMSTAT (*.input) file
+# output entries from SUMSTAT that correspond to variant IDs in BIM
+# in the same order as they appear in BIM
+
+# BIM
 open($fh,"<", $ARGV[0]);
 while(<$fh>){
     chomp;
@@ -16,6 +21,7 @@ while(<$fh>){
 }
 close($fh);
 
+# sumstat
 open($fh,"<", $ARGV[1]);
 while(<$fh>){
     chomp;
