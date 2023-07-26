@@ -16,7 +16,7 @@ function usage () {
     echo ""
     echo "Preparing input data for FINEMAP"
     echo ""
-    echo "Usage: finemap_prepare.sh -i <input.signal.txt> -o <output.prefix> -p <LD.panel.prefix> -a <effect allele column; default:\"allele1\">"
+    echo "Usage: finemap_prepare.sh -i <input.signal.txt> -o <output.prefix> -p <LD.panel.prefix> -a <effect allele column; default:\"allele1\"> -t <threads; default: 1>"
     echo ""
     echo "Input file is space separated, required columns: chromosome"
     echo "                                               : position"
@@ -32,7 +32,7 @@ function usage () {
 
 # original ID --> original ID
 # new ID --> original ID
-declare -A id_mapping
+# declare -A id_mapping
 
 declare -A input_colnames
 
@@ -47,12 +47,14 @@ input_fname=""
 output_prefix=""
 panel_prefix=""
 eff_colname="allele1"
-while getopts "hi:o:p:a:" opt; do
+threads=1
+while getopts "hi:o:p:a:t:" opt; do
     case $opt in
         i)input_fname=($OPTARG);;
         o)output_prefix=($OPTARG);;
         p)panel_prefix=($OPTARG);;
         a)eff_colname=($OPTARG);;
+        t)threads=($OPTARG);;
         h)usage;;
         *)usage;;
     esac
@@ -88,10 +90,10 @@ for n in "chromosome" "position" "rsid" "allele1" "allele2" "beta" "se" "n" "maf
     fi
 done
 
-# for n in "chromosome" "position" "rsid" "allele1" "allele2" "beta" "se" "n" "maf";do
-#     v="${n}_column"
-#     echo "$n : ${!v}"
-# done
+for n in "chromosome" "position" "rsid" "allele1" "allele2" "beta" "se" "n" "maf";do
+    v="${n}_column"
+    echo "$n : ${!v}"
+done
 
 # exit 0
 
@@ -102,19 +104,18 @@ else
     exit 1
 fi
 
-# check if input has any duplicate positions
-ndup=$(tail -n +2 $input_fname| cut -d ' ' -f $chromosome_column,$position_column| tr ' ' ':'| sort|uniq -d| wc -l)
-
+# check if input has any duplicate IDs
+ndup=$(tail -n +2 $input_fname| cut -d ' ' -f $rsid_column| sort|uniq -d| wc -l)
 if [[ $ndup -ne "0" ]];then
-    echo "ERROR: there are chr:pos duplicates in input"
+    echo "ERROR: there are ID duplicates in input"
     exit 1
 fi
 
 # create ID mapping
-while read id;do
-    id_mapping[$id]=$id
-    id_mapping[$(switchIdAlleles $id)]=$id
-done < <(tail -n +2 $input_fname| cut -d ' ' -f $rsid_column)
+# while read id;do
+#     id_mapping[$id]=$id
+#     id_mapping[$(switchIdAlleles $id)]=$id
+# done < <(tail -n +2 $input_fname| cut -d ' ' -f $rsid_column)
 
 # create "old ID" --> "ref allele" mapping
 if [[ "$rsid_column" -lt "$eff_column" ]];then
@@ -134,16 +135,25 @@ echo "DEBUG: created $tmpdir"
 
 # effect allele as reference allele
 ref_file=${tmpdir}/ref
-for id in "${!id_mapping[@]}"
+# for id in "${!id_mapping[@]}"
+# do
+#     oldID=${id_mapping[${id}]}
+#     a=${ref_alleles[$oldID]}
+#     echo $id $a
+# done > ${ref_file}
+for id in "${!ref_alleles[@]}"
 do
-    oldID=${id_mapping[${id}]}
-    a=${ref_alleles[$oldID]}
+    a=${ref_alleles[$id]}
     echo $id $a
 done > ${ref_file}
 
 # IDs to extract
 ex_file=${tmpdir}/ex
-for i in "${!id_mapping[@]}"
+# for i in "${!id_mapping[@]}"
+# do
+#   echo "$i"
+# done > ${ex_file}
+for i in "${!ref_alleles[@]}"
 do
   echo "$i"
 done > ${ex_file}
@@ -152,7 +162,7 @@ echo "Extracting $(cat ${ex_file}| wc -l) variants"
 
 # calling PLINK
 res=${tmpdir}/plink_output
-plink --bfile "${panel_prefix}" --extract "${ex_file}" --out "${res}" --reference-allele "${ref_file}"  --r square spaces --write-snplist
+plink --bfile "${panel_prefix}" --extract "${ex_file}" --out "${res}" --reference-allele "${ref_file}"  --r square spaces --write-snplist --threads "$threads"
 
 output_prefix=$(realpath $output_prefix)
 ld_fname="${output_prefix}".ld
@@ -162,8 +172,7 @@ cp "${res}".ld "$ld_fname"
 output_z="${output_prefix}".z
 echo  "rsid chromosome position allele1 allele2 maf beta se" > "$output_z"
 while read id;do
-    oldID=${id_mapping[$id]}
-    awk -v x="$oldID" -v r="$rsid_column" -v c="$chromosome_column" -v p="$position_column" -v a="$allele1_column" -v c="$allele2_column" -v m="$maf_column" -v b="$beta_column" -v s="$se_column" '{if ($r==x){print x,$c,$p,$a,$c,$m,$b,$s;}}' "$input_fname" >>  "$output_z"
+    awk -v x="$id" -v r="$rsid_column" -v c="$chromosome_column" -v p="$position_column" -v a="$allele1_column" -v d="$allele2_column" -v m="$maf_column" -v b="$beta_column" -v s="$se_column" '{if ($r==x){print x,$c,$p,$a,$d,$m,$b,$s;}}' "$input_fname" >>  "$output_z"
 done < <(cat ${res}.snplist)
 
 # N samples for the master file: the max number of samples in the input file

@@ -8,6 +8,7 @@ spec<-matrix(c(
   'input','i',1,"character","Input file",
   'exclude','x',1,"character","List of variant IDs to exclude",
   'iterations','t',1,"integer","Max number of iterations (default: 100)",
+  'maxnz','m',1,"integer","Max number of non-zero effects (default: 10)",
   'help','h',0,"logical","Help message",
   'lambda','l',0,"logical","Estimate lambda",
   'noprior','n',0,"logical","Skip prior variance check",
@@ -22,16 +23,18 @@ if ( !is.null(opt$help) | is.null(opt$input)) {
 }
 
 ## IDs to exclude
-exclude_list=character()
+exclude_list<-character()
 if ( ! is.null(opt$exclude) ){
-    df<-read.table(opt$exclude)
-    exclude_list<-df$V1
-    cat(sprintf("Variant IDs to exclude: %d\n",length(exclude_list)))
+    exclude_list<-tryCatch(read.table(opt$exclude,header=FALSE)$V1, error=function(e) character())
+    # df<-read.table(opt$exclude)
+    # exclude_list<-df$V1
 }
+cat(sprintf("Variant IDs to exclude: %d\n",length(exclude_list)))
 
 if ( is.null(opt$purity   ) ) { opt$purity   = 0.5    }
 if ( is.null(opt$coverage   ) ) { opt$coverage   = 0.95    }
 if ( is.null(opt$iterations   ) ) { opt$iterations   = 100    }
+if ( is.null(opt$maxnz   ) ) { opt$maxnz   = 10    }
 if ( is.null(opt$lambda ) ) { opt$lambda = FALSE }
 if ( is.null(opt$noprior ) ) { opt$noprior = FALSE }
 
@@ -42,6 +45,10 @@ cat(sprintf("Input file: %s\n",infile))
 ## number of iterations
 n_iter<-opt$iterations
 cat(sprintf("Max iterations: %d\n",n_iter))
+
+## max L
+max_nz<-opt$maxnz
+cat(sprintf("Max number of non-zero effects: %d\n",max_nz))
 
 ## coverage
 C<-opt$coverage
@@ -105,6 +112,7 @@ while (max_nan>0){
 
 ## excluding variants specified with -x
 if (length(exclude_list)!=0){
+    cat(sprintf("Excluding: %d variants\n",length(exclude_list)))
     idx_exclude<-match(exclude_list,id_fixed)
     idx_exclude<-idx_exclude[!is.na(idx_exclude)]
     if (length(idx_exclude)!=0){
@@ -122,7 +130,7 @@ if (opt$lambda){
     cat(sprintf("Estimated lambda: %.2E\n",lambda))
 }
 
-res<-susie_rss(bhat=beta_fixed,shat=se_fixed,n=df$N[1],R=M,max_iter=n_iter,check_prior=!opt$noprior)
+res<-susie_rss(bhat=beta_fixed,shat=se_fixed,n=df$N[1],R=M,max_iter=n_iter,check_prior=!opt$noprior,L=max_nz)
 
 if (res$converged == TRUE){
     cat(paste(c("Convergence:",res$converged),collapse=" "))
