@@ -7,10 +7,12 @@ import csv
 import sys
 import datetime
 
-def count_mismatches(df,colname):
+def fill_column(df,colname):
     c1=colname+"_left"
     c2=colname+"_right"
-    return (df[c1]!=df[c2] & df["indicator"]=="both").sum()
+    conditions=[(df[c1]==df[c2]) & (df["indicator"]=="both"),df["indicator"]=="left",df["indicator"]=="right"]
+    choices=[df[c1],df[c1],df[c2]]
+    df[colname]=np.select(conditions,choices,np.nan)
 
 parser=argparse.ArgumentParser()
 parser.add_argument('-i','--input',required=True,action='append',help="Input files")
@@ -64,7 +66,13 @@ for c in merged.columns.values.tolist():
 
 print("INFO: intersecting columns: %d" %(len(L)),file=sys.stderr)
 for c in L:
-    print("INFO: current column: %s, %d" %(c,count_mismatches(merged,c)),file=sys.stderr)
+    fill_column(merged,c)
+    print("INFO: filled %s" %(c),file=sys.stderr)
+for c in L:
+    if merged[c].isna().sum()>0:
+        print("WARN: excluding %s" %(c),file=sys.stderr)
+    else:
+        Lkeep.append(c)
     # flag=True
     # for i,row in merged.iterrows():
     #     if merged.at[i,"indicator"]=="both":
