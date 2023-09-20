@@ -10,7 +10,7 @@ import datetime
 def fill_column(df,colname):
     c1=colname+"_left"
     c2=colname+"_right"
-    conditions=[(df[c1]==df[c2]) & (df["indicator"]=="both"),df["indicator"]=="left",df["indicator"]=="right"]
+    conditions=[(df[c1]==df[c2]) & (df["indicator"]=="both"),df["indicator"]=="left_only",df["indicator"]=="right_only"]
     choices=[df[c1],df[c1],df[c2]]
     df[colname]=np.select(conditions,choices,np.nan)
 
@@ -69,8 +69,9 @@ for c in L:
     fill_column(merged,c)
     print("INFO: filled %s" %(c),file=sys.stderr)
 for c in L:
-    if merged[c].isna().sum()>0:
-        print("WARN: excluding %s" %(c),file=sys.stderr)
+    i=merged[c].isna().sum()
+    if i>0:
+        print("WARN: excluding %s (%d mismatches)" %(c,i),file=sys.stderr)
     else:
         Lkeep.append(c)
     # flag=True
