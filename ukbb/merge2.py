@@ -6,7 +6,11 @@ import numpy as np
 import csv
 import sys
 import datetime
-from functools import reduce
+
+def count_mismatches(df,colname):
+    c1=colname+"_left"
+    c2=colname+"_right"
+    return (df[c1]!=df[c2] & df["indicator"]=="both").sum()
 
 parser=argparse.ArgumentParser()
 parser.add_argument('-i','--input',required=True,action='append',help="Input files")
@@ -60,22 +64,22 @@ for c in merged.columns.values.tolist():
 
 print("INFO: intersecting columns: %d" %(len(L)),file=sys.stderr)
 for c in L:
-    print("INFO: current column: %s" %(c),file=sys.stderr)
-    flag=True
-    for i,row in merged.iterrows():
-        if merged.at[i,"indicator"]=="both":
-            if merged.at[i,c+"_left"]==merged.at[i,c+"_right"]:
-                merged.at[i,c]=merged.at[i,c+"_left"]
-            else:
-                print("ERROR: %s" %(c))
-                flag=False
-                break
-        elif merged.at[i,"indicator"]=="left_only":
-            merged.at[i,c]=merged.at[i,c+"_left"]
-        else:
-            merged.at[i,c]=merged.at[i,c+"_right"]
-    if flag:
-        Lkeep.append(c)
+    print("INFO: current column: %s, %d" %(c,count_mismatches(merged,c)),file=sys.stderr)
+    # flag=True
+    # for i,row in merged.iterrows():
+    #     if merged.at[i,"indicator"]=="both":
+    #         if merged.at[i,c+"_left"]==merged.at[i,c+"_right"]:
+    #             merged.at[i,c]=merged.at[i,c+"_left"]
+    #         else:
+    #             print("ERROR: %s" %(c))
+    #             flag=False
+    #             break
+    #     elif merged.at[i,"indicator"]=="left_only":
+    #         merged.at[i,c]=merged.at[i,c+"_left"]
+    #     else:
+    #         merged.at[i,c]=merged.at[i,c+"_right"]
+    # if flag:
+    #     Lkeep.append(c)
 
 print("INFO: writing output",file=sys.stderr)
 merged.to_csv(out_prefix+".txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE,columns=Lkeep)
