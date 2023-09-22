@@ -8,7 +8,7 @@ import sys
 import datetime
 import logging
 
-# if a sample occurs in both dataframes and the values for thazt sample are different,
+# if a sample occurs in both dataframes and the values for that sample are different,
 # then set the resulting value to np.nan
 def fill_column(df,colname):
     c1=colname+"_left"
