@@ -28,11 +28,12 @@ function usage () {
     echo "                     -r <release; default: \"1\">"
     echo "                     -x <list of individual IDs to exclude>"
     echo "                     -d <debug mode: do not remove temporary files>"
+    echo "                     -a <add CREATED and RELEASE columns to output; default: false>"
     echo ""
     echo "This script merges all input files"
     echo "All input/output files are tab-separated"
     echo "Column names in input files must be unique (except for \"f.eid\" column)"    
-    echo "Output file contains one header line with additional CREATED and RELEASE columns"
+    echo "Output file contains one header line (with additional CREATED and RELEASE columns if \"-a\" is given)"
     echo ""
     exit 0
 }
@@ -53,8 +54,9 @@ out_dir=""
 release=""
 exclude_list=""
 debug="NO"
+add_release="NO"
 bname="phenotypes"
-while getopts "hi:f:o:r:x:db:" opt; do
+while getopts "hi:f:o:r:x:dab:" opt; do
     case $opt in
         i)input_fnames+=($OPTARG);;
         f)id_field=($OPTARG);;
@@ -62,6 +64,7 @@ while getopts "hi:f:o:r:x:db:" opt; do
         r)release=($OPTARG);;
         x)exclude_list=($OPTARG);;
         d)debug="YES";;
+        a)add_release="YES";;
         b)bname=($OPTARG);;
         h)usage;;
         *)usage;;
@@ -182,11 +185,15 @@ fi
 
 # OUTER JOIN INPUT FILES ON IDs, THEN EXCLUDE IDS FROM -x LIST 
 
-if [[ $n_input -eq 1 ]];then
-    # HEADER LINE
-    paste <(${cats["${input_fnames[0]}"]} "${input_fnames[0]}"|head -n 1) <(echo RELEASE CREATED|tr ' ' '\t')|gzip - -c > "${outfile}"
-    ${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | tail -n +2 | perl -snle 'BEGIN{$,="\t";%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_,$r,$d;}}' -- -f="$exclude_list" -c="${input_ID_column[0]}" -r=$release -d=$datestr| gzip - -c >> "${outfile}"	
-else
+if [[ $n_input -eq 1 ]];then # only one input file
+    if [[ "$add_release" == "YES" ]];then
+	paste <(${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | head -n 1) <(echo RELEASE CREATED|tr ' ' '\t') | gzip - -c > "${outfile}"
+	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | tail -n +2 | perl -snle 'BEGIN{$,="\t";%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_,$r,$d;}}' -- -f="$exclude_list" -c="${input_ID_column[0]}" -r=$release -d=$datestr| gzip - -c >> "${outfile}"
+    else # no release info in output
+	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | head -n 1 |gzip - -c > "${outfile}"
+	${cats["${input_fnames[0]}"]} "${input_fnames[0]}" | tail -n +2 | perl -snle 'BEGIN{$,="\t";%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_;}}' -- -f="$exclude_list" -c="${input_ID_column[0]}" | gzip - -c >> "${outfile}"
+    fi
+else # several input files
     # OUTER JOIN on IDs
     tmpfile1=$(mktemp -p "$out_dir" temp_1_join_XXXXXXXX)
     if [[ $? -ne 0 ]];then
@@ -222,21 +229,34 @@ else
     done
     eval "$join_cmd > $tmpfile1"
 
-    # header line with CREATED and RELEASE columns
-    paste <(head -n 1 "$tmpfile1") <(echo RELEASE CREATED | tr ' ' '\t') | gzip - -c > "${outfile}"
-    # adding body, excluding IDs from the exclude list
+    # header line
+    if [[ "$add_release" == "YES" ]];then
+	paste <(head -n 1 "$tmpfile1") <(echo RELEASE CREATED | tr ' ' '\t') | gzip - -c > "${outfile}"
+    else
+	head -n 1 "$tmpfile1" | gzip - -c > "${outfile}"
+    fi
+    # adding output body, excluding IDs from the exclude list
     x=$(cat $tmpfile1|wc -l)
     x=$((x-1)) # lines in tmpfile1 body
-    paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr | tr ' ' '\t' | head -n $x) | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$exclude_list" | gzip - -c >> "${outfile}"
+    if [[ "$add_release" == "YES" ]];then
+	paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr | tr ' ' '\t' | head -n $x) | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$exclude_list" | gzip - -c >> "${outfile}"
+    else
+	tail -n +2 "$tmpfile1" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$exclude_list" | gzip - -c >> "${outfile}"
+    fi
+    
     if [[ $debug == "NO" ]];then
 	rm -f "$tmpfile1"
     fi
 fi
 
-final_rows=$(zcat "${outfile}"| wc -l)
-final_cols=$(zcat "${outfile}"|head -n 1|tr '\t' '\n'|wc -l)
+final_rows=$(zcat "${outfile}" | wc -l)
+final_cols=$(zcat "${outfile}" | head -n 1 | tr '\t' '\n' | wc -l)
 echo "INFO: rows in output: $final_rows (including header row)" | tee -a "$logfile"
-echo "INFO: columns in output: $final_cols (including ID column and CREATED, RELEASE columns)" | tee -a "$logfile"
+    if [[ "$add_release" == "YES" ]];then
+	echo "INFO: columns in output: $final_cols (including ID column and CREATED, RELEASE columns)" | tee -a "$logfile"
+    else
+	echo "INFO: columns in output: $final_cols" | tee -a "$logfile"
+    fi
 echo "" | tee -a "$logfile"    
 
 date "+%F %H-%M-%S"  | tee -a "$logfile"
