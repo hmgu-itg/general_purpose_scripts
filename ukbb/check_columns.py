@@ -7,6 +7,7 @@ import csv
 import sys
 import datetime
 import logging
+import gc
 
 # if a sample occurs in both dataframes and the values for that sample are different,
 # then set the resulting value to np.nan
@@ -49,67 +50,89 @@ ch.setLevel(verbosity)
 formatter=logging.Formatter('%(levelname)s - %(name)s - %(funcName)s -%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
 ch.setFormatter(formatter)
 LOGGER.addHandler(ch)
-LOGGER.addHandler(logging.StreamHandler(sys.stdout))
+LOGGER.addHandler(logging.StreamHandler(sys.stderr))
 
 LOGGER.info("input: %s\noutput prefix: %s\n" %(",".join(infiles),out_prefix))
-#print("input: %s\noutput prefix: %s\n" %(",".join(infiles),out_prefix),file=sys.stderr)
 
 if len(infiles)==1:
     LOGGER.error("only one input file provided")
     sys.exit(1)
 
 if len(infiles)>2:
-    LOGGER.warning("more than two input files provided; only merging the first two")
+    LOGGER.warning("more than two input files provided; only checking the first two")
 
-inputDF=list()
+columns=list()
 for f in infiles:
-    inputDF.append(pd.read_table(f,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False))
-    if len(inputDF)==2:
+    df=pd.read_table(f,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,nrows=1)
+    columns.append(set([x for x in df.columns.values.tolist() if x !="f.eid"]))
+    if len(columns)==2:
         break
+    
+I=columns[0].intersection(columns[1])
+if len(I)==0:
+    LOGGER.info("no common columns")
+    print("-i %s -i %s" %(infiles[0],infiles[1]))
+    sys.exit(0)
 
-LOGGER.info("Checking IDs in input DFs\n")
-for i in range(len(inputDF)):
-    LOGGER.info("%s rows: %d" % (infiles[i],len(inputDF[i])))
-    LOGGER.info("%s columns: %d\n" % (infiles[i],len(inputDF[i].columns.values.tolist())))
-LOGGER.info("Done\n")
+C1=columns[0].difference(columns[1])
+C2=columns[1].difference(columns[0])
 
-merged=pd.merge(inputDF[0],inputDF[1],on="f.eid",how="outer",indicator="indicator",suffixes=("_left","_right"))
+C1.add("f.eid")
+C2.add("f.eid")
+I.add("f.eid")
+
+DF1=pd.read_table(infiles[0],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=list(I))
+DF2=pd.read_table(infiles[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=list(I))
+merged=pd.merge(DF1,DF2,on="f.eid",how="outer",indicator="indicator",suffixes=("_left","_right"))
 merged.replace(np.nan,"NA",inplace=True)
 merged.replace("","NA",inplace=True)
-
-n_both=(merged.indicator.values=="both").sum()
-n_left=(merged.indicator.values=="left_only").sum()
-n_right=(merged.indicator.values=="right_only").sum()
-
-LOGGER.info("total samples: %d" %(len(merged)))
-LOGGER.info("common samples: %d" %(n_both))
-LOGGER.info("samples in file 1 only: %d" %(n_left))
-LOGGER.info("samples in file 2 only: %d" %(n_right))
-
-L=list()
-Lkeep=list()
-for c in merged.columns.values.tolist():
-    if c.endswith("_left"):
-        x=c[:-5]
-        L.append(x)
-        merged[x]="NA"
-    elif not c.endswith("_right") and c!="indicator":
-        Lkeep.append(c)
-
-LOGGER.info("intersecting columns: %d" %(len(L)))
-
-for c in L:
+for c in I:
+    if c=="f.eid":
+        continue
+    merged[c]="NA"
+for c in I:
+    if c=="f.eid":
+        continue
     fill_column(merged,c)
     LOGGER.info("filled %s" %(c))
-    
-for c in L:
+
+Lkeep=list("f.eid")
+L=list()
+Lfile=list()
+for c in I:
+    if c=="f.eid":
+        continue
     i=merged[c].isna().sum()
     if i>0:
-        LOGGER.warning("excluding %s (%d mismatches)" %(c,i))
+        LOGGER.warning("%d mismatches in %s" %(i,c))
+        L.append(c)
     else:
         Lkeep.append(c)
 
+if len(L)!=0:
+    for c in L:
+        LOGGER.error("mismatches in %s" %(c))
+    sys.exit(1)
+    
 LOGGER.info("writing output")
 merged.to_csv(out_prefix+".txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE,columns=Lkeep)
+Lfile.append("-i "+out_prefix+".txt.gz")
+
+del DF1
+del DF2
+del merged
+gc.collect()
+
+if len(C1)!=0:
+    DF1=pd.read_table(infiles[0],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=list(C1))
+    DF1.to_csv(out_prefix+"1.txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    Lfile.append("-i "+out_prefix+"1.txt.gz")
+    
+if len(C2)!=0:
+    DF1=pd.read_table(infiles[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=list(C2))
+    DF1.to_csv(out_prefix+"2.txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    Lfile.append("-i "+out_prefix+"2.txt.gz")
+
+print("%s" %(" ".join(Lfile)))
 
 sys.exit(0)
