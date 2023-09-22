@@ -10,8 +10,13 @@ import logging
 
 from itgukbb import utils
 
-def get_nrows(fname):
-    df=pd.read_table(fname,skiprows=[1],sep="\t",header=0,dtype=str,usecols=["f.eid"])
+# test if second row contains column classes (legacy)
+def is_legacy(fname):
+    df=pd.read_table(fname,nrows=1,sep="\t",header=0,dtype=str,usecols=["f.eid"],keep_default_na=False)
+    return df.iloc[[0]]["f.eid"]=="NA"
+
+def get_nrows(fname,legacy=False):
+    df=pd.read_table(fname,skiprows=[1] if legacy else None,sep="\t",header=0,dtype=str,usecols=["f.eid"])
     return len(df)
 
 verbosity=logging.INFO
@@ -100,7 +105,7 @@ olink_fields=list()
 if use_olink:
     olink_fields=[k for k in D if D[k]["Field"].startswith("OLINK")]
 
-# only read the header line
+# analyze the header line
 df=pd.read_table(infile,sep="\t",nrows=1)
 H=dict() # short field name --> list of matching full names: 123 --> [ f.123.1.1, f.123.1.2, ... ]
 for x in df.columns.values.tolist():
@@ -116,6 +121,9 @@ for x in df.columns.values.tolist():
 
 #---------------------------------------------------------------------------------------------------------------------------
 
+legacy_input=is_legacy(infile)
+LOGGER.info("legacy input: %s" %(str(legacy_input)))
+
 # describe a field and exit
 if d_field:
     if not d_field in H:
@@ -129,7 +137,7 @@ if d_field:
     print(pd.DataFrame([["Field",d_field],["Field description",D[d_field]["Field"]],["Field type",D[d_field]["ValueType"]],["Instances",len(H[d_field])]],columns=["A","B"]).to_string(index=False,header=False))
     print(txt.center(os.get_terminal_size().columns))
     if D[d_field]["ValueType"]=="Categorical single" or D[d_field]["ValueType"]=="Categorical multiple":
-        df=pd.read_table(infile,skiprows=[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=H[d_field])
+        df=pd.read_table(infile,skiprows=[1] if legacy_input else None,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=H[d_field])
         df=df.apply(pd.Series.value_counts).fillna(0).astype(int)
         df["Count"]=df.agg("sum",axis=1)
         df.index.name="Value"
@@ -197,12 +205,12 @@ else:
         to_keep2=to_keep
     c=1
     with_header=True
-    nrows=get_nrows(infile)
+    nrows=get_nrows(infile,legacy_input)
     LOGGER.debug("Rows: %d" %(nrows))
     tc=nrows//chunksize
     if nrows%chunksize:
         tc+=1
-    for chunk in pd.read_table(infile,skiprows=[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=to_keep,chunksize=chunksize):
+    for chunk in pd.read_table(infile,skiprows=[1] if legacy_input else None,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=to_keep,chunksize=chunksize):
         LOGGER.info("chunk %d / %d" %(c,tc))
         c+=1
         chunk.rename(columns=rename_mapper,inplace=True)
