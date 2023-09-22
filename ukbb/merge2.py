@@ -7,6 +7,8 @@ import csv
 import sys
 import datetime
 
+# if a sample occurs in both dataframes and the values for thazt sample are different,
+# then set the resulting value to np.nan
 def fill_column(df,colname):
     c1=colname+"_left"
     c2=colname+"_right"
@@ -54,6 +56,15 @@ print("Done\n",file=sys.stderr)
 merged=pd.merge(inputDF[0],inputDF[1],on="f.eid",how="outer",indicator="indicator",suffixes=("_left","_right"))
 merged.replace(np.nan,"NA",inplace=True)
 merged.replace("","NA",inplace=True)
+
+n_both=(merged.indicator.values=="both").sum()
+n_left=(merged.indicator.values=="left_only").sum()
+n_right=(merged.indicator.values=="right_only").sum()
+
+print("INFO: common samples: %d" %(n_both),file=sys.stderr)
+print("INFO: samples in file 1 only: %d" %(n_left),file=sys.stderr)
+print("INFO: samples in file 2 only: %d" %(n_right),file=sys.stderr)
+
 L=list()
 Lkeep=list()
 for c in merged.columns.values.tolist():
@@ -65,30 +76,17 @@ for c in merged.columns.values.tolist():
         Lkeep.append(c)
 
 print("INFO: intersecting columns: %d" %(len(L)),file=sys.stderr)
+
 for c in L:
     fill_column(merged,c)
     print("INFO: filled %s" %(c),file=sys.stderr)
+    
 for c in L:
     i=merged[c].isna().sum()
     if i>0:
         print("WARN: excluding %s (%d mismatches)" %(c,i),file=sys.stderr)
     else:
         Lkeep.append(c)
-    # flag=True
-    # for i,row in merged.iterrows():
-    #     if merged.at[i,"indicator"]=="both":
-    #         if merged.at[i,c+"_left"]==merged.at[i,c+"_right"]:
-    #             merged.at[i,c]=merged.at[i,c+"_left"]
-    #         else:
-    #             print("ERROR: %s" %(c))
-    #             flag=False
-    #             break
-    #     elif merged.at[i,"indicator"]=="left_only":
-    #         merged.at[i,c]=merged.at[i,c+"_left"]
-    #     else:
-    #         merged.at[i,c]=merged.at[i,c+"_right"]
-    # if flag:
-    #     Lkeep.append(c)
 
 print("INFO: writing output",file=sys.stderr)
 merged.to_csv(out_prefix+".txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE,columns=Lkeep)
