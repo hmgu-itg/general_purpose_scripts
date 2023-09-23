@@ -29,6 +29,7 @@ function usage () {
     echo "                     -x <list of individual IDs to exclude>"
     echo "                     -d <debug mode: do not remove temporary files>"
     echo "                     -a <add CREATED and RELEASE columns to output; default: false>"
+    echo "                     -t <sort temp dir; default: /tmp>"
     echo ""
     echo "This script merges all input files"
     echo "All input/output files are tab-separated"
@@ -56,7 +57,8 @@ exclude_list=""
 debug="NO"
 add_release="NO"
 bname="phenotypes"
-while getopts "hi:f:o:r:x:dab:" opt; do
+sorttemp="/tmp"
+while getopts "hi:f:o:r:x:dab:t:" opt; do
     case $opt in
         i)input_fnames+=($OPTARG);;
         f)id_field=($OPTARG);;
@@ -66,6 +68,7 @@ while getopts "hi:f:o:r:x:dab:" opt; do
         d)debug="YES";;
         a)add_release="YES";;
         b)bname=($OPTARG);;
+        t)sorttemp=($OPTARG);;
         h)usage;;
         *)usage;;
     esac
@@ -167,7 +170,7 @@ flag=0
 if [[ $n_input -gt 1 ]];then
     for i in $(seq 0 $((n_input-1)));do
 	for j in $(seq $((i+1)) $((n_input-1)));do
-	    x=$(cat <("${cats[${input_fnames[$i]}]}" "${input_fnames[$i]}" | head -n 1 | cut --complement -f ${input_ID_column[$i]} | tr '\t' '\n') <("${cats[${input_fnames[$j]}]}" "${input_fnames[$j]}" | head -n 1 | cut --complement -f ${input_ID_column[$j]} | tr '\t' '\n') | sort | uniq -d | wc -l)
+	    x=$(cat <("${cats[${input_fnames[$i]}]}" "${input_fnames[$i]}" | head -n 1 | cut --complement -f ${input_ID_column[$i]} | tr '\t' '\n') <("${cats[${input_fnames[$j]}]}" "${input_fnames[$j]}" | head -n 1 | cut --complement -f ${input_ID_column[$j]} | tr '\t' '\n') | sort -T "${sorttemp}" | uniq -d | wc -l)
 	    if [[ $x -ne 0 ]];then
 		flag=1
 		echo "ERROR: input files ${input_fnames[$i]} and ${input_fnames[$j]} have columns in common" | tee -a "$logfile"
@@ -212,7 +215,7 @@ else # several input files
 	fmt=$fmt",2.$i"
     done
     
-    join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|tail -n +2|sort -t$'\t' -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]}|tail -n +2|sort -t$'\t' -k${input_ID_column[1]},${input_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}' | cut -f 2-"
+    join_cmd="join --header -t$'\t' -1 ${input_ID_column[0]} -2 ${input_ID_column[1]} -a 1 -a 2 -e NA -o $fmt <(cat <(${cats[${input_fnames[0]}]} ${input_fnames[0]}|head -n 1) <(${cats[${input_fnames[0]}]} ${input_fnames[0]} | tail -n +2 | sort -T ${sorttemp} -t$'\t' -k${input_ID_column[0]},${input_ID_column[0]})) <(cat <(${cats[${input_fnames[1]}]} ${input_fnames[1]} | head -n 1) <(${cats[${input_fnames[1]}]} ${input_fnames[1]} | tail -n +2 | sort -T ${sorttemp} -t$'\t' -k${input_ID_column[1]},${input_ID_column[1]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}' | cut -f 2-"
 
     n=${input_ncols[0]}
     m=${input_ncols[1]}
@@ -226,7 +229,7 @@ else # several input files
 	    fmt=$fmt",2.$j"
 	done
 	
-	join_cmd=$join_cmd" | join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|tail -n +2|sort -t$'\t' -k${input_ID_column[$i]},${input_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}' | cut -f 2-"
+	join_cmd=$join_cmd" | join --header -t$'\t' -1 1 -2 ${input_ID_column[$i]} -a 1 -a 2 -e NA -o $fmt - <(cat <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]}|head -n 1) <(${cats[${input_fnames[$i]}]} ${input_fnames[$i]} | tail -n +2 | sort -T ${sorttemp} -t$'\t' -k${input_ID_column[$i]},${input_ID_column[$i]})) | gawk -v FS='\t' -v OFS='\t' '{if (\$2==\"NA\"){\$2=\$1;}print \$0;}' | cut -f 2-"
 	m=${input_ncols[$i]}
 	n=$((n+m-1)) # current number of columns
     done
