@@ -94,9 +94,10 @@ for c in I:
     if c=="f.eid":
         continue
     fill_column(merged,c)
-    LOGGER.info("filled %s" %(c))
+    # LOGGER.info("filled %s" %(c))
 
-Lkeep=list("f.eid")
+Lkeep=list()
+Lkeep.append("f.eid")
 L=list()
 Lfile=list()
 for c in I:
@@ -113,10 +114,11 @@ if len(L)!=0:
     for c in L:
         LOGGER.error("mismatches in %s" %(c))
     sys.exit(1)
-    
-LOGGER.info("writing output")
-merged.to_csv(out_prefix+".txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE,columns=Lkeep)
-Lfile.append("-i "+out_prefix+".txt.gz")
+
+fname=out_prefix+".txt.gz"
+LOGGER.info("writing %d common columns to %s" %(len(I)-1,fname))
+merged.to_csv(fname,sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE,columns=Lkeep)
+Lfile.append("-i "+fname)
 
 del DF1
 del DF2
@@ -124,14 +126,18 @@ del merged
 gc.collect()
 
 if len(C1)!=0:
+    fname=out_prefix+"1.txt.gz"
+    LOGGER.info("writing %d columns to %s" %(len(C1)-1,fname))
     DF1=pd.read_table(infiles[0],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=list(C1))
-    DF1.to_csv(out_prefix+"1.txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE)
-    Lfile.append("-i "+out_prefix+"1.txt.gz")
+    DF1.to_csv(fname,sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    Lfile.append("-i "+fname)
     
 if len(C2)!=0:
+    fname=out_prefix+"2.txt.gz"
+    LOGGER.info("writing %d columns to %s" %(len(C2)-1,fname))
     DF1=pd.read_table(infiles[1],sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=list(C2))
-    DF1.to_csv(out_prefix+"2.txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE)
-    Lfile.append("-i "+out_prefix+"2.txt.gz")
+    DF1.to_csv(fname,sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE)
+    Lfile.append("-i "+fname)
 
 print("%s" %(" ".join(Lfile)))
 
