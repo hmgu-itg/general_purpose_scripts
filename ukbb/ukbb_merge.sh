@@ -167,14 +167,17 @@ flag=0
 if [[ $n_input -gt 1 ]];then
     for i in $(seq 0 $((n_input-1)));do
 	for j in $(seq $((i+1)) $((n_input-1)));do
-	    x=$(cat <("${cats[${input_fnames[$i]}]}" "${input_fnames[$i]}"|head -n 1|cut --complement -f ${input_ID_column[$i]}) <("${cats[${input_fnames[$j]}]}" "${input_fnames[$j]}"|head -n 1|cut --complement -f ${input_ID_column[$j]})|sort|uniq -d|wc -l)
+	    x=$(cat <("${cats[${input_fnames[$i]}]}" "${input_fnames[$i]}" | head -n 1 | cut --complement -f ${input_ID_column[$i]} | tr '\t' '\n') <("${cats[${input_fnames[$j]}]}" "${input_fnames[$j]}" | head -n 1 | cut --complement -f ${input_ID_column[$j]} | tr '\t' '\n') | sort | uniq -d | wc -l)
 	    if [[ $x -ne 0 ]];then
 		flag=1
 		echo "ERROR: input files ${input_fnames[$i]} and ${input_fnames[$j]} have columns in common" | tee -a "$logfile"
+	    else
+		echo "INFO: files $i $j: OK" | tee -a "$logfile"
 	    fi	    
 	done
     done
 fi
+
 if [[ "$flag" -eq 0 ]];then
     echo "OK" | tee -a "$logfile"
 else
