@@ -15,7 +15,7 @@ function getFreeCPUs {
 }
 
 # create temp files
-# upon success the input associative arry contains names of the created files as values
+# upon success the input associative array contains names of the created files as values
 function createTempFiles {
     local dirname=$1
     # associative array, values: templates for mktemp
@@ -474,6 +474,7 @@ function getTGZColNum () {
     echo $(fgrep -w "$colname"  <(tar -zxf "$tgz_fname" "$fname" -O|head -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//')|cut -f 1)
 }
 
+# get cat/zcat, based on file name
 function getCatCmd () {
     local fname=$1
     if [[ "$fname" =~ gz$ ]];then
