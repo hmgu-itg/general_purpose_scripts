@@ -77,7 +77,7 @@ function merge_two_files {
 	awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | sponge "$tmpfile"
 	ret="$tmpfile"
     else # there are common colnames
-	exclude_cols=()
+	exclude_cols=(2)
 	for c in "${common_cols[@]}";do
 	    echo "INFO: checking common column $c ... " | tee -a "$logfile"
 	    getColNums "$tmpfile" "$c" "cat" tmp_ar
@@ -93,7 +93,7 @@ function merge_two_files {
 	    fi	    
 	done
 	if [[ "$gflag" -eq 0 ]];then
-	    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | sponge "$tmpfile"
+	    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | sponge "$tmpfile"
 	    s=$(join_by "," "${exclude_cols[@]}")
 	    cut --complement -f "$s" "$tmpfile" | sponge "$tmpfile"
 	    ret="$tmpfile"
