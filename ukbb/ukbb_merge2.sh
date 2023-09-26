@@ -88,7 +88,7 @@ function merge_two_files {
 		echo "\nERROR: conflicting values for column $c: $flag\n" | tee -a "$logfile"
 	    else
 		echo "OK" | tee -a "$logfile"
-		awk -v i="${tmp_ar[0]}" -v j="${tmp_ar[1]}" 'BEGIN{FS="\t";}{if ($i=="NA"){$i=$j;}}' "$tmpfile" | sponge "$tmpfile"
+		awk -v i="${tmp_ar[0]}" -v j="${tmp_ar[1]}" 'BEGIN{FS="\t";}{if ($i=="NA"){$i=$j;}print $0;}' "$tmpfile" | sponge "$tmpfile"
 		exclude_cols+=("${tmp_ar[1]}")
 	    fi	    
 	done
