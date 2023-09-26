@@ -8,13 +8,13 @@ import sys
 import datetime
 import logging
 
-# if a sample occurs in both dataframes and the values for that sample are different,
+# if a sample occurs in both dataframes and the values for that sample are different (and both != "NA")
 # then set the resulting value to np.nan
 def fill_column(df,colname):
     c1=colname+"_left"
     c2=colname+"_right"
-    conditions=[(df[c1]==df[c2]) & (df["indicator"]=="both"),df["indicator"]=="left_only",df["indicator"]=="right_only"]
-    choices=[df[c1],df[c1],df[c2]]
+    conditions=[(df[c1]==df[c2]) & (df["indicator"]=="both"),(df[c1]!=df[c2]) & (df[c1]=="NA") & (df["indicator"]=="both"),(df[c1]!=df[c2]) & (df[c2]=="NA") & (df["indicator"]=="both"),df["indicator"]=="left_only",df["indicator"]=="right_only"]
+    choices=[df[c1],df[c2],df[c1],df[c1],df[c2]]
     df[colname]=np.select(conditions,choices,np.nan)
 
 parser=argparse.ArgumentParser()
