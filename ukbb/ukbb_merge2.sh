@@ -79,9 +79,10 @@ function merge_two_files {
     else # there are common colnames
 	exclude_cols=()
 	for c in "${common_cols[@]}";do
-	    echo -n "INFO: checking common column $c ... " | tee -a "$logfile"
+	    echo "INFO: checking common column $c ... " | tee -a "$logfile"
 	    getColNums "$tmpfile" "$c" "cat" tmp_ar
-	    flag=$(cut -f 1,2,"${tmp_ar[0]}","${tmp_ar[1]}" "$tmpfile" | awk 'BEGIN{FS="\t";f="OK";}{if ($1!="NA" && $2!="NA" && $3!="NA" && $4!="NA" $3!=$4){f=$1" "$3" "$4;exit;}}END{print f;}')
+	    echo "DEBUG: column $c: columns" $(join_by "," "${tmp_ar[@]}")
+	    flag=$(cut -f 1,2,"${tmp_ar[0]}","${tmp_ar[1]}" "$tmpfile" | awk 'BEGIN{FS="\t";f="OK";}{if ($1!="NA" && $2!="NA" && $3!="NA" && $4!="NA" && $3!=$4){f=$1" "$3" "$4;exit;}}END{print f;}')
 	    if [[ "$flag" != "OK" ]];then
 		gflag=1
 		echo "\nERROR: conflicting values for column $c: $flag\n" | tee -a "$logfile"
@@ -219,6 +220,20 @@ for i in $(seq 0 $((n_input-1)));do
     checkDuplicatesHeader "${input_fnames[$i]}" "${cats[${input_fnames[$i]}]}" "$logfile"
     checkRow "${input_fnames[$i]}" 1 "${cats[${input_fnames[$i]}]}" "$logfile"
     echo "" | tee -a "$logfile"
+done
+
+#----------------------------------------------------
+
+# get ID column number for every input file
+for i in $(seq 0 $((n_input-1)));do
+    x=$(getColNum "${input_fnames[$i]}" "$id_field" ${cats[${input_fnames[$i]}]})
+    exitIfEmpty "$x" "ERROR: no \"$id_field\" found in ${input_fnames[$i]}"
+    input_ID_column+=($x)
+    input_nrows+=($(${cats[${input_fnames[$i]}]} "${input_fnames[$i]}"|wc -l))
+    input_ncols+=($(${cats[${input_fnames[$i]}]} "${input_fnames[$i]}"|head -n 1|tr '\t' '\n'|wc -l))
+    checkColumn "${input_fnames[$i]}" $input_ID_column ${cats[${input_fnames[$i]}]} "$logfile"
+    checkDuplicatesColumn "${input_fnames[$i]}" $input_ID_column ${cats[${input_fnames[$i]}]} "$logfile"
+    echo ""  |tee -a "$logfile"
 done
 
 #----------------------------------------------------
