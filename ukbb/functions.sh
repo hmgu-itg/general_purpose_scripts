@@ -455,11 +455,17 @@ function checkFields {
 # join an array
 function join_by { local IFS="$1"; shift; echo "$*"; }
 
+# get an array of column numbers for a specific column name (can be several columns with the same name)
 function getColNums {
     local fname=$1
     local colname=$2
     local catcmd=$3
-    
+    local -n arname=$4
+
+    arname=()
+    while read i;do
+	arname+=($i)
+    done < <(eval "$catcmd $fname" | head -n 1 | perl -slne '@a=split(/\t/,$_,-1);for ($i=0;$i<scalar(@a);$i++){print $i+1 if ($n eq $a[$i]);}' -- -n="$colname")
 }
 
 # get column number for a specific column
