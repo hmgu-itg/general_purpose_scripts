@@ -13,9 +13,41 @@ normal=$(tput sgr0)
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
 
+function merge_two_files {
+    local fname1=$1
+    local fname2=$2
+    local tmpdir=$3
+    local logfile=$4
+
+    declare -A colnames1
+    declare -A colnames2
+    declare -a common_cols
+    
+    cat1=$(getCatCmd "$fname1")
+    cat2=$(getCatCmd "$fname2")
+
+    getColNumbers "$fname1" "$cat1" colnames1
+    getColNumbers "$fname2" "$cat2" colnames2
+
+    for c in "${!colnames1[@]}";do
+	if [[ -v "colnames2[$c]" ]];then
+	    common_cols+=$c
+	fi
+    done
+
+    if [[ "${#common_cols[@]}" -eq 0 ]];then # no common colnames
+
+    else # there are common colnames
+	
+	
+    fi
+    
+}
+
+
 function usage () {
     echo ""
-    echo "Merging/updating script for UKBB data"
+    echo "Merging script for UKBB data"
     echo ""
     echo "Usage: ukbb_merge.sh -f <ID field name; default: \"f.eid\">"
     echo "                     -i input1.tab"
@@ -29,7 +61,7 @@ function usage () {
     echo "                     -x <list of individual IDs to exclude>"
     echo "                     -d <debug mode: do not remove temporary files>"
     echo "                     -a <add CREATED and RELEASE columns to output; default: false>"
-    echo "                     -t <sort temp dir; default: /tmp>"
+    echo "                     -t <temp dir; default: /tmp>"
     echo ""
     echo "This script merges all input files"
     echo "All input/output files are tab-separated"

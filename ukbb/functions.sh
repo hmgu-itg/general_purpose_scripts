@@ -455,6 +455,13 @@ function checkFields {
 # join an array
 function join_by { local IFS="$1"; shift; echo "$*"; }
 
+function getColNums {
+    local fname=$1
+    local colname=$2
+    local catcmd=$3
+    
+}
+
 # get column number for a specific column
 function getColNum () {
     local fname=$1
