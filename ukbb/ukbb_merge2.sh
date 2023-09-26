@@ -81,7 +81,7 @@ function merge_two_files {
 	for c in "${common_cols[@]}";do
 	    echo "INFO: checking common column $c ... " | tee -a "$logfile"
 	    getColNums "$tmpfile" "$c" "cat" tmp_ar
-	    echo "DEBUG: column $c: columns" $(join_by "," "${tmp_ar[@]}")
+	    echo "DEBUG: column $c: columns" $(join_by "," "${tmp_ar[@]}") | tee -a "$logfile"
 	    flag=$(cut -f 1,2,"${tmp_ar[0]}","${tmp_ar[1]}" "$tmpfile" | awk 'BEGIN{FS="\t";f="OK";}{if ($1!="NA" && $2!="NA" && $3!="NA" && $4!="NA" && $3!=$4){f=$1" "$3" "$4;exit;}}END{print f;}')
 	    if [[ "$flag" != "OK" ]];then
 		gflag=1
