@@ -39,8 +39,8 @@ function merge_two_files {
     getColNumbers "$fname2" "$cat2" colnames2
 
     echo "INFO: merging"  | tee -a "$logfile"
-    echo "INFO: $fname1"  | tee -a "$logfile"
-    echo "INFO: $fname2"  | tee -a "$logfile"
+    echo "INFO: file1: $fname1"  | tee -a "$logfile"
+    echo "INFO: file2: $fname2"  | tee -a "$logfile"
     echo ""  | tee -a "$logfile"
     
     for c in "${!colnames1[@]}";do
@@ -69,9 +69,22 @@ function merge_two_files {
     for i in $(seq 2 ${ncols2});do
 	fmt=$fmt",2.$i"
     done
+
+    echo "INFO: joining input files"  | tee -a "$logfile"
+    echo ""  | tee -a "$logfile"
     
     join_cmd="join --header -t$'\t' -1 ${idCol1} -2 ${idCol2} -a 1 -a 2 -e NA -o $fmt <(cat <(${cat1} ${fname1} | head -n 1) <(${cat1} ${fname1} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol1},${idCol1})) <(cat <(${cat2} ${fname2} | head -n 1) <(${cat2} ${fname2} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol2},${idCol2}))"
     eval "$join_cmd > $tmpfile"
+
+    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2=="NA"){c=c+1;}}END{print c;}')
+    echo "INFO: samples in file1 only: $x"  | tee -a "$logfile"
+    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1=="NA" && $2!="NA"){c=c+1;}}END{print c;}')
+    echo "INFO: samples in file2 only: $x"  | tee -a "$logfile"
+    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2!="NA"){c=c+1;}}END{print c;}')
+    echo "INFO: samples in both file1 and file2: $x"  | tee -a "$logfile"
+    x=$(head -n 1 "$tmpfile" | tr '\t' '\n' | wc -l )
+    echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
+    echo ""  | tee -a "$logfile"
     
     if [[ "${#common_cols[@]}" -eq 0 ]];then # no common colnames
 	awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | sponge "$tmpfile"
