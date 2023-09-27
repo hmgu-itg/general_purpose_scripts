@@ -61,7 +61,7 @@ function merge_two_files {
     echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
     echo ""  | tee -a "$logfile"
     
-    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | sponge "$tmpfile"
+    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
     ret="$tmpfile"
 }
 
