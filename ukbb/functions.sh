@@ -476,7 +476,11 @@ function getColNum () {
     if [[ $# -ge 3 ]];then
 	cmd=$3
     fi
-    echo $(fgrep -w "$colname"  <($cmd "$fname"|head -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//')|cut -f 1)
+
+    local i=$(eval "$cmd $fname" | head -n 1 | perl -slne 'BEGIN{$k="";}{@a=split(/\t/,$_,-1);for ($i=0;$i<scalar(@a);$i++){if ($a[$i] eq $n){$k=$i+1;exit 0;}}}END{print $k;}' -- -n="$colname")
+    echo $i
+    
+    # echo $(fgrep -w "$colname"  <($cmd "$fname"|head -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//')|cut -f 1)
 }
 
 # get column number for a specific column in a file inside a tar.gz
@@ -484,6 +488,7 @@ function getTGZColNum () {
     local tgz_fname=$1
     local fname=$2
     local colname=$3
+
     echo $(fgrep -w "$colname"  <(tar -zxf "$tgz_fname" "$fname" -O|head -n 1|tr '\t' '\n'|cat -n|sed 's/^  *//')|cut -f 1)
 }
 
@@ -496,3 +501,17 @@ function getCatCmd () {
 	echo "cat"
     fi
 }
+
+# get release from a merged file
+function getRelease {
+    local fname=$1
+    local cmd=$2
+
+    local rc=$(getColNum "$fname" "RELEASE" "$cmd")
+    if [[ -z "$rc" ]];then
+	echo ""
+    else
+	echo $("$cmd" "$fname"|head -n 3|tail -n 1|cut -f $rc)
+    fi
+}
+
