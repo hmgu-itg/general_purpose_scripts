@@ -79,7 +79,9 @@ function update_file {
     echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
     echo ""  | tee -a "$logfile"
 
+    echo "DEBUG: excluding second column"  | tee -a "$logfile"
     awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | sponge "$tmpfile"
+    echo "DEBUG: done"  | tee -a "$logfile"
     # tmpfile contains one ID column (1st), all columns from file1 (including CREATED, RELEASE), all columns from file2
     
     if [[ "${#common_cols[@]}" -eq 0 ]];then # no common colnames, remove RELEASE, CREATED columns
