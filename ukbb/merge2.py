@@ -110,6 +110,7 @@ for c in L:
         Lkeep.append(c)
 
 LOGGER.info("writing output")
-merged.to_csv(out_prefix+".txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE,columns=Lkeep)
+#merged.to_csv(out_prefix+".txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE,columns=Lkeep)
+merged.to_csv(out_prefix+".txt.gz",sep="\t",index=False,quotechar='"',quoting=csv.QUOTE_NONE,na_rep="XXX")
 
 sys.exit(0)
