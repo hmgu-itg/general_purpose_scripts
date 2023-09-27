@@ -68,8 +68,6 @@ function update_file {
     
     join_cmd="join --header -t$'\t' -1 ${idCol1} -2 ${idCol2} -a 1 -a 2 -e NA -o $fmt <(cat <(${cat1} ${fname1} | head -n 1) <(${cat1} ${fname1} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol1},${idCol1})) <(cat <(${cat2} ${fname2} | head -n 1) <(${cat2} ${fname2} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol2},${idCol2}))"
     eval "$join_cmd > $tmpfile"
-    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | sponge "$tmpfile"
-    # tmpfile contains one ID column (1st), all columns from file1 (including CREATED, RELEASE), all columns from file2
 
     x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2=="NA"){c=c+1;}}END{print c;}')
     echo "INFO: samples in file1 only: $x"  | tee -a "$logfile"
@@ -81,6 +79,9 @@ function update_file {
     echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
     echo ""  | tee -a "$logfile"
 
+    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | sponge "$tmpfile"
+    # tmpfile contains one ID column (1st), all columns from file1 (including CREATED, RELEASE), all columns from file2
+    
     if [[ "${#common_cols[@]}" -eq 0 ]];then # no common colnames, remove RELEASE, CREATED columns
 	cut --complement -f $(getColNum "$tmpfile" "RELEASE"),$(getColNum "$tmpfile" "CREATED") "$tmpfile" | sponge "$tmpfile"
 	ret="$tmpfile"
