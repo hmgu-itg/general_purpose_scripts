@@ -285,17 +285,17 @@ else # several input files
     if [[ ! -z "$tmpf" ]];then
 	# header line
 	if [[ "$add_release" == "YES" ]];then
-	    paste <(head -n 1 "$tmpfile1") <(echo RELEASE CREATED | tr ' ' '\t') | gzip - -c > "${outfile}"
+	    paste <(head -n 1 "$tmpf") <(echo RELEASE CREATED | tr ' ' '\t') | gzip - -c > "${outfile}"
 	else
-	    head -n 1 "$tmpfile1" | gzip - -c > "${outfile}"
+	    head -n 1 "$tmpf" | gzip - -c > "${outfile}"
 	fi
 	# adding output body, excluding IDs from the exclude list
-	x=$(cat $tmpfile1|wc -l)
-	x=$((x-1)) # lines in tmpfile1 body
+	x=$(cat $tmpf|wc -l)
+	x=$((x-1)) # lines in tmpf body
 	if [[ "$add_release" == "YES" ]];then
-	    paste <(tail -n +2 "$tmpfile1") <(yes $release $datestr | tr ' ' '\t' | head -n $x) | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$exclude_list" | gzip - -c >> "${outfile}"
+	    paste <(tail -n +2 "$tmpf") <(yes $release $datestr | tr ' ' '\t' | head -n $x) | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$exclude_list" | gzip - -c >> "${outfile}"
 	else
-	    tail -n +2 "$tmpfile1" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$exclude_list" | gzip - -c >> "${outfile}"
+	    tail -n +2 "$tmpf" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$exclude_list" | gzip - -c >> "${outfile}"
 	fi
     fi
 
