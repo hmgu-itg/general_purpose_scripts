@@ -80,12 +80,12 @@ function update_file {
     echo ""  | tee -a "$logfile"
 
     echo "DEBUG: excluding second column"  | tee -a "$logfile"
-    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tempdir}" sponge "$tmpfile"
+    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
     echo "DEBUG: done"  | tee -a "$logfile"
     # tmpfile contains one ID column (1st), all columns from file1 (including CREATED, RELEASE), all columns from file2
     
     if [[ "${#common_cols[@]}" -eq 0 ]];then # no common colnames, remove RELEASE, CREATED columns
-	cut --complement -f $(getColNum "$tmpfile" "RELEASE"),$(getColNum "$tmpfile" "CREATED") "$tmpfile" | TMPDIR="${tempdir}" sponge "$tmpfile"
+	cut --complement -f $(getColNum "$tmpfile" "RELEASE"),$(getColNum "$tmpfile" "CREATED") "$tmpfile" | TMPDIR="${tmpdir}" sponge "$tmpfile"
 	ret="$tmpfile"
     else # there are common colnames
 	# report some stats comparing shared columns in both files
@@ -99,7 +99,7 @@ function update_file {
 	    getColNums "$tmpfile" "$c" "cat" tmp_ar
 	    exclude_cols+=("${tmp_ar[0]}")
 	done
-	cut --complement -f $(join_by "," "${exclude_cols[@]}") "$tmpfile" | TMPDIR="${tempdir}" sponge "$tmpfile"
+	cut --complement -f $(join_by "," "${exclude_cols[@]}") "$tmpfile" | TMPDIR="${tmpdir}" sponge "$tmpfile"
 	ret="$tmpfile"
     fi
 }
