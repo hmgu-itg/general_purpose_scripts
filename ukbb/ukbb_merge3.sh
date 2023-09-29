@@ -273,6 +273,7 @@ else # several input files
 	echo "DEBUG: i=$i"
 	echo "DEBUG: tmpf=$tmpf"
     done
+    echo "INFO: done merging" | tee -a "$logfile"
 
     if [[ ! -z "$tmpf" ]];then
 	# header line
