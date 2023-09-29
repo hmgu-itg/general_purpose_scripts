@@ -16,6 +16,8 @@ function merge_two_files {
     local tmpdir=$3
     local logfile=$4
     local -n ret=$5
+    local i
+    local x
 
     local cat1=$(getCatCmd "$fname1")
     local cat2=$(getCatCmd "$fname2")
@@ -24,7 +26,7 @@ function merge_two_files {
     local ncols1=$("$cat1" "$fname1" | head -n 1 | tr '\t' '\n' | wc -l)
     local ncols2=$("$cat2" "$fname2" | head -n 1 | tr '\t' '\n' | wc -l)
 
-    tmpfile=$(mktemp -p "$tmpdir" merge_pair_XXXXXXXX)
+    local tmpfile=$(mktemp -p "$tmpdir" merge_pair_XXXXXXXX)
     if [[ $? -ne 0 ]];then
 	echo "ERROR: could not create tmpfile" | tee -a "$logfile"
 	ret=""
@@ -37,7 +39,7 @@ function merge_two_files {
     echo "INFO: output: $tmpfile"  | tee -a "$logfile"
     echo ""  | tee -a "$logfile"
     
-    fmt="1.${idCol1},2.${idCol2}"
+    local fmt="1.${idCol1},2.${idCol2}"
     for i in $(seq 2 ${ncols1});do
 	fmt=$fmt",1.$i"
     done
@@ -47,7 +49,7 @@ function merge_two_files {
 
     echo -n "INFO: joining input files ... "  | tee -a "$logfile"
     
-    join_cmd="join --header -t$'\t' -1 ${idCol1} -2 ${idCol2} -a 1 -a 2 -e NA -o $fmt <(cat <(${cat1} ${fname1} | head -n 1) <(${cat1} ${fname1} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol1},${idCol1})) <(cat <(${cat2} ${fname2} | head -n 1) <(${cat2} ${fname2} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol2},${idCol2}))"
+    local join_cmd="join --header -t$'\t' -1 ${idCol1} -2 ${idCol2} -a 1 -a 2 -e NA -o $fmt <(cat <(${cat1} ${fname1} | head -n 1) <(${cat1} ${fname1} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol1},${idCol1})) <(cat <(${cat2} ${fname2} | head -n 1) <(${cat2} ${fname2} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol2},${idCol2}))"
     eval "$join_cmd > $tmpfile"
     echo "done"  | tee -a "$logfile"
 
@@ -237,7 +239,7 @@ for i in $(seq 0 $((n_input-1)));do
     echo "${input_fnames[$i]}" | tee -a "$logfile"
 done
 echo "" | tee -a "$logfile"
-echo "RELEASE: $release" | tee -a "$logfile"
+echo "OUTPUT RELEASE: $release" | tee -a "$logfile"
 echo "ADD RELEASE: $add_release" | tee -a "$logfile"
 echo "KEEP TEMP FILES: $debug" | tee -a "$logfile"
 echo "TEMP DIR: $sorttemp" | tee -a "$logfile"
