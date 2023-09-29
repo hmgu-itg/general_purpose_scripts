@@ -22,9 +22,9 @@ function report_missing {
     ar+=("MISSING" "ID")
     for i in "${!fnames[@]}";do
 	echo "$((i+1)) ${fnames[$i]}" | tr ' ' '\t' | tee -a "$logfile"
-	ar+=($i)
+	ar+=("$((i+1))")
     done
-    echo $(join_by "\t" "${ar[@]}")
+    echo $(join_by " " "${ar[@]}") | tr ' ' '\t' | tee -a "$logfile"
 
     ar=("1.1")
     for i in "${!fnames[@]}";do
@@ -33,12 +33,12 @@ function report_missing {
     local fmt=$(join_by "," "${ar[@]}")
     
     ar=()
-    local join_cmd="join -1 1 -2 1 -a 1 -a 2 -t$' ' -e NA -o $fmt "
+    local join_cmd="join -1 1 -2 1 -a 1 -a 2 -e NA -o $fmt "
     for i in "${!fnames[@]}";do
 	ar+=("<(${ct[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]} | sort -k1,1)")
     done
     ar+=(" | grep NA")
-    join_cmd="${join_cmd}" $(join_by " " "${ar[@]}")
+    join_cmd="${join_cmd}"" "$(join_by " " "${ar[@]}")
     
     while read i;do
 	echo "MISSING $i" | tr ' ' '\t' | tee -a "$logfile"
