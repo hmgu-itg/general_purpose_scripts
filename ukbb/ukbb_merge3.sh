@@ -16,6 +16,7 @@ function report_missing {
     local -n ct=$2
     local -n idcols=$3
     local logfile=$4
+    local n="${#fnames[@]}"
     declare -a ar
     local i
 
@@ -31,14 +32,23 @@ function report_missing {
 	ar+=("$((i+1))".1)
     done
     local fmt=$(join_by "," "${ar[@]}")
-    
+
     ar=()
-    local join_cmd="join -1 1 -2 1 -a 1 -a 2 -e NA -o $fmt "
     for i in "${!fnames[@]}";do
-	ar+=("<(${ct[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]} | sort -k1,1)")
+	ar+=("<(${ct[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]})")
     done
-    ar+=(" | grep NA")
-    join_cmd="${join_cmd}"" "$(join_by " " "${ar[@]}")
+    local cmd="cat "$(join_by " " "${ar[@]}")" | sort | uniq"
+    
+    local fmt="1.1,2.1"
+    local join_cmd="join -1 1 -2 1 -a 1 -a 2 -e NA -o $fmt <($cmd) <(${ct[${fnames[0]}]} ${fnames[0]} | tail -n +2 | cut -f ${idcols[0]} | sort -k1,1)"
+    for i in $(seq 1 "$((n-1))");do
+	fmt="1.1"
+	for j in $(2 $((i+1)));do
+	    fmt=$fmt",1.$j"
+	done
+	fmt=$fmt",$((i+1))".1
+	join_cmd="$join_cmd"" | join -1 1 -2 1 -a 1 -a 2 -e NA -o $fmt <(${ct[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]} | sort -k1,1)"
+    done
 
     echo "DEBUG: $join_cmd" | tee -a "$logfile"
     
