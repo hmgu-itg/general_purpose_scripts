@@ -8,102 +8,6 @@ args=("$@")
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
 
-function update_file {
-    local fname1=$1
-    local fname2=$2
-    local tmpdir=$3
-    local logfile=$4
-    local -n ret=$5
-    local c
-    local i
-    local x
-
-    declare -A colnames1
-    declare -A colnames2
-    declare -a common_cols
-    declare -a tmp_ar
-    declare -a exclude_cols
-
-    local cat1=$(getCatCmd "$fname1")
-    local cat2=$(getCatCmd "$fname2")
-    local idCol1=$(getColNum "$fname1" "f.eid" "$cat1")
-    local idCol2=$(getColNum "$fname2" "f.eid" "$cat2")
-    local ncols1=$("$cat1" "$fname1" | head -n 1 | tr '\t' '\n' | wc -l)
-    local ncols2=$("$cat2" "$fname2" | head -n 1 | tr '\t' '\n' | wc -l)
-
-    getColNumbers "$fname1" "$cat1" colnames1
-    getColNumbers "$fname2" "$cat2" colnames2
-
-    echo "INFO: updating"  | tee -a "$logfile"
-    echo "INFO: file1: $fname1"  | tee -a "$logfile"
-    echo "INFO: file2: $fname2"  | tee -a "$logfile"
-    echo ""  | tee -a "$logfile"
-    
-    for c in "${!colnames1[@]}";do
-	if [[ -v "colnames2[$c]" && "$c" != "f.eid" ]];then
-	    common_cols+=($c)
-	fi
-    done
-
-    echo "INFO: common fields: ${#common_cols[@]}"  | tee -a "$logfile"
-    echo ""  | tee -a "$logfile"
-    
-    local tmpfile=$(mktemp -p "$tmpdir" merge_XXXXXXXX)
-    if [[ $? -ne 0 ]];then
-	echo "ERROR: could not create tmpfile" | tee -a "$logfile"
-	ret=""
-	return
-    fi
-
-    echo "INFO: output: $tmpfile"  | tee -a "$logfile"
-    echo ""  | tee -a "$logfile"
-    
-    local fmt="1.${idCol1},2.${idCol2}"
-    for i in $(seq 2 ${ncols1});do
-	fmt=$fmt",1.$i"
-    done
-    for i in $(seq 2 ${ncols2});do
-	fmt=$fmt",2.$i"
-    done
-
-    echo "INFO: joining input files"  | tee -a "$logfile"
-    echo ""  | tee -a "$logfile"
-    
-    local join_cmd="join --header -t$'\t' -1 ${idCol1} -2 ${idCol2} -a 1 -a 2 -e NA -o $fmt <(cat <(${cat1} ${fname1} | head -n 1) <(${cat1} ${fname1} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol1},${idCol1})) <(cat <(${cat2} ${fname2} | head -n 1) <(${cat2} ${fname2} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol2},${idCol2}))"
-    eval "$join_cmd > $tmpfile"
-
-    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2=="NA"){c=c+1;}}END{print c;}')
-    echo "INFO: samples in file1 only: $x"  | tee -a "$logfile"
-    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1=="NA" && $2!="NA"){c=c+1;}}END{print c;}')
-    echo "INFO: samples in file2 only: $x"  | tee -a "$logfile"
-    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2!="NA"){c=c+1;}}END{print c;}')
-    echo "INFO: samples in both file1 and file2: $x"  | tee -a "$logfile"
-    x=$(head -n 1 "$tmpfile" | tr '\t' '\n' | wc -l )
-    echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
-    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
-    echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
-    # tmpfile contains one ID column (1st), all columns from file1 (including CREATED, RELEASE), all columns from file2
-    
-    if [[ "${#common_cols[@]}" -eq 0 ]];then # no common colnames, remove RELEASE, CREATED columns
-	cut --complement -f $(getColNum "$tmpfile" "RELEASE"),$(getColNum "$tmpfile" "CREATED") "$tmpfile" | TMPDIR="${tmpdir}" sponge "$tmpfile"
-	ret="$tmpfile"
-    else # there are common colnames
-	# report some stats comparing shared columns in both files
-	"${scriptdir}/get_stats.pl" "$tmpfile" >> "$logfile"
-	# remove RELEASE, CREATED columns
-	exclude_cols=()
-	exclude_cols+=($(getColNum "$tmpfile" "RELEASE"))
-	exclude_cols+=($(getColNum "$tmpfile" "CREATED"))
-	# remove common columns from the first file
-	for c in "${common_cols[@]}";do
-	    getColNums "$tmpfile" "$c" "cat" tmp_ar
-	    exclude_cols+=("${tmp_ar[0]}")
-	done
-	cut --complement -f $(join_by "," "${exclude_cols[@]}") "$tmpfile" | TMPDIR="${tmpdir}" sponge "$tmpfile"
-	ret="$tmpfile"
-    fi
-}
-
 function usage () {
     echo ""
     echo "Updating script for UKBB data"
@@ -128,6 +32,10 @@ function usage () {
 if [[ $# -eq 0 ]];then
     usage
 fi
+
+declare -A tmp_cats
+declare -a tmp_fnames
+declare -a tmp_idcol
 
 infile=""
 ufile=""
@@ -220,6 +128,15 @@ checkDuplicatesColumn "$ufile" $update_ID_column $ucat "$logfile"
 echo ""  |tee -a "$logfile"
 
 #----------------------------------------------------
+
+tmp_fnames+=("$infile")
+tmp_fnames+=("$ufile")
+tmp_cats["$infile"]="$icat"
+tmp_cats["$ufile"]="$ucat"
+tmp_idcol+=("$input_ID_column")
+tmp_idcol+=("$update_ID_column")
+
+report_missing tmp_fnames tmp_cats tmp_idcol "$logfile"
 
 # REPORT
 echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
