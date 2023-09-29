@@ -39,6 +39,8 @@ function report_missing {
     done
     ar+=(" | grep NA")
     join_cmd="${join_cmd}"" "$(join_by " " "${ar[@]}")
+
+    echo "DEBUG: $join_cmd" | tee -a "$logfile"
     
     while read i;do
 	echo "MISSING $i" | tr ' ' '\t' | tee -a "$logfile"
