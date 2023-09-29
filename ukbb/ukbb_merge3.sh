@@ -43,10 +43,10 @@ function report_missing {
     local join_cmd="join -1 1 -2 1 -a 1 -a 2 -e NA -o $fmt <($cmd) <(${ct[${fnames[0]}]} ${fnames[0]} | tail -n +2 | cut -f ${idcols[0]} | sort -k1,1)"
     for i in $(seq 1 "$((n-1))");do
 	fmt="1.1"
-	for j in $(2 $((i+1)));do
+	for j in $(seq 2 $((i+1)));do
 	    fmt=$fmt",1.$j"
 	done
-	fmt=$fmt",$((i+1))".1
+	fmt=$fmt",2.1"
 	join_cmd="$join_cmd"" | join -1 1 -2 1 -a 1 -a 2 -e NA -o $fmt <(${ct[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]} | sort -k1,1)"
     done
 
