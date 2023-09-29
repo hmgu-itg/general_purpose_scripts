@@ -22,7 +22,7 @@ function report_missing {
 
     ar+=("MISSING" "ID")
     for i in "${!fnames[@]}";do
-	echo "$((i+1)) ${fnames[$i]}" | tr ' ' '\t' | tee -a "$logfile"
+	echo "MISSING $((i+1)) ${fnames[$i]}" | tr ' ' '\t' | tee -a "$logfile"
 	ar+=("$((i+1))")
     done
     echo $(join_by " " "${ar[@]}") | tr ' ' '\t' | tee -a "$logfile"
@@ -49,8 +49,7 @@ function report_missing {
 	fmt=$fmt",2.1"
 	join_cmd="$join_cmd"" | join -1 1 -2 1 -a 1 -a 2 -e NA -o $fmt - <(${ct[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]} | sort -k1,1)"
     done
-
-    echo "DEBUG: $join_cmd" | tee -a "$logfile"
+    # echo "DEBUG: $join_cmd" | tee -a "$logfile"
     
     while read i;do
 	echo "MISSING $i" | tr ' ' '\t' | tee -a "$logfile"
