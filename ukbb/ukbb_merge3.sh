@@ -59,7 +59,7 @@ function merge_two_files {
     echo "INFO: samples in both file1 and file2: $x"  | tee -a "$logfile"
     x=$(head -n 1 "$tmpfile" | tr '\t' '\n' | wc -l )
     echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
-    echo "\n---------------------------------------------------------\n" | tee -a "$logfile"
+    echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
     
     awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
     ret="$tmpfile"
@@ -226,7 +226,8 @@ if [[ "$flag" -ne 0 ]];then
     exit 1
 fi
 
-echo "" | tee -a "$logfile"
+echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
+
 date "+%F %H-%M-%S" | tee -a "$logfile"
 echo "Current dir: ${PWD}" | tee -a "$logfile"
 echo "Command line: $scriptname ${args[@]}" | tee -a "$logfile"
@@ -244,9 +245,8 @@ echo "ID FIELD: $id_field" | tee -a "$logfile"
 echo "EXCLUDE LIST: $exclude_list" | tee -a "$logfile"
 echo "OUTPUT FILE: $outfile" | tee -a "$logfile"
 echo "LOG FILE: $logfile" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
 
-echo "\n---------------------------------------------------------\n" | tee -a "$logfile"
+echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
 
 #-------------------------------------- CREATING OUTPUT -------------------------------------------------
 
@@ -266,10 +266,12 @@ else # several input files
     merge_two_files "${input_fnames[0]}" "${input_fnames[1]}" "$sorttemp" "$logfile" tmpf
     tmpfiles+=("$tmpf")
     i=2
-    while [[ ! -z "$tmpf" && $i -lt $n_input ]];do
+    while [[ ( ! -z "$tmpf" ) && ( $i -lt $n_input ) ]];do
 	merge_two_files "$tmpf" "${input_fnames[$i]}" "$sorttemp" "$logfile" tmpf
 	tmpfiles+=("$tmpf")
 	i=$((i+1))
+	echo "DEBUG: i=$i"
+	echo "DEBUG: tmpf=$tmpf"
     done
 
     if [[ ! -z "$tmpf" ]];then
