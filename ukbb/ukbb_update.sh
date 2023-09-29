@@ -14,6 +14,9 @@ function update_file {
     local tmpdir=$3
     local logfile=$4
     local -n ret=$5
+    local c
+    local i
+    local x
 
     declare -A colnames1
     declare -A colnames2
@@ -45,7 +48,7 @@ function update_file {
     echo "INFO: common fields: ${#common_cols[@]}"  | tee -a "$logfile"
     echo ""  | tee -a "$logfile"
     
-    tmpfile=$(mktemp -p "$tmpdir" merge_XXXXXXXX)
+    local tmpfile=$(mktemp -p "$tmpdir" merge_XXXXXXXX)
     if [[ $? -ne 0 ]];then
 	echo "ERROR: could not create tmpfile" | tee -a "$logfile"
 	ret=""
@@ -55,7 +58,7 @@ function update_file {
     echo "INFO: output: $tmpfile"  | tee -a "$logfile"
     echo ""  | tee -a "$logfile"
     
-    fmt="1.${idCol1},2.${idCol2}"
+    local fmt="1.${idCol1},2.${idCol2}"
     for i in $(seq 2 ${ncols1});do
 	fmt=$fmt",1.$i"
     done
@@ -66,7 +69,7 @@ function update_file {
     echo "INFO: joining input files"  | tee -a "$logfile"
     echo ""  | tee -a "$logfile"
     
-    join_cmd="join --header -t$'\t' -1 ${idCol1} -2 ${idCol2} -a 1 -a 2 -e NA -o $fmt <(cat <(${cat1} ${fname1} | head -n 1) <(${cat1} ${fname1} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol1},${idCol1})) <(cat <(${cat2} ${fname2} | head -n 1) <(${cat2} ${fname2} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol2},${idCol2}))"
+    local join_cmd="join --header -t$'\t' -1 ${idCol1} -2 ${idCol2} -a 1 -a 2 -e NA -o $fmt <(cat <(${cat1} ${fname1} | head -n 1) <(${cat1} ${fname1} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol1},${idCol1})) <(cat <(${cat2} ${fname2} | head -n 1) <(${cat2} ${fname2} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol2},${idCol2}))"
     eval "$join_cmd > $tmpfile"
 
     x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2=="NA"){c=c+1;}}END{print c;}')
@@ -77,9 +80,8 @@ function update_file {
     echo "INFO: samples in both file1 and file2: $x"  | tee -a "$logfile"
     x=$(head -n 1 "$tmpfile" | tr '\t' '\n' | wc -l )
     echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
-    echo ""  | tee -a "$logfile"
-
     awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
+    echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
     # tmpfile contains one ID column (1st), all columns from file1 (including CREATED, RELEASE), all columns from file2
     
     if [[ "${#common_cols[@]}" -eq 0 ]];then # no common colnames, remove RELEASE, CREATED columns
@@ -184,14 +186,6 @@ exitIfExists "$outfile" "ERROR: output file $outfile already exists"
 logfile="${out_dir}/${bname}_r${release}.log"
 
 : > "$logfile"
-date "+%F %H-%M-%S" | tee -a "$logfile"
-echo "Current dir: ${PWD}" | tee -a "$logfile"
-echo "Command line: $scriptname ${args[@]}" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
-echo "Output release: $release" | tee -a "$logfile"
-echo "Output file: $outfile" | tee -a "$logfile"
-echo "Exclude list: $exclude_list" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
 
 #---------------------------------- CHECKS --------------------------------------
 
@@ -228,15 +222,29 @@ echo ""  |tee -a "$logfile"
 #----------------------------------------------------
 
 # REPORT
+echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
+
+date "+%F %H-%M-%S" | tee -a "$logfile"
+echo "Current dir: ${PWD}" | tee -a "$logfile"
+echo "Command line: $scriptname ${args[@]}" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
 echo "INFO: input file: $infile" | tee -a "$logfile"
 echo "INFO: rows: $input_nrows" | tee -a "$logfile"
 echo "INFO: columns: $input_ncols" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
-
 echo "INFO: update file: $ufile" | tee -a "$logfile"
 echo "INFO: rows: $update_nrows" | tee -a "$logfile"
 echo "INFO: columns: $update_ncols" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
+echo "OUTPUT RELEASE: $release" | tee -a "$logfile"
+echo "KEEP TEMP FILES: $debug" | tee -a "$logfile"
+echo "TEMP DIR: $sorttemp" | tee -a "$logfile"
+echo "ID FIELD: $id_field" | tee -a "$logfile"
+echo "EXCLUDE LIST: $exclude_list" | tee -a "$logfile"
+echo "OUTPUT FILE: $outfile" | tee -a "$logfile"
+echo "LOG FILE: $logfile" | tee -a "$logfile"
+
+echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
 
 #-------------------------------------- CREATING OUTPUT -------------------------------------------------
 

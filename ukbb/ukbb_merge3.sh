@@ -9,6 +9,42 @@ args=("$@")
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
 
+# report samples missing in at least one of the files
+function report_missing {
+    # name of an array containing file names
+    local -n fnames=$1
+    local -n cats=$2
+    local -n idcols=$3
+    local logfile=$4
+    declare -a ar
+    local i
+
+    ar+=("MISSING" "ID")
+    for i in "${!fnames[@]}";do
+	echo "$((i+1)) ${fnames[$i]}" | tr ' ' '\t' | tee -a "$logfile"
+	ar+=($i)
+    done
+    echo $(join_by "\t" "${ar[@]}")
+
+    ar=("1.1")
+    for i in "${!fnames[@]}";do
+	ar+=("$((i+1))".1)
+    done
+    local fmt=$(join_by "," "${ar[@]}")
+    
+    ar=()
+    local join_cmd="join -1 1 -2 1 -a 1 -a 2 -t$' ' -e NA -o $fmt "
+    for i in "${!fnames[@]}";do
+	ar+=("<(${cats[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]} | sort -k1,1)")
+    done
+    ar+=(" | grep NA")
+    join_cmd="${join_cmd}" $(join_by " " "${ar[@]}")
+    
+    while read i;do
+	echo "MISSING $i" | tr ' ' '\t' | tee -a "$logfile"
+    done < <(eval "$join_cmd" | awk '{for (i=2;i<=NF;i++){if ($i=="NA"){$i="N";}else{$i="Y";}}print $0;}')
+}
+
 # no common fields in input files allowed
 function merge_two_files {
     local fname1=$1
@@ -34,9 +70,9 @@ function merge_two_files {
     fi
 
     echo "INFO: merging"  | tee -a "$logfile"
-    echo "INFO: file1: $fname1"  | tee -a "$logfile"
-    echo "INFO: file2: $fname2"  | tee -a "$logfile"
-    echo "INFO: output: $tmpfile"  | tee -a "$logfile"
+    echo "INFO: file1: $fname1" | tee -a "$logfile"
+    echo "INFO: file2: $fname2" | tee -a "$logfile"
+    echo "INFO: output: $tmpfile" | tee -a "$logfile"
     echo ""  | tee -a "$logfile"
     
     local fmt="1.${idCol1},2.${idCol2}"
@@ -61,9 +97,9 @@ function merge_two_files {
     echo "INFO: samples in both file1 and file2: $x"  | tee -a "$logfile"
     x=$(head -n 1 "$tmpfile" | tr '\t' '\n' | wc -l )
     echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
+    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
     echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
     
-    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
     ret="$tmpfile"
 }
 
@@ -202,6 +238,8 @@ for i in $(seq 0 $((n_input-1)));do
     echo "" | tee -a "$logfile"
 done
 
+report_missing input_fnames cats input_ID_column "$logfile"
+
 #----------------------------------------------------
 
 #
@@ -272,8 +310,8 @@ else # several input files
 	merge_two_files "$tmpf" "${input_fnames[$i]}" "$sorttemp" "$logfile" tmpf
 	tmpfiles+=("$tmpf")
 	i=$((i+1))
-	echo "DEBUG: i=$i"
-	echo "DEBUG: tmpf=$tmpf"
+	# echo "DEBUG: i=$i"
+	# echo "DEBUG: tmpf=$tmpf"
     done
     echo "INFO: done merging" | tee -a "$logfile"
 
