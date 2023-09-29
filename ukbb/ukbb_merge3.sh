@@ -59,7 +59,7 @@ function merge_two_files {
     echo "INFO: samples in both file1 and file2: $x"  | tee -a "$logfile"
     x=$(head -n 1 "$tmpfile" | tr '\t' '\n' | wc -l )
     echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
-    echo ""  | tee -a "$logfile"
+    echo "\n---------------------------------------------------------\n" | tee -a "$logfile"
     
     awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
     ret="$tmpfile"
@@ -165,14 +165,6 @@ exitIfExists "$outfile" "ERROR: output file $outfile already exists"
 logfile="${out_dir}/${bname}_r${release}.log"
 
 : > "$logfile"
-date "+%F %H-%M-%S" | tee -a "$logfile"
-echo "Current dir: ${PWD}" | tee -a "$logfile"
-echo "Command line: $scriptname ${args[@]}" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
-echo "Output release: $release" | tee -a "$logfile"
-echo "Output file: $outfile" | tee -a "$logfile"
-echo "Exclude list: $exclude_list" | tee -a "$logfile"
-echo "" | tee -a "$logfile"
 
 #----------------------------------------------------
 
@@ -233,6 +225,28 @@ fi
 if [[ "$flag" -ne 0 ]];then
     exit 1
 fi
+
+echo "" | tee -a "$logfile"
+date "+%F %H-%M-%S" | tee -a "$logfile"
+echo "Current dir: ${PWD}" | tee -a "$logfile"
+echo "Command line: $scriptname ${args[@]}" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
+echo "INPUT FILES: $n_input" | tee -a "$logfile"
+for i in $(seq 0 $((n_input-1)));do
+    echo "${input_fnames[$i]}" | tee -a "$logfile"
+done
+echo "" | tee -a "$logfile"
+echo "RELEASE: $release" | tee -a "$logfile"
+echo "ADD RELEASE: $add_release" | tee -a "$logfile"
+echo "DEBUG: $debug" | tee -a "$logfile"
+echo "TEMP DIR: $sorttemp" | tee -a "$logfile"
+echo "ID FIELD: $id_field" | tee -a "$logfile"
+echo "EXCLUDE LIST: $exclude_list" | tee -a "$logfile"
+echo "OUTPUT FILE: $outfile" | tee -a "$logfile"
+echo "LOG FILE: $logfile" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
+
+echo "\n---------------------------------------------------------\n" | tee -a "$logfile"
 
 #-------------------------------------- CREATING OUTPUT -------------------------------------------------
 
