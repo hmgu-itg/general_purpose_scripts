@@ -13,7 +13,7 @@ source "${scriptdir}/functions.sh"
 function report_missing {
     # name of an array containing file names
     local -n fnames=$1
-    local -n cats=$2
+    local -n ct=$2
     local -n idcols=$3
     local logfile=$4
     declare -a ar
@@ -35,7 +35,7 @@ function report_missing {
     ar=()
     local join_cmd="join -1 1 -2 1 -a 1 -a 2 -t$' ' -e NA -o $fmt "
     for i in "${!fnames[@]}";do
-	ar+=("<(${cats[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]} | sort -k1,1)")
+	ar+=("<(${ct[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]} | sort -k1,1)")
     done
     ar+=(" | grep NA")
     join_cmd="${join_cmd}" $(join_by " " "${ar[@]}")
