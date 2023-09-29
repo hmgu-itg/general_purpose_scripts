@@ -239,7 +239,7 @@ done
 echo "" | tee -a "$logfile"
 echo "RELEASE: $release" | tee -a "$logfile"
 echo "ADD RELEASE: $add_release" | tee -a "$logfile"
-echo "DEBUG: $debug" | tee -a "$logfile"
+echo "KEEP TEMP FILES: $debug" | tee -a "$logfile"
 echo "TEMP DIR: $sorttemp" | tee -a "$logfile"
 echo "ID FIELD: $id_field" | tee -a "$logfile"
 echo "EXCLUDE LIST: $exclude_list" | tee -a "$logfile"
