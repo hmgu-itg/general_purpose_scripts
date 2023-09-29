@@ -54,7 +54,7 @@ function report_missing {
     
     while read i;do
 	echo "MISSING $i" | tr ' ' '\t' | tee -a "$logfile"
-    done < <(eval "$join_cmd" | awk '{for (i=2;i<=NF;i++){if ($i=="NA"){$i="N";}else{$i="Y";}}print $0;}')
+    done < <(eval "$join_cmd" | grep "NA" | awk '{for (i=2;i<=NF;i++){if ($i=="NA"){$i="N";}else{$i="Y";}}print $0;}')
 }
 
 # no common fields in input files allowed
