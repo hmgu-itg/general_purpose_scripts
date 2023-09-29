@@ -47,7 +47,7 @@ function report_missing {
 	    fmt=$fmt",1.$j"
 	done
 	fmt=$fmt",2.1"
-	join_cmd="$join_cmd"" | join -1 1 -2 1 -a 1 -a 2 -e NA -o $fmt <(${ct[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]} | sort -k1,1)"
+	join_cmd="$join_cmd"" | join -1 1 -2 1 -a 1 -a 2 -e NA -o $fmt - <(${ct[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]} | sort -k1,1)"
     done
 
     echo "DEBUG: $join_cmd" | tee -a "$logfile"
