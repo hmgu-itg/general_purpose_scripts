@@ -20,6 +20,7 @@ function usage () {
     echo "                      -x <optional: list of individual IDs to exclude>"
     echo "                      -d <optional: debug mode: do not remove temporary files>"
     echo "                      -t <optional: temp dir; default: /tmp>"
+    echo "                      -s <optional: save intersecting columns; default: false>"
     echo ""
     echo "This script updates the input file, which must contain RELEASE/CREATED columns"
     echo "Output release equals input release+1"
@@ -46,7 +47,9 @@ exclude_list=""
 debug="NO"
 bname="phenotypes"
 sorttemp="/tmp"
-while getopts "hi:u:f:o:x:db:t:" opt; do
+savex="NO"
+xname=""
+while getopts "hi:u:f:o:x:db:t:s" opt; do
     case $opt in
         i)infile=($OPTARG);;
         u)ufile=($OPTARG);;
@@ -56,6 +59,7 @@ while getopts "hi:u:f:o:x:db:t:" opt; do
         d)debug="YES";;
         b)bname=($OPTARG);;
         t)sorttemp=($OPTARG);;
+        s)savex="YES";;
         h)usage;;
         *)usage;;
     esac
@@ -92,6 +96,10 @@ fi
 outfile="${out_dir}/${bname}_r${release}.txt.gz"
 exitIfExists "$outfile" "ERROR: output file $outfile already exists"
 logfile="${out_dir}/${bname}_r${release}.log"
+
+if [[ "$savex" == "YES" ]];then
+    xname="${out_dir}/${bname}_r${release}.intersection.txt.gz"
+fi
 
 : > "$logfile"
 
@@ -155,6 +163,7 @@ echo "INFO: columns: $update_ncols" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
 echo "OUTPUT RELEASE: $release" | tee -a "$logfile"
 echo "KEEP TEMP FILES: $debug" | tee -a "$logfile"
+echo "SAVE COMMON COLUMNS: $savex" | tee -a "$logfile"
 echo "TEMP DIR: $sorttemp" | tee -a "$logfile"
 echo "ID FIELD: $id_field" | tee -a "$logfile"
 echo "EXCLUDE LIST: $exclude_list" | tee -a "$logfile"
@@ -167,7 +176,7 @@ echo -e "\n---------------------------------------------------------\n" | tee -a
 
 # OUTER JOIN INPUT FILES ON IDs, THEN EXCLUDE IDS FROM -x LIST 
 
-update_file "$infile" "$ufile" "$sorttemp" "$logfile" tmpf
+update_file "$infile" "$ufile" "$sorttemp" "$logfile" tmpf "$xname"
 if [[ ! -z "$tmpf" ]];then
     # header line
     paste <(head -n 1 "$tmpf") <(echo RELEASE CREATED | tr ' ' '\t') | gzip - -c > "${outfile}"

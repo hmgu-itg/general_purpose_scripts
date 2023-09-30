@@ -533,12 +533,6 @@ function report_missing {
     done
     echo $(join_by " " "${ar[@]}") | tr ' ' '\t' | tee -a "$logfile"
 
-    ar=("1.1")
-    for i in "${!fnames[@]}";do
-	ar+=("$((i+1))".1)
-    done
-    local fmt=$(join_by "," "${ar[@]}")
-
     ar=()
     for i in "${!fnames[@]}";do
 	ar+=("<(${ct[${fnames[$i]}]} ${fnames[$i]} | tail -n +2 | cut -f ${idcols[$i]})")
@@ -626,6 +620,7 @@ function update_file {
     local tmpdir=$3
     local logfile=$4
     local -n ret=$5
+    local xn=$6
     local c
     local i
     local x
@@ -635,6 +630,7 @@ function update_file {
     declare -a common_cols
     declare -a tmp_ar
     declare -a exclude_cols
+    declare -a common_colnum
 
     local cat1=$(getCatCmd "$fname1")
     local cat2=$(getCatCmd "$fname2")
@@ -698,8 +694,21 @@ function update_file {
     
     if [[ "${#common_cols[@]}" -eq 0 ]];then # no common colnames, remove RELEASE, CREATED columns
 	cut --complement -f $(getColNum "$tmpfile" "RELEASE"),$(getColNum "$tmpfile" "CREATED") "$tmpfile" | TMPDIR="${tmpdir}" sponge "$tmpfile"
+	if [[ ! -z "$xn" ]];then
+	    echo "INFO: no common columns, nothing to save"  | tee -a "$logfile"
+	fi
 	ret="$tmpfile"
     else # there are common colnames
+	if [[ ! -z "$xn" ]];then
+	    echo "INFO: saving common columns to $xn"  | tee -a "$logfile"
+	    common_colnum=(1)
+	    for c in "${common_cols[@]}";do
+		getColNums "$tmpfile" "$c" "cat" tmp_ar
+		common_colnum+=("${tmp_ar[0]}")
+		common_colnum+=("${tmp_ar[1]}")
+	    done
+	    cut -f $(join_by "," "${common_colnum[@]}") "$tmpfile" | "${scriptdir}/sort_columns.pl" | gzip - -c > "$xn"
+	fi
 	# report some stats comparing shared columns in both files
 	"${scriptdir}/get_stats.pl" "$tmpfile" >> "$logfile"
 	# remove RELEASE, CREATED columns
@@ -712,6 +721,7 @@ function update_file {
 	    exclude_cols+=("${tmp_ar[0]}")
 	done
 	cut --complement -f $(join_by "," "${exclude_cols[@]}") "$tmpfile" | TMPDIR="${tmpdir}" sponge "$tmpfile"
+
 	ret="$tmpfile"
     fi
 }
