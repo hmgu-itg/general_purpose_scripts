@@ -6,18 +6,22 @@ $\="\n";
 my $nr=0;
 my %name2i;
 my @S;
+my @T;
 while(<STDIN>){
     chomp;
     my @a=split(/\t/,$_,-1);
     if ($nr == 0){
 	push @S,$a[0];
+	push @T,$a[0];
 	for (my $i=1;$i<scalar(@a);$i++){
 	    push @{$name2i{$a[$i]}},$i;
 	}
 	foreach my $c (sort keys %name2i){
 	    push @S,$c;
+	    push @T,$c;
+	    push @T,$c;
 	}
-	print STDOUT join("\t",@S);
+	print STDOUT join("\t",@T);
     }else{
 	my @L=();
 	foreach my $c (@S){
