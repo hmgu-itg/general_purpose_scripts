@@ -16,14 +16,18 @@ while(<STDIN>){
 	}
 	foreach my $c (sort keys %name2i){
 	    push @S,$c;
-	    push @S,$c;
 	}
 	print STDOUT join("\t",@S);
     }else{
 	my @L=();
 	foreach my $c (@S){
-	    push @L,$a[${$name2i{$c}}[0]];
-	    push @L,$a[${$name2i{$c}}[1]];
+	    if ($c eq "f.eid"){
+		push @L,$a[0];
+	    }
+	    else{
+		push @L,$a[${$name2i{$c}}[0]];
+		push @L,$a[${$name2i{$c}}[1]];
+	    }
 	}
 	print STDOUT join("\t",@L);
     }
