@@ -708,7 +708,7 @@ function update_file {
 	done	
 	echo "INFO: samples with x -> NA" | tee -a "$logfile"
 	while read line;do # for fields with x -> NA, report "Y", otherwise "N"
-	    echo "EXCLUDED" "$line" | tr ' ' '\t' |  tee -a "$logfile"
+	    echo "EXCLUDED" "$line" | tr ' ' '\t' >> "$logfile"
 	done < <(cut -f $(join_by "," "${common_colnum[@]}") "$tmpfile" | "${scriptdir}/sort_columns.pl" | perl -lne '@a=split(/\t/,$_,-1);$f=0;@b=($a[0]);if ($_=~/^f/){$f=1;for ($i=1;$i<scalar(@a);$i+=2){push @b,$a[$i];}}else{for ($i=1;$i<scalar(@a);$i+=2){if ($a[$i] ne "NA" && $a[$i+1] eq "NA"){$f=1;push @b,"Y";}else{push @b,"N";};}}print join(" ",@b) if ($f==1);')
 	if [[ ! -z "$xn" ]];then
 	    echo "INFO: saving common columns to $xn" | tee -a "$logfile"
