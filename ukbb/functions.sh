@@ -688,7 +688,7 @@ function update_file {
     echo "INFO: samples in both file1 and file2: $x"  | tee -a "$logfile"
     x=$(head -n 1 "$tmpfile" | tr '\t' '\n' | wc -l )
     echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
-    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){print "EXCLUDED",$1}}' "$tmpfile" | tee -a "$logfile" # samples NOT in the update
+    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){print "FILE1 ONLY",$1}}' "$tmpfile" | tee -a "$logfile" # samples NOT in the update
     awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
     echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
     # tmpfile contains one ID column (1st), all columns from file1 (including CREATED, RELEASE), all columns from file2
