@@ -76,7 +76,7 @@ for i in $(seq 0 $((n_input-1)));do
 	else
 	    header_arr[$cname]="$b"
 	fi
-    done < <(${cats["${input_fnames[$i]}"]} "${input_fnames[$i]}" | head -n 1 | cut -f --complement "${input_ID_column[$i]}"| tr '\t' '\n')
+    done < <(${cats["${input_fnames[$i]}"]} "${input_fnames[$i]}" | head -n 1 | cut --complement -f "${input_ID_column[$i]}"| tr '\t' '\n')
 done
 
 for cname in "${!header_arr[@]}";do
