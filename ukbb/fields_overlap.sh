@@ -68,7 +68,7 @@ done
 
 declare -A header_arr
 for i in $(seq 0 $((n_input-1)));do
-    echo "INFO: checking file header $i"
+    >&2 echo "INFO: checking file header $i"
     b="${bnames[$i]}"
     while read cname;do
 	if [[ -v "header_arr[$cname]" ]];then
@@ -80,7 +80,7 @@ for i in $(seq 0 $((n_input-1)));do
 done
 
 for cname in "${!header_arr[@]}";do
-    echo $cname ${header_arr[$cname]}
+    echo $cname ${header_arr[$cname]} | tr ' ' '\t'
 done
     
 exit 0
