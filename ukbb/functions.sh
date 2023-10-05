@@ -688,7 +688,6 @@ function update_file {
     echo "INFO: samples in both file1 and file2: $x"  | tee -a "$logfile"
     x=$(head -n 1 "$tmpfile" | tr '\t' '\n' | wc -l )
     echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
-    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){print "FILE1 ONLY",$1}}' "$tmpfile" >> "$logfile" # samples NOT in the update
     awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
     echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
     # tmpfile contains one ID column (1st), all columns from file1 (including CREATED, RELEASE), all columns from file2
@@ -706,9 +705,9 @@ function update_file {
 	    common_colnum+=("${tmp_ar[0]}")
 	    common_colnum+=("${tmp_ar[1]}")
 	done	
-	echo "INFO: samples with x -> NA" | tee -a "$logfile"
+	echo "INFO: samples with x -> NA" >> "$logfile"
 	while read line;do # for fields with x -> NA, report "Y", otherwise "N"
-	    echo "EXCLUDED" "$line" | tr ' ' '\t' >> "$logfile"
+	    echo "x2NA" "$line" | tr ' ' '\t' >> "$logfile"
 	done < <(cut -f $(join_by "," "${common_colnum[@]}") "$tmpfile" | "${scriptdir}/sort_columns.pl" | perl -lne '@a=split(/\t/,$_,-1);$f=0;@b=($a[0]);if ($_=~/^f/){$f=1;for ($i=1;$i<scalar(@a);$i+=2){push @b,$a[$i];}}else{for ($i=1;$i<scalar(@a);$i+=2){if ($a[$i] ne "NA" && $a[$i+1] eq "NA"){$f=1;push @b,"Y";}else{push @b,"N";};}}print join(" ",@b) if ($f==1);')
 	if [[ ! -z "$xn" ]];then
 	    echo "INFO: saving common columns to $xn" | tee -a "$logfile"
