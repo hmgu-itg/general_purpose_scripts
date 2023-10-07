@@ -15,6 +15,8 @@ from itgukbb import utils
 
 # string can be either ID, or filename, or name of a pipe
 def readIDList(string):
+    if string is None:
+        return None
     if os.path.isfile(string) or stat.S_ISFIFO(os.stat(string).st_mode):
         df=pd.read_csv(string,header=None,usecols=[0])
         return list(set(df[0].astype(str).tolist())) # keep unique IDs
@@ -27,8 +29,8 @@ def main():
     parser=argparse.ArgumentParser(description="Given patient ID and ICD10 code, get the date of the first diagnosis.")
     parser.add_argument('--project','-p',required=True,action='store',help="Project name")
     parser.add_argument('--release','-r',required=True,action='store',help="Project release")
-    parser.add_argument('-icd10','--icd10',required=True,action='store',help="ICD10 code")
-    parser.add_argument('-id','--id',required=True,action='store',help="Patient ID or a file with patient IDs")
+    parser.add_argument('--icd10','-icd10',required=True,action='store',help="ICD10 code")
+    parser.add_argument('--id','-id',required=False,action='store',help="Patient ID or a file with patient IDs")
     parser.add_argument('--config','-c',required=False,action='store',help="Config file")
     parser.add_argument("--verbose", "-v", help="Verbosity level; default: info",required=False,choices=("debug","info","warning","error"),default="info")
 
@@ -65,12 +67,11 @@ def main():
     logging.getLogger("itgukbb.utils").addHandler(ch)
     logging.getLogger("itgukbb.utils").setLevel(verbosity)
 
-    if len(id_list)==0:
-        LOGGER.error("No patient IDs provided")
-        sys.exit(1)
-    else:
-        LOGGER.info(str(len(id_list))+" patient ID(s) provided")
-        # LOGGER.debug(",".join(id_list))
+    # if len(id_list)==0:
+    #     LOGGER.error("No patient IDs provided")
+    #     sys.exit(1)
+    # else:
+    #     LOGGER.info(str(len(id_list))+" patient ID(s) provided")
 
 #----------------------------------------------------------------------------------------------------------------------------------
 
@@ -100,7 +101,10 @@ def main():
         df_main=pd.read_table(tar.extractfile("hesin.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","epistart"])
         df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","diag_icd10"])
         JT=pd.merge(df_main,df_diag,on=["eid","ins_index"],how="inner")
-        JT=JT[(JT["diag_icd10"]==icd10) & (JT["eid"].isin(id_list))]
+        if id_list is None or len(id_list)==0:
+            JT=JT[JT["diag_icd10"]==icd10]
+        else:
+            JT=JT[(JT["diag_icd10"]==icd10) & (JT["eid"].isin(id_list))]
         # print(JT.to_csv(sep="\t",index=False),end='',file=sys.stderr)
         if (len(JT)==0):        
             LOGGER.info("Could not find any records for ICD10=%s" %(icd10))
@@ -108,18 +112,16 @@ def main():
             found_ids=list(set(JT["eid"].tolist()))
             found_ids_with_NA=list(set(JT[JT["epistart"]=="NA"]["eid"].tolist()))
             LOGGER.debug("IDs with epistart==NA: %s" %(",".join(found_ids_with_NA)))
-            not_found_ids=list(set(id_list)-set(found_ids))
             JT["epistart_fmt"]=pd.to_datetime(JT["epistart"],dayfirst=True,errors="coerce")
-            # print(JT.to_csv(sep="\t",index=False),end='',file=sys.stderr)
-            # JT.sort_values(by="epistart_fmt",ascending=True,inplace=True)
-            # print(JT.to_csv(sep="\t",index=False),end='',file=sys.stderr)
             # only interested in the earliest date
             idx=JT.groupby(["eid"])["epistart_fmt"].transform(min)==JT["epistart_fmt"]
-            # print(JT[idx],file=sys.stderr)
             # sometimes for the same ID and ICD10 there are multiple entries with the same date, so we need drop_duplicates
             print(JT[idx][["eid","epistart","diag_icd10"]].drop_duplicates().rename(columns={"eid":"ID","epistart":"Date","diag_icd10":"ICD10"}).to_csv(sep="\t",index=False),end='')
-            # output NAs for IDs not found in data
-            print(pd.DataFrame({"A":not_found_ids,"B":"NA","C":icd10}).to_csv(header=False,index=False,sep="\t"),end='')
+            # output NAs for IDs in input list not found in data
+            if not(id_list is None) and len(id_list)!=0:
+                not_found_ids=list(set(id_list)-set(found_ids))
+                if len(not_found_ids)!=0:
+                    print(pd.DataFrame({"A":not_found_ids,"B":"NA","C":icd10}).to_csv(header=False,index=False,sep="\t"),end='')
             # output NAs for IDs in data having "NA" in the "epistart" column
             print(pd.DataFrame({"A":found_ids_with_NA,"B":"NA","C":icd10}).to_csv(header=False,index=False,sep="\t"),end='')
         
