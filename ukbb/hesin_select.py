@@ -143,11 +143,11 @@ def main():
     expression_flag3=False
     expression_flag4=False
     if opcs3codes:
-        expression_flag3=expression_flag3 or ft.reduce(lambda a,b:a or b,list(map(lambda x:not re.search("\s",x) is None,opcs3codes)))
+        expression_flag3=expression_flag3 or ft.reduce(lambda a,b:a or b,list(map(lambda x:not (re.search("\s",x) is None),opcs3codes)))
     if opcs4codes:
-        expression_flag4=expression_flag4 or ft.reduce(lambda a,b:a or b,list(map(lambda x:not re.search("\s",x) is None,opcs4codes)))
-    Licd9=set()
-    Licd10=set()
+        expression_flag4=expression_flag4 or ft.reduce(lambda a,b:a or b,list(map(lambda x:not (re.search("\s",x) is None),opcs4codes)))
+    Licd9=set() # set of sample IDs having an ICD9 code from the input ICD9 list
+    Licd10=set() # set of sample IDs having an ICD10 code from the input ICD10 list
     Loper3=set()
     Loper4=set()
     df_oper2=None
