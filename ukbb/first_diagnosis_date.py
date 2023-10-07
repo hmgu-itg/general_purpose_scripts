@@ -14,7 +14,7 @@ from itgukbb import utils
 # given patient ID(s) and ICD10 code, get the date of the first diagnosis
 
 # epistart -> admidate -> epiend
-def calc_diagnosis_data(row):
+def calc_diagnosis_date(row):
     if row["epistart"]=="NA":
         if row["admidate"]=="NA":
             if row["epiend"]=="NA":
