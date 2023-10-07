@@ -93,6 +93,9 @@ def main():
         sys.exit(1)
 
     LOGGER.info("input file: %s" % infile)
+    if id_list is None:
+        LOGGER.info("using all samples in input file")
+
     LOGGER.info("")
 
 #-----------------------------------------------------------------------------------------------------------------------------
