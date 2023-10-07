@@ -13,6 +13,19 @@ from itgukbb import utils
 
 # given patient ID(s) and ICD10 code, get the date of the first diagnosis
 
+# epistart -> admdate -> epiend
+def calc_diagnosis_data(row):
+    if row["epistart"]=="NA":
+        if row["admdate"]=="NA":
+            if row["epiend"]=="NA":
+                return "NA"
+            else:
+                return row["epiend"]
+        else:
+            return row["admdate"]
+    else:
+        return row["epistart"]
+
 # string can be either ID, or filename, or name of a pipe
 def readIDList(string):
     if string is None:
@@ -93,15 +106,14 @@ def main():
         sys.exit(1)
 
     LOGGER.info("input file: %s" % infile)
-    if id_list is None:
+    if id_list is None or len(id_list)==0:
         LOGGER.info("using all samples in input file")
-
     LOGGER.info("")
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
     with tarfile.open(infile,"r:*") as tar:
-        df_main=pd.read_table(tar.extractfile("hesin.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","epistart"])
+        df_main=pd.read_table(tar.extractfile("hesin.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","epistart","epiend","admdate"])
         df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","diag_icd10"])
         JT=pd.merge(df_main,df_diag,on=["eid","ins_index"],how="inner")
         if id_list is None or len(id_list)==0:
@@ -112,16 +124,17 @@ def main():
         if (len(JT)==0):        
             LOGGER.info("Could not find any records for ICD10=%s" %(icd10))
         else:
-            found_ids=list(set(JT["eid"].tolist()))
-            found_ids_with_NA=list(set(JT[JT["epistart"]=="NA"]["eid"].tolist()))
-            LOGGER.debug("IDs with epistart==NA: %s" %(",".join(found_ids_with_NA)))
-            JT["epistart_fmt"]=pd.to_datetime(JT["epistart"],dayfirst=True,errors="coerce")
+            JT["diagnosis_date"]=JT.apply(calc_diagnosis_date,axis=1)
+            found_ids_with_NA=list(set(JT[JT["diagnosis_date"]=="NA"]["eid"].tolist()))
+            LOGGER.debug("IDs with unknown diagnosis date: %s" %(",".join(found_ids_with_NA)))
+            JT["diagnosis_date_fmt"]=pd.to_datetime(JT["diagnosis_date"],dayfirst=True,errors="coerce")
             # only interested in the earliest date
-            idx=JT.groupby(["eid"])["epistart_fmt"].transform(min)==JT["epistart_fmt"]
+            idx=JT.groupby(["eid"])["diagnosis_date_fmt"].transform(min)==JT["diagnosis_date_fmt"]
             # sometimes for the same ID and ICD10 there are multiple entries with the same date, so we need drop_duplicates
-            print(JT[idx][["eid","epistart","diag_icd10"]].drop_duplicates().rename(columns={"eid":"ID","epistart":"Date","diag_icd10":"ICD10"}).to_csv(sep="\t",index=False),end='')
+            print(JT[idx][["eid","diagnosis_date","diag_icd10"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":"Date","diag_icd10":"ICD10"}).to_csv(sep="\t",index=False),end='')
             # output NAs for IDs in input list not found in data
             if not(id_list is None) and len(id_list)!=0:
+                found_ids=list(set(JT["eid"].tolist()))
                 not_found_ids=list(set(id_list)-set(found_ids))
                 if len(not_found_ids)!=0:
                     print(pd.DataFrame({"A":not_found_ids,"B":"NA","C":icd10}).to_csv(header=False,index=False,sep="\t"),end='')
