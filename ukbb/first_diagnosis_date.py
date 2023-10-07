@@ -13,16 +13,16 @@ from itgukbb import utils
 
 # given patient ID(s) and ICD10 code, get the date of the first diagnosis
 
-# epistart -> admdate -> epiend
+# epistart -> admidate -> epiend
 def calc_diagnosis_data(row):
     if row["epistart"]=="NA":
-        if row["admdate"]=="NA":
+        if row["admidate"]=="NA":
             if row["epiend"]=="NA":
                 return "NA"
             else:
                 return row["epiend"]
         else:
-            return row["admdate"]
+            return row["admidate"]
     else:
         return row["epistart"]
 
@@ -113,7 +113,7 @@ def main():
 #-----------------------------------------------------------------------------------------------------------------------------
 
     with tarfile.open(infile,"r:*") as tar:
-        df_main=pd.read_table(tar.extractfile("hesin.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","epistart","epiend","admdate"])
+        df_main=pd.read_table(tar.extractfile("hesin.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","epistart","epiend","admidate"])
         df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","diag_icd10"])
         JT=pd.merge(df_main,df_diag,on=["eid","ins_index"],how="inner")
         if id_list is None or len(id_list)==0:
