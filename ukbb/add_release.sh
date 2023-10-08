@@ -108,12 +108,13 @@ echo -e "\n---------------------------------------------------------\n" | tee -a
 
 #----------------------------------------------------
 
-paste <("${cat}" "${infile}" | head -n 1) <(echo RELEASE CREATED | tr ' ' '\t') | gzip - -c > "${outfile}"
 if [[ -z "$prev_release" ]];then
+    paste <("${cat}" "${infile}" | head -n 1) <(echo RELEASE CREATED | tr ' ' '\t') | gzip - -c > "${outfile}"
     "${cat}" "${infile}" | tail -n +2 | perl -snle 'BEGIN{$,="\t";%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_,$r,$d;}}' -- -f="${exclude_list}" -c="${input_ID_column}" -r="${release}" -d="${datestr}" | gzip - -c >> "${outfile}"
 else
     rcol=$(getColNum "$infile" "RELEASE" "$cat")
     ccol=$(getColNum "$infile" "CREATED" "$cat")
+    "${cat}" "${infile}" | head -n 1 | gzip - -c > "${outfile}"
     "${cat}" "${infile}" | tail -n +2 | perl -snle 'BEGIN{$,="\t";%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){$a[$y-1]=$r;$a[$z-1]=$d;print join("\t",@a);}}' -- -y="$rcol" -z="$ccol" -f="${exclude_list}" -c="${input_ID_column}" -r="${release}" -d="${datestr}" | gzip - -c >> "${outfile}"
 fi
     
