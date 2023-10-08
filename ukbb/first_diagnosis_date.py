@@ -125,21 +125,12 @@ def main():
             LOGGER.info("Could not find any records for ICD10=%s" %(icd10))
         else:
             JT["diagnosis_date"]=JT.apply(calc_diagnosis_date,axis=1)
-            found_ids_with_NA=list(set(JT[JT["diagnosis_date"]=="NA"]["eid"].tolist()))
-            LOGGER.debug("IDs with unknown diagnosis date: %s" %(",".join(found_ids_with_NA)))
             JT["diagnosis_date_fmt"]=pd.to_datetime(JT["diagnosis_date"],dayfirst=True,errors="coerce")
-            # only interested in the earliest date
+            # only interested in the earliest date, NaT values are ignored
+            # if for a sample there are only NaT values then this sample will not be in idx, so not reported
             idx=JT.groupby(["eid"])["diagnosis_date_fmt"].transform(min)==JT["diagnosis_date_fmt"]
             # sometimes for the same ID and ICD10 there are multiple entries with the same date, so we need drop_duplicates
             print(JT[idx][["eid","diagnosis_date","diag_icd10"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":"Date","diag_icd10":"ICD10"}).to_csv(sep="\t",index=False),end='')
-            # output NAs for IDs in input list not found in data
-            if not(id_list is None) and len(id_list)!=0:
-                found_ids=list(set(JT["eid"].tolist()))
-                not_found_ids=list(set(id_list)-set(found_ids))
-                if len(not_found_ids)!=0:
-                    print(pd.DataFrame({"A":not_found_ids,"B":"NA","C":icd10}).to_csv(header=False,index=False,sep="\t"),end='')
-            # output NAs for IDs in data having "NA" in the "epistart" column
-            print(pd.DataFrame({"A":found_ids_with_NA,"B":"NA","C":icd10}).to_csv(header=False,index=False,sep="\t"),end='')
         
 if __name__=="__main__":
     main()
