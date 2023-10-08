@@ -130,7 +130,7 @@ def main():
             # if for a sample there are only NaT values then this sample will not be in idx, so not reported
             idx=JT.groupby(["eid"])["diagnosis_date_fmt"].transform(min)==JT["diagnosis_date_fmt"]
             # sometimes for the same ID and ICD10 there are multiple entries with the same date, so we need drop_duplicates
-            print(JT[idx][["eid","diagnosis_date","diag_icd10"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":"Date","diag_icd10":icd10}).to_csv(sep="\t",index=False),end='')
+            print(JT[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd10}).to_csv(sep="\t",index=False),end='')
         
 if __name__=="__main__":
     main()
