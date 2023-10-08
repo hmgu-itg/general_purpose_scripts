@@ -105,11 +105,11 @@ def main():
 
     with tarfile.open(infile,"r:*") as tar:
         df=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid",icd_col])
-        if not(id_list is None) and len(id_list)!=0:
-            df=df[df["eid"].isin(id_list)]
-        df=df.groupby(["eid"],as_index=False).agg({icd_col:lambda x:list(x)})
-        df[icd]=df.apply(lambda x: 1 if icd in x[icd_col] else 0,axis=1)
-        print(df[["eid",icd]].rename(columns={"eid":"ID"}).to_csv(sep="\t",index=False),end='') 
+    if not(id_list is None) and len(id_list)!=0:
+        df=df[df["eid"].isin(id_list)]
+    df=df.groupby(["eid"],as_index=False).agg({icd_col:lambda x:list(x)})
+    df[icd]=df.apply(lambda x: 1 if icd in x[icd_col] else 0,axis=1)
+    print(df[["eid",icd]].rename(columns={"eid":"ID"}).to_csv(sep="\t",index=False),end='') 
         
 if __name__=="__main__":
     main()
