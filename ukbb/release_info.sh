@@ -3,7 +3,7 @@
 function usage () {
     echo "List available UKBB projects and releases"
     echo ""
-    echo "Usage: ukbb_release_info.sh -c <config.txt: optional, default: config.txt in this script directory>"
+    echo "Usage: ukbb_release_info.sh -c <config.txt: optional, default: config.txt in this script's directory>"
     echo ""
     exit 0
 }
