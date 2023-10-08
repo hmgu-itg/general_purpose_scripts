@@ -13,7 +13,12 @@ function usage () {
     echo "Add/update CREATED and RELEASE information"
     echo "Optionally exclude rows from input based on provided ID list"
     echo ""
-    echo "Usage: add_release.sh -i <input.filename> -o <output directory> { -f <optional: ID field name; default: \"f.eid\"> -r <optional: output release> -b <optional: basename of the output file; default: \"phenotypes\"> -x <optional: list of individual IDs to exclude> }"
+    echo "Usage: add_release.sh -i <input.filename>"
+    echo "                      -o <output directory>"
+    echo "                    { -f <optional: ID field name; default: \"f.eid\"> }"
+    echo "                    { -r <optional: output release> }"
+    echo "                    { -b <optional: basename of the output file; default: \"phenotypes\"> }"
+    echo "                    { -x <optional: list of individual IDs to exclude> }"
     echo ""
     exit 0
 }
