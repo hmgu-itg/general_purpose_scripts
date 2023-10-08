@@ -39,10 +39,14 @@ def readIDList(string):
 def main():
     verbosity=logging.INFO
 
-    parser=argparse.ArgumentParser(description="Given patient ID and ICD10 code, get the date of the first diagnosis.")
-    parser.add_argument('--project','-p',required=True,action='store',help="Project name")
-    parser.add_argument('--release','-r',required=True,action='store',help="Project release")
-    parser.add_argument('--icd10','-icd10',required=True,action='store',help="ICD10 code")
+    parser=argparse.ArgumentParser(description="Given patient IDs and ICD code, get the date of the first diagnosis",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    rgroup=parser.add_argument_group("required arguments")
+    rgroup.add_argument('--project','-p',required=True,action='store',help="Project name")
+    rgroup.add_argument('--release','-r',required=True,action='store',help="Project release")
+    group=rgroup.add_mutually_exclusive_group(required=True)
+    group.add_argument('--icd10','-icd10',required=False,action='store',help="ICD10 code")
+    group.add_argument('--icd9','-icd9',required=False,action='store',help="ICD9 code")
+    # opgroup=parser.add_argument_group("optional arguments")
     parser.add_argument('--id','-id',required=False,action='store',help="Patient ID or a file with patient IDs")
     parser.add_argument('--config','-c',required=False,action='store',help="Config file")
     parser.add_argument("--verbose", "-v", help="Verbosity level; default: info",required=False,choices=("debug","info","warning","error"),default="info")
@@ -111,6 +115,8 @@ def main():
     LOGGER.info("")
 
 #-----------------------------------------------------------------------------------------------------------------------------
+
+# set(df2["ID"])-set(df2[idx2]["ID"])
 
     with tarfile.open(infile,"r:*") as tar:
         df_main=pd.read_table(tar.extractfile("hesin.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","epistart","epiend","admidate"])
