@@ -10,10 +10,10 @@ source "${scriptdir}/functions.sh"
 
 function usage () {
     echo ""
-    echo "Add CREATED and RELEASE columns to input file"
+    echo "Add/update CREATED and RELEASE information"
     echo "Optionally exclude rows from input based on provided ID list"
     echo ""
-    echo "Usage: add_release.sh -i <input.filename> -r <release> -o <output.filename> { -x <list of individual IDs to exclude> }"
+    echo "Usage: add_release.sh -i <input.filename> -o <output directory> { -f <optional: ID field name; default: \"f.eid\"> -r <optional: output release> -b <optional: basename of the output file; default: \"phenotypes\"> -x <optional: list of individual IDs to exclude> }"
     echo ""
     exit 0
 }
@@ -28,12 +28,15 @@ infile=""
 outfile=""
 release=""
 exclude_list=""
+bname="phenotypes"
+out_dir=""
 
-while getopts "hi:o:r:x:" opt; do
+while getopts "hf:i:o:b:x:" opt; do
     case $opt in
+        f)id_field=($OPTARG);;
         i)infile=($OPTARG);;
-        o)outfile=($OPTARG);;
-        r)release=($OPTARG);;
+        o)outdir=($OPTARG);;
+        b)bname=($OPTARG);;
         x)exclude_list=($OPTARG);;
         h)usage;;
         *)usage;;
@@ -42,19 +45,67 @@ done
 shift "$((OPTIND-1))"
 
 exitIfEmpty "$infile" "ERROR: no input specified"
-exitIfEmpty "$outfile" "ERROR: no output specified"
-exitIfEmpty "$release" "ERROR: no release specified"
-exitIfExists "$outfile" "ERROR: output file $outfile already exists"
+exitIfEmpty "$out_dir" "ERROR: no output dir specified"
+exitIfNotDir "$out_dir" "ERROR: output dir $out_dir is not a directory"
+if [[ ! -w "$out_dir" ]];then
+    echo "ERROR: output dir $out_dir is not writable" 1>&2
+    exit 1
+fi
+out_dir=${out_dir%/}
 
 # get zcat/cat command for the input file
 cat=$(getCatCmd "$infile")
 input_ID_column=$(getColNum "${infile}" "${id_field}" "${cat}")
-exitIfEmpty "${input_ID_column}" "ERROR: no \"$id_field\" found in ${infile}"
+exitIfEmpty "${input_ID_column}" "ERROR: \"$id_field\" not found in ${infile}"
+
+prev_release=$(getRelease "${infile}" "${cat}")
+if [[ -z "$prev_release" ]];then
+    if [[ -z "$release" ]];then
+	echo "ERROR: could not find RELEASE in $infile; release (-r) not specified" 1>&2
+	exit 1
+    fi
+else
+    if [[ -z "$release" ]];then
+	release=$((prev_release+1))
+    else
+	if [[ "$prev_release" == "$release" ]];then
+	    echo "ERROR: previous release ($prev_release) and specified release ($release) are the same" 1>&2
+	    exit 1
+	fi
+    fi
+fi
+
+outfile="${out_dir}/${bname}_r${release}.txt.gz"
+exitIfExists "$outfile" "ERROR: output file $outfile already exists"
+
+logfile="${out_dir}/${bname}_r${release}.log"
+: > "$logfile"
+
+echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
+
+date "+%F %H-%M-%S" | tee -a "$logfile"
+echo "Current dir: ${PWD}" | tee -a "$logfile"
+echo "Command line: $scriptname ${args[@]}" | tee -a "$logfile"
+echo "" | tee -a "$logfile"
+echo "INPUT FILE: ${infile}" | tee -a "$logfile"
+echo "ID FIELD: $id_field" | tee -a "$logfile"
+echo "OUTPUT RELEASE: $release" | tee -a "$logfile"
+echo "EXCLUDE LIST: $exclude_list" | tee -a "$logfile"
+echo "OUTPUT FILE: $outfile" | tee -a "$logfile"
+echo "LOG FILE: $logfile" | tee -a "$logfile"
+
+echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
 
 #----------------------------------------------------
 
 paste <("${cats}" "${infile}" | head -n 1) <(echo RELEASE CREATED | tr ' ' '\t') | gzip - -c > "${outfile}"
-"${cat}" "${infile}" | tail -n +2 | perl -snle 'BEGIN{$,="\t";%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_,$r,$d;}}' -- -f="${exclude_list}" -c="${input_ID_column}" -r="${release}" -d="${datestr}" | gzip - -c >> "${outfile}"
+if [[ -z "$prev_release" ]];then
+    "${cat}" "${infile}" | tail -n +2 | perl -snle 'BEGIN{$,="\t";%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_,$r,$d;}}' -- -f="${exclude_list}" -c="${input_ID_column}" -r="${release}" -d="${datestr}" | gzip - -c >> "${outfile}"
+else
+    rcol=$(getColNum "$infile" "RELEASE")
+    ccol=$(getColNum "$infile" "CREATED")
+    "${cat}" "${infile}" | tail -n +2 | perl -snle 'BEGIN{$,="\t";%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){$a[$y-1]=$r;$a[$z-1]=$d;print join("\t",@a);}}' -- -y="$rcol" -z="$ccol" -f="${exclude_list}" -c="${input_ID_column}" -r="${release}" -d="${datestr}" | gzip - -c >> "${outfile}"
+fi
     
 exit 0
 
