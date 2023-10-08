@@ -14,7 +14,7 @@ function usage () {
     echo "Optionally exclude rows from input based on provided ID list"
     echo ""
     echo "Usage: add_release.sh -i <input file>"
-    echo "                      -o <output directory>"
+    echo "                    { -o <optional: output directory> }"
     echo "                    { -f <optional: ID field name; default: \"f.eid\"> }"
     echo "                    { -r <optional: output release> }"
     echo "                    { -b <optional: basename of the output file; default: \"phenotypes\"> }"
@@ -50,6 +50,9 @@ done
 shift "$((OPTIND-1))"
 
 exitIfEmpty "$infile" "ERROR: no input specified"
+if [[ -z "$outdir" ]];then
+    outdir=$(dirname "$infile")
+fi
 exitIfEmpty "$outdir" "ERROR: no output dir specified"
 exitIfNotDir "$outdir" "ERROR: output dir $outdir is not a directory"
 if [[ ! -w "$outdir" ]];then
