@@ -11,7 +11,7 @@ import re
 import stat
 from itgukbb import utils
 
-# given patient ID(s) and ICD10 code, get the date of the first diagnosis
+# given patient ID(s) and ICD code, get the date of the first diagnosis
 
 # epistart -> admidate -> epiend
 def calc_diagnosis_date(row):
