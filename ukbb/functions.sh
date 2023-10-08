@@ -515,6 +515,19 @@ function getRelease {
     fi
 }
 
+# get release from a merged file
+function getCreated {
+    local fname=$1
+    local cmd=$2
+
+    local rc=$(getColNum "$fname" "CREATED" "$cmd")
+    if [[ -z "$rc" ]];then
+	echo ""
+    else
+	echo $("$cmd" "$fname"|head -n 3|tail -n 1|cut -f $rc)
+    fi
+}
+
 # report samples missing in at least one of the files
 function report_missing {
     # name of an array containing file names
