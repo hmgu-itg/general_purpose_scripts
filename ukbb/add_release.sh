@@ -13,7 +13,7 @@ function usage () {
     echo "Add/update CREATED and RELEASE information"
     echo "Optionally exclude rows from input based on provided ID list"
     echo ""
-    echo "Usage: add_release.sh -i <input.filename>"
+    echo "Usage: add_release.sh -i <input file>"
     echo "                      -o <output directory>"
     echo "                    { -f <optional: ID field name; default: \"f.eid\"> }"
     echo "                    { -r <optional: output release> }"
