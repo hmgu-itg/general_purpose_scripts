@@ -117,6 +117,8 @@ else
     "${cat}" "${infile}" | head -n 1 | gzip - -c > "${outfile}"
     "${cat}" "${infile}" | tail -n +2 | perl -snle 'BEGIN{$,="\t";%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){$a[$y-1]=$r;$a[$z-1]=$d;print join("\t",@a);}}' -- -y="$rcol" -z="$ccol" -f="${exclude_list}" -c="${input_ID_column}" -r="${release}" -d="${datestr}" | gzip - -c >> "${outfile}"
 fi
+
+date "+%F %H-%M-%S" | tee -a "$logfile"
     
 exit 0
 
