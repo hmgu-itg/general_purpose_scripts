@@ -36,13 +36,14 @@ exclude_list=""
 bname="phenotypes"
 outdir=""
 
-while getopts "hf:i:o:b:x:" opt; do
+while getopts "hf:i:o:b:x:r:" opt; do
     case $opt in
         f)id_field=($OPTARG);;
         i)infile=($OPTARG);;
         o)outdir=($OPTARG);;
         b)bname=($OPTARG);;
         x)exclude_list=($OPTARG);;
+        r)release=($OPTARG);;
         h)usage;;
         *)usage;;
     esac
