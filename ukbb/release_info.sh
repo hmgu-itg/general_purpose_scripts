@@ -34,7 +34,7 @@ readValue "$config" DATA_PATH data_path
 echo -e "PROJECT\tDATASET\tRELEASE\tCREATED\tSAMPLES\tFIELDS"
 for p in "${!projects[@]}";do
     dir="$data_path"/"${projects[$p]}"/"releases"
-    for f in $(find "$dir" -maxdepth 1 -name "phenotypes_r*.txt.gz"| sort);do
+    for f in $(find "$dir" -maxdepth 1 -type f -name "phenotypes_r*.txt.gz" ! -name "*.intersection.txt.gz" | sort);do
 	rel=$(getRelease "$f" "zcat")
 	cr=$(getCreated "$f" "zcat")
 	samples=$(zcat "$f" | tail -n +2 | wc -l)
@@ -42,7 +42,7 @@ for p in "${!projects[@]}";do
 	fields=$((fields-3)) # exclude f.eid, RELEASE, CREATED
 	echo -e "${p}\tmain\t${rel}\t${cr}\t${samples}\t${fields}"
     done
-    for f in $(find "$dir" -maxdepth 1 -name "hesin_r*.tar.gz"| sort);do
+    for f in $(find "$dir" -maxdepth 1 -type f -name "hesin_r*.tar.gz"| sort);do
 	rel=$(tar -zxf "$f" RELEASE -O)
 	cr=$(tar -zxf "$f" CREATED -O)
 	echo -e "${p}\thesin\t${rel}\t${cr}\tNA\tNA"
