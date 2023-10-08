@@ -34,7 +34,7 @@ outfile=""
 release=""
 exclude_list=""
 bname="phenotypes"
-out_dir=""
+outdir=""
 
 while getopts "hf:i:o:b:x:" opt; do
     case $opt in
@@ -50,13 +50,13 @@ done
 shift "$((OPTIND-1))"
 
 exitIfEmpty "$infile" "ERROR: no input specified"
-exitIfEmpty "$out_dir" "ERROR: no output dir specified"
-exitIfNotDir "$out_dir" "ERROR: output dir $out_dir is not a directory"
-if [[ ! -w "$out_dir" ]];then
-    echo "ERROR: output dir $out_dir is not writable" 1>&2
+exitIfEmpty "$outdir" "ERROR: no output dir specified"
+exitIfNotDir "$outdir" "ERROR: output dir $outdir is not a directory"
+if [[ ! -w "$outdir" ]];then
+    echo "ERROR: output dir $outdir is not writable" 1>&2
     exit 1
 fi
-out_dir=${out_dir%/}
+outdir=${outdir%/}
 
 # get zcat/cat command for the input file
 cat=$(getCatCmd "$infile")
@@ -80,10 +80,10 @@ else
     fi
 fi
 
-outfile="${out_dir}/${bname}_r${release}.txt.gz"
+outfile="${outdir}/${bname}_r${release}.txt.gz"
 exitIfExists "$outfile" "ERROR: output file $outfile already exists"
 
-logfile="${out_dir}/${bname}_r${release}.log"
+logfile="${outdir}/${bname}_r${release}.log"
 : > "$logfile"
 
 echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
@@ -93,10 +93,11 @@ echo "Current dir: ${PWD}" | tee -a "$logfile"
 echo "Command line: $scriptname ${args[@]}" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
 echo "INPUT FILE: ${infile}" | tee -a "$logfile"
+echo "OUTPUT DIR: ${outdir}" | tee -a "$logfile"
 echo "ID FIELD: $id_field" | tee -a "$logfile"
 echo "OUTPUT RELEASE: $release" | tee -a "$logfile"
-echo "EXCLUDE LIST: $exclude_list" | tee -a "$logfile"
 echo "OUTPUT FILE: $outfile" | tee -a "$logfile"
+echo "EXCLUDE LIST: $exclude_list" | tee -a "$logfile"
 echo "LOG FILE: $logfile" | tee -a "$logfile"
 
 echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
