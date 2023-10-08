@@ -64,6 +64,7 @@ def main():
     release=args.release
     id_list=readIDList(args.id)
     icd10=args.icd10
+    icd9=args.icd9
 
     if args.verbose is not None:
         if args.verbose=="debug":
@@ -83,12 +84,6 @@ def main():
 
     logging.getLogger("itgukbb.utils").addHandler(ch)
     logging.getLogger("itgukbb.utils").setLevel(verbosity)
-
-    # if len(id_list)==0:
-    #     LOGGER.error("No patient IDs provided")
-    #     sys.exit(1)
-    # else:
-    #     LOGGER.info(str(len(id_list))+" patient ID(s) provided")
 
 #----------------------------------------------------------------------------------------------------------------------------------
 
@@ -114,34 +109,40 @@ def main():
         LOGGER.info("using all samples in input file")
     LOGGER.info("")
 
+    icd=icd9
+    icd_col="diag_icd9"
+    if icd9 is None:
+        icd=icd10
+        icd_col="diag_icd10"
+        
 #-----------------------------------------------------------------------------------------------------------------------------
 
     with tarfile.open(infile,"r:*") as tar:
         df_main=pd.read_table(tar.extractfile("hesin.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","epistart","epiend","admidate"])
-        df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","diag_icd10"])
+        df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index",icd_col])
         JT=pd.merge(df_main,df_diag,on=["eid","ins_index"],how="inner")
         if id_list is None or len(id_list)==0:
-            JT=JT[JT["diag_icd10"]==icd10]
+            JT=JT[JT[icd_col]==icd]
         else:
-            JT=JT[(JT["diag_icd10"]==icd10) & (JT["eid"].isin(id_list))]
+            JT=JT[(JT[icd_col]==icd) & (JT["eid"].isin(id_list))]
+                
         # print(JT.to_csv(sep="\t",index=False),end='',file=sys.stderr)
         if (len(JT)==0):        
-            LOGGER.info("Could not find any records for ICD10=%s" %(icd10))
+            LOGGER.info("Could not find any records for ICD=%s" %(icd))
         else:
             JT["diagnosis_date"]=JT.apply(calc_diagnosis_date,axis=1)
             JT["diagnosis_date_fmt"]=pd.to_datetime(JT["diagnosis_date"],dayfirst=True,errors="coerce")
             # only interested in the earliest date, NaT values are ignored
             # if for a sample there are only NaT values then this sample will not be in idx, so not reported
             idx=JT.groupby(["eid"])["diagnosis_date_fmt"].transform(min)==JT["diagnosis_date_fmt"]
-            # sometimes for the same ID and ICD10 there are multiple entries with the same date, so we need drop_duplicates
-            print(JT[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd10}).to_csv(sep="\t",index=False),end='')
+            # sometimes for the same ID and ICD there are multiple entries with the same date, so we need drop_duplicates
+            print(JT[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd}).to_csv(sep="\t",index=False),end='')
             not_found_ids=set(JT["eid"])-set(JT[idx]["eid"])
             if not(id_list is None) and len(id_list)!=0:
                 # IDs in input list but not in the previous output
                 not_found_ids=not_found_ids.union(set(id_list)-set(JT[idx]["eid"]))
             if len(not_found_ids)!=0:
-                print(pd.DataFrame({"A":list(not_found_ids),"B":"NA"}).to_csv(header=False,index=False,sep="\t"),end='')
-                    
+                print(pd.DataFrame({"A":list(not_found_ids),"B":"NA"}).to_csv(header=False,index=False,sep="\t"),end='')                    
         
 if __name__=="__main__":
     main()
