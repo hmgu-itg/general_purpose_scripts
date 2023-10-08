@@ -116,8 +116,6 @@ def main():
 
 #-----------------------------------------------------------------------------------------------------------------------------
 
-# set(df2["ID"])-set(df2[idx2]["ID"])
-
     with tarfile.open(infile,"r:*") as tar:
         df_main=pd.read_table(tar.extractfile("hesin.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","epistart","epiend","admidate"])
         df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","diag_icd10"])
@@ -137,6 +135,13 @@ def main():
             idx=JT.groupby(["eid"])["diagnosis_date_fmt"].transform(min)==JT["diagnosis_date_fmt"]
             # sometimes for the same ID and ICD10 there are multiple entries with the same date, so we need drop_duplicates
             print(JT[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd10}).to_csv(sep="\t",index=False),end='')
+            not_found_ids=set(JT["eid"])-set(JT[idx]["eid"])
+            if not(id_list is None) and len(id_list)!=0:
+                # IDs in input list but not in the previous output
+                not_found_ids=not_found_ids.union(set(id_list)-set(JT[idx]["eid"]))
+            if len(not_found_ids)!=0:
+                print(pd.DataFrame({"A":list(not_found_ids),"B":"NA"}).to_csv(header=False,index=False,sep="\t"),end='')
+                    
         
 if __name__=="__main__":
     main()
