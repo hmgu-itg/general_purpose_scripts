@@ -90,6 +90,7 @@ exitIfExists "$outfile" "ERROR: output file $outfile already exists"
 logfile="${outdir}/${bname}_r${release}.log"
 : > "$logfile"
 
+echo "" | tee -a "$logfile"
 date "+%F %H-%M-%S" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
 
