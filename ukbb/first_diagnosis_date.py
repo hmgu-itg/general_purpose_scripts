@@ -122,27 +122,26 @@ def main():
         df_diag=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index",icd_col])
         JT=pd.merge(df_main,df_diag,on=["eid","ins_index"],how="inner")
         if id_list is None or len(id_list)==0:
-            JT2=JT[JT[icd_col]==icd]
+            JT=JT[JT[icd_col]==icd]
         else:
-            JT2=JT[(JT[icd_col]==icd) & (JT["eid"].isin(id_list))]
+            JT=JT[(JT[icd_col]==icd) & (JT["eid"].isin(id_list))]
                 
         # print(JT.to_csv(sep="\t",index=False),end='',file=sys.stderr)
-        if (len(JT2)==0):        
+        if (len(JT)==0):        
             LOGGER.info("Could not find any records for ICD=%s" %(icd))
         else:
-            JT2["diagnosis_date"]=JT2.apply(calc_diagnosis_date,axis=1)
-            JT2["diagnosis_date_fmt"]=pd.to_datetime(JT2["diagnosis_date"],dayfirst=True,errors="coerce")
+            JT["diagnosis_date"]=JT.apply(calc_diagnosis_date,axis=1)
+            JT["diagnosis_date_fmt"]=pd.to_datetime(JT["diagnosis_date"],dayfirst=True,errors="coerce")
             # only interested in the earliest date, NaT values are ignored
             # if for a sample there are only NaT values then this sample will not be in idx, so not reported
-            idx=JT2.groupby(["eid"])["diagnosis_date_fmt"].transform(min)==JT2["diagnosis_date_fmt"]
+            idx=JT.groupby(["eid"])["diagnosis_date_fmt"].transform(min)==JT["diagnosis_date_fmt"]
             # sometimes for the same ID and ICD there are multiple entries with the same date, so we need drop_duplicates
-            print(JT2[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd}).to_csv(sep="\t",index=False),end='')
-            not_found_ids=set(JT["eid"])-set(JT2[idx]["eid"])
+            print(JT[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd}).to_csv(sep="\t",index=False),end='')
             if not(id_list is None) and len(id_list)!=0:
                 # IDs in input list but not in the previous output
-                not_found_ids=not_found_ids.union(set(id_list)-set(JT2[idx]["eid"]))
-            if len(not_found_ids)!=0:
-                print(pd.DataFrame({"A":list(not_found_ids),"B":"NA"}).to_csv(header=False,index=False,sep="\t"),end='')                    
+                not_found_ids=not_found_ids.union(set(id_list)-set(JT[idx]["eid"]))
+                if len(not_found_ids)!=0:
+                    print(pd.DataFrame({"A":list(not_found_ids),"B":"NA"}).to_csv(header=False,index=False,sep="\t"),end='')                    
         
 if __name__=="__main__":
     main()
