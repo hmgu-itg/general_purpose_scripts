@@ -48,6 +48,7 @@ def main():
     group.add_argument('--icd9','-icd9',required=False,action='store',help="ICD9 code")
     # opgroup=parser.add_argument_group("optional arguments")
     parser.add_argument('--id','-id',required=False,action='store',help="Patient ID or a file with patient IDs")
+    parser.add_argument('--output','-o',required=False,action='store',help="Output file")
     parser.add_argument('--config','-c',required=False,action='store',help="Config file")
     parser.add_argument("--verbose", "-v", help="Verbosity level",required=False,choices=("debug","info","warning","error"),default="info")
 
@@ -127,7 +128,7 @@ def main():
             JT=JT[(JT[icd_col]==icd) & (JT["eid"].isin(id_list))]
                 
         # print(JT.to_csv(sep="\t",index=False),end='',file=sys.stderr)
-        if (len(JT)==0):        
+        if (len(JT)==0):
             LOGGER.info("Could not find any records for ICD=%s" %(icd))
         else:
             JT["diagnosis_date"]=JT.apply(calc_diagnosis_date,axis=1)
@@ -136,12 +137,18 @@ def main():
             # if for a sample there are only NaT values then this sample will not be in idx, so not reported
             idx=JT.groupby(["eid"])["diagnosis_date_fmt"].transform(min)==JT["diagnosis_date_fmt"]
             # sometimes for the same ID and ICD there are multiple entries with the same date, so we need drop_duplicates
-            print(JT[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd}).to_csv(sep="\t",index=False),end='')
+            if args.output:
+                JT[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd}).to_csv(args.output,sep="\t",index=False)
+            else
+                print(JT[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd}).to_csv(sep="\t",index=False),end='')
             if not(id_list is None) and len(id_list)!=0:
                 # IDs in input list but not in the previous output
                 not_found_ids=not_found_ids.union(set(id_list)-set(JT[idx]["eid"]))
                 if len(not_found_ids)!=0:
-                    print(pd.DataFrame({"A":list(not_found_ids),"B":"NA"}).to_csv(header=False,index=False,sep="\t"),end='')                    
-        
+                    if args.output:
+                        pd.DataFrame({"A":list(not_found_ids),"B":"NA"}).to_csv(args.output,header=False,index=False,sep="\t")
+                    else:
+                        print(pd.DataFrame({"A":list(not_found_ids),"B":"NA"}).to_csv(header=False,index=False,sep="\t"),end='')
+                        
 if __name__=="__main__":
     main()
