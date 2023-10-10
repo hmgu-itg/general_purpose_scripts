@@ -49,7 +49,7 @@ def main():
     # opgroup=parser.add_argument_group("optional arguments")
     parser.add_argument('--id','-id',required=False,action='store',help="Patient ID or a file with patient IDs")
     parser.add_argument('--config','-c',required=False,action='store',help="Config file")
-    parser.add_argument("--verbose", "-v", help="Verbosity level; default: info",required=False,choices=("debug","info","warning","error"),default="info")
+    parser.add_argument("--verbose", "-v", help="Verbosity level",required=False,choices=("debug","info","warning","error"),default="info")
 
     if len(sys.argv[1:])==0:
         parser.print_help()
