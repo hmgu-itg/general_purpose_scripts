@@ -139,7 +139,7 @@ def main():
             # sometimes for the same ID and ICD there are multiple entries with the same date, so we need drop_duplicates
             if args.output:
                 JT[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd}).to_csv(args.output,sep="\t",index=False)
-            else
+            else:
                 print(JT[idx][["eid","diagnosis_date"]].drop_duplicates().rename(columns={"eid":"ID","diagnosis_date":icd}).to_csv(sep="\t",index=False),end='')
             if not(id_list is None) and len(id_list)!=0:
                 # IDs in input list but not in the previous output
