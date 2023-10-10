@@ -31,8 +31,8 @@ parser.add_argument('--describe','-d',default=None,metavar="FIELD",required=Fals
 parser.add_argument('--olink','-olink',required=False,action='store_true',help="Also export OLINK data",default=False)
 parser.add_argument('--list','-l',default=False,required=False,action='store_true',help="Output information about every field in the input project")
 parser.add_argument('--field','-f',metavar="FIELD",required=False,default=[],action='append',help="For a given field, output all its instances. This option can be specified multiple times")
-parser.add_argument("--names", "-n",required=False,action='store_true',help="Use field names instead of IDs in output; default: false",default=False)
-parser.add_argument("--verbose", "-v", help="Verbosity level; default: info",required=False,choices=("debug","info","warning","error"),default="info")
+parser.add_argument("--names", "-n",required=False,action='store_true',help="Use field names instead of IDs in output",default=False)
+parser.add_argument("--verbose", "-v", help="Verbosity level",required=False,choices=("debug","info","warning","error"),default="info")
 
 if len(sys.argv[1:])==0:
     parser.print_help()
