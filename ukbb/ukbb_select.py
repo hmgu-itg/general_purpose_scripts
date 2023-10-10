@@ -13,7 +13,7 @@ from itgukbb import utils
 # test if second row contains column classes (legacy)
 def is_legacy(fname):
     df=pd.read_table(fname,nrows=1,sep="\t",header=0,dtype=str,usecols=["f.eid"],keep_default_na=False)
-    return df.iloc[[0]]["f.eid"]=="NA"
+    return df.iloc[0]["f.eid"]=="NA"
 
 def get_nrows(fname,legacy=False):
     df=pd.read_table(fname,skiprows=[1] if legacy else None,sep="\t",header=0,dtype=str,usecols=["f.eid"])
