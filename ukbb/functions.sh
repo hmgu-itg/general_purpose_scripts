@@ -600,11 +600,15 @@ function merge_two_files {
     echo ""  | tee -a "$logfile"
     
     local fmt="1.${idCol1},2.${idCol2}"
-    for i in $(seq 2 ${ncols1});do
-	fmt=$fmt",1.$i"
+    for i in $(seq 1 ${ncols1});do
+	if [[ "$i" -ne "${idCol1}" ]]
+	   fmt=$fmt",1.$i"
+	fi
     done
-    for i in $(seq 2 ${ncols2});do
-	fmt=$fmt",2.$i"
+    for i in $(seq 1 ${ncols2});do
+	if [[ "$i" -ne "${idCol2}" ]];then
+	    fmt=$fmt",2.$i"
+	fi
     done
 
     echo -n "INFO: joining input files ... "  | tee -a "$logfile"
@@ -680,11 +684,15 @@ function update_file {
     echo ""  | tee -a "$logfile"
     
     local fmt="1.${idCol1},2.${idCol2}"
-    for i in $(seq 2 ${ncols1});do
-	fmt=$fmt",1.$i"
+    for i in $(seq 1 ${ncols1});do
+	if [[ "$i" -ne "${idCol1}" ]]
+	   fmt=$fmt",1.$i"
+	fi
     done
-    for i in $(seq 2 ${ncols2});do
-	fmt=$fmt",2.$i"
+    for i in $(seq 1 ${ncols2});do
+	if [[ "$i" -ne "${idCol2}" ]];then
+	    fmt=$fmt",2.$i"
+	fi
     done
 
     echo "INFO: joining input files"  | tee -a "$logfile"
@@ -743,3 +751,40 @@ function update_file {
     fi
 }
 
+# all files are tab separated, with header
+# performing outer join on col1,col2
+function join_two_files {
+    local infile1=$1
+    local col1=$2
+    local infile2=$3
+    local col2=$4
+    local outfile=$5
+    local i
+
+    if [[ ! -s "$infile1" ]];then
+	cp "$infile2" "$outfile"
+	return
+    fi
+    
+    if [[ ! -s "$infile2" ]];then
+	cp "$infile1" "$outfile"
+	return
+    fi
+
+    local nc1=$(head -n 1 "$infile1" | tr '\t' '\n' | wc -l)
+    local nc2=$(head -n 1 "$infile2" | tr '\t' '\n' | wc -l)
+
+    local fmt="1.${col1},2.${col2}"
+    for i in $(seq 1 ${nc1});do
+	if [[ "$i" -ne "${col1}" ]]
+	   fmt=$fmt",1.$i"
+	fi
+    done
+    for i in $(seq 1 ${nc2});do
+	if [[ "$i" -ne "${col2}" ]];then
+	    fmt=$fmt",2.$i"
+	fi
+    done
+    
+    join --header -t$'\t' -1 "$col1" -2 "$col2" -a 1 -a 2 -e "NA" -o "$fmt" <(cat <(head -n 1 "$infile1") <(tail -n +2 "$infile1" | sort -t$'\t' -k"$col1","$col1")) <(cat <(head -n 1 "$infile2") <(tail -n +2 "$infile2" | sort -t$'\t' -k"$col2","$col2")) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' | cut -f 2- | sponge "$outfile"
+}
