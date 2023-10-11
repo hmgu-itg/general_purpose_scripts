@@ -118,6 +118,8 @@ for x in df.columns.values.tolist():
         H.setdefault(key,[]).append(x)
     else:
         LOGGER.error("column name format error: %s" %x)
+# print(H)
+# sys.exit(0)
 
 #---------------------------------------------------------------------------------------------------------------------------
 
