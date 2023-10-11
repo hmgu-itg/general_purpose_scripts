@@ -13,7 +13,7 @@ LOGGER=logging.getLogger(__name__)
 def readIDList(string,unique_only=True):
     if string is None:
         return None
-    if os.path.isfile(string) or stat.S_ISFIFO(os.stat(string).st_mode):
+    if os.path.isfile(string):# or stat.S_ISFIFO(os.stat(string).st_mode):
         df=pd.read_csv(string,header=None,usecols=[0])
         if unique_only:
             return list(set(df[0].astype(str).tolist()))
