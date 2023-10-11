@@ -154,6 +154,11 @@ join -t $'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o 1.1,2.1,1.2,2.2 <(tail -n +2 "$tmpd
 
 #------------------------------------------------------------------------------------------------------------------
 
+if [[ "$keep" == "NO" ]];then
+    echo "INFO: deleting temp dir $tmpdir"
+    rm -rf "$tmpdir"
+fi
+
 date "+%d-%b-%Y:%H-%M-%S"|tee -a "$logfile"
 
 exit 0
