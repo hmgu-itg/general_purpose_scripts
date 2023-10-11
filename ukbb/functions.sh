@@ -601,7 +601,7 @@ function merge_two_files {
     
     local fmt="1.${idCol1},2.${idCol2}"
     for i in $(seq 1 ${ncols1});do
-	if [[ "$i" -ne "${idCol1}" ]]
+	if [[ "$i" -ne "${idCol1}" ]];then
 	   fmt=$fmt",1.$i"
 	fi
     done
@@ -685,7 +685,7 @@ function update_file {
     
     local fmt="1.${idCol1},2.${idCol2}"
     for i in $(seq 1 ${ncols1});do
-	if [[ "$i" -ne "${idCol1}" ]]
+	if [[ "$i" -ne "${idCol1}" ]];then
 	   fmt=$fmt",1.$i"
 	fi
     done
@@ -762,11 +762,13 @@ function join_two_files {
     local i
 
     if [[ ! -s "$infile1" ]];then
+	echo "DEBUG: copy $infile2 to $outfile"
 	cp "$infile2" "$outfile"
 	return
     fi
     
     if [[ ! -s "$infile2" ]];then
+	echo "DEBUG: copy $infile1 to $outfile"
 	cp "$infile1" "$outfile"
 	return
     fi
@@ -776,7 +778,7 @@ function join_two_files {
 
     local fmt="1.${col1},2.${col2}"
     for i in $(seq 1 ${nc1});do
-	if [[ "$i" -ne "${col1}" ]]
+	if [[ "$i" -ne "${col1}" ]];then
 	   fmt=$fmt",1.$i"
 	fi
     done
@@ -785,6 +787,7 @@ function join_two_files {
 	    fmt=$fmt",2.$i"
 	fi
     done
-    
+
+    echo "DEBUG: joining, $infile1, $infile2, $outfile, $fmt"
     join --header -t$'\t' -1 "$col1" -2 "$col2" -a 1 -a 2 -e "NA" -o "$fmt" <(cat <(head -n 1 "$infile1") <(tail -n +2 "$infile1" | sort -t$'\t' -k"$col1","$col1")) <(cat <(head -n 1 "$infile2") <(tail -n +2 "$infile2" | sort -t$'\t' -k"$col2","$col2")) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' | cut -f 2- | sponge "$outfile"
 }

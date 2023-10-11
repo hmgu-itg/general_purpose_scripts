@@ -27,7 +27,7 @@ if [[ $# -eq 0 ]];then
     usage
 fi
 
-OPTS=$(getopt -o he:c:r:o:k: -l help,hesin:,release:,config:,output:,key: -n 'OA_select_HD' -- "$@")
+OPTS=$(getopt -o hpe:c:r:o:k: -l help,keep,hesin:,release:,config:,output:,key: -n 'OA_select_HD_first_occurence' -- "$@")
 
 if [ $? != 0 ] ; then echo "ERROR: failed parsing options" >&2 ; usage ; exit 1 ; fi
 
@@ -106,17 +106,45 @@ echo ""|tee -a "$logfile"
 #----------------------------------------------------------------------------------------------------------------
 
 # inclusion ICD9 codes
-grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}'|while read code;do
+
+while read code;do
     "$date_script" --icd9 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/inclusion_icd9_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-    tempfiles+=("$tmpdir"/inclusion_icd9_"$code")
-done
+    if [[ -f "$tmpdir"/inclusion_icd9_"$code" ]];then
+	tempfiles+=("$tmpdir"/inclusion_icd9_"$code")
+    else
+	echo "DEBUG: no such file" "$tmpdir"/inclusion_icd9_"$code"
+    fi    
+done < <(grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}')
+
+# grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}'|while read code;do
+#     "$date_script" --icd9 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/inclusion_icd9_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+#     if [[ -f "$tmpdir"/inclusion_icd9_"$code" ]];then
+# 	tempfiles+=("$tmpdir"/inclusion_icd9_"$code")
+#     else
+# 	echo "DEBUG: no such file" "$tmpdir"/inclusion_icd9_"$code"
+#     fi
+# done
 
 # inclusion ICD10 codes
-grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}'|while read code;do
+while read code;do
     "$date_script" --icd10 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/inclusion_icd10_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-    tempfiles+=("$tmpdir"/inclusion_icd10_"$code")
-done
+    if [[ -f "$tmpdir"/inclusion_icd10_"$code" ]];then
+	tempfiles+=("$tmpdir"/inclusion_icd10_"$code")
+    else
+	echo "DEBUG: no such file" "$tmpdir"/inclusion_icd10_"$code"
+    fi
+done < <(grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}')
 
+# grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}'|while read code;do
+#     "$date_script" --icd10 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/inclusion_icd10_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+#     if [[ -f "$tmpdir"/inclusion_icd10_"$code" ]];then
+# 	tempfiles+=("$tmpdir"/inclusion_icd10_"$code")
+#     else
+# 	echo "DEBUG: no such file" "$tmpdir"/inclusion_icd10_"$code"
+#     fi
+# done
+
+echo "DEBUG: # tempfiles: ${#tempfiles[@]}"
 merged_incl_fname="$tmpdir"/inclusion_merged
 : > "$merged_incl_fname"
 for f in "${tempfiles[@]}";do
@@ -129,17 +157,36 @@ tail -n +2 "$merged_incl_fname" | perl -lne 'BEGIN{$,="\t";sub compare{return -1
 
 tempfiles=()
 # exclusion ICD9 codes
-grep ^icd9 "$icd_exclusion_file"| cut -f 2| while read code;do
-    "$status_script" --icd9 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd9_"$code"
-    tempfiles+=("$tmpdir"/exclusion_icd9_"$code")
-done
+while read code;do
+    "$status_script" --icd9 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd9_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+    if [[ -f "$tmpdir"/exclusion_icd9_"$code" ]];then    
+	tempfiles+=("$tmpdir"/exclusion_icd9_"$code")
+    fi
+done < <(grep ^icd9 "$icd_exclusion_file"| cut -f 2)
+
+# grep ^icd9 "$icd_exclusion_file"| cut -f 2| while read code;do
+#     "$status_script" --icd9 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd9_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+#     if [[ -f "$tmpdir"/exclusion_icd9_"$code" ]];then    
+# 	tempfiles+=("$tmpdir"/exclusion_icd9_"$code")
+#     fi
+# done
 
 # exclusion ICD10 codes
-grep ^icd10 "$icd_exclusion_file"| cut -f 2| while read code;do
-    "$status_script" --icd10 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd10_"$code"
-    tempfiles+=("$tmpdir"/exclusion_icd10_"$code")
-done
+while read code;do
+    "$status_script" --icd10 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd10_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+    if [[ -f "$tmpdir"/exclusion_icd10_"$code" ]];then    
+	tempfiles+=("$tmpdir"/exclusion_icd10_"$code")
+    fi
+done < <(grep ^icd10 "$icd_exclusion_file"| cut -f 2)
 
+# grep ^icd10 "$icd_exclusion_file"| cut -f 2| while read code;do
+#     "$status_script" --icd10 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd10_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+#     if [[ -f "$tmpdir"/exclusion_icd10_"$code" ]];then    
+# 	tempfiles+=("$tmpdir"/exclusion_icd10_"$code")
+#     fi
+# done
+
+echo "DEBUG: # tempfiles: ${#tempfiles[@]}"
 merged_excl_fname="$tmpdir"/exclusion_merged
 : > "$merged_excl_fname"
 for f in "${tempfiles[@]}";do
@@ -150,7 +197,7 @@ tail -n +2 "$merged_excl_fname" | perl -lne 'BEGIN{$,="\t";}{@a=split(/\t/);$id=
 
 #------------------------------------------------------------------------------------------------------------------
 
-join -t $'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o 1.1,2.1,1.2,2.2 <(tail -n +2 "$tmpdir"/inclusion_final | sort -k1,1) <(tail -n +2 "$tmpdir"/exclusion_final | sort -k1,1) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}if ($4=="0"){print $2,$3;}}' > "$outfile"
+join -t $'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o 1.1,2.1,1.2,2.2 <(sort -k1,1 "$tmpdir"/inclusion_final) <(sort -k1,1 "$tmpdir"/exclusion_final) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}if ($4=="0"){print $2,$3;}}' > "$outfile"
 
 #------------------------------------------------------------------------------------------------------------------
 
