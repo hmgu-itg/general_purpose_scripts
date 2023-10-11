@@ -8,7 +8,6 @@ import tarfile
 import logging
 import os
 import re
-import stat
 from itgukbb import utils
 
 # given patient ID(s) and ICD code, get the date of the first diagnosis

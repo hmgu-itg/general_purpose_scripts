@@ -3,6 +3,7 @@ import sys
 import pandas as pd
 import csv
 import logging
+import stat
 
 LOGGER=logging.getLogger(__name__)
 
