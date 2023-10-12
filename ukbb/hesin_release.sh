@@ -127,5 +127,7 @@ cd "$tmpdir" && tar -zcf "$outfile" hesin.txt hesin_diag.txt hesin_oper.txt RELE
 if [[ "$keep" == "NO" ]];then
     rm -rf "$tmpdir"
 fi
+
 echo "" | tee -a "$logfile"
 date "+%F %H-%M-%S"|tee -a "$logfile"
+exit 0
