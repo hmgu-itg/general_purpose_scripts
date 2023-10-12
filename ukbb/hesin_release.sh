@@ -71,6 +71,8 @@ fi
 
 : > $logfile
 
+#-----------------------------------------------------------------------------------------------------
+
 date "+%F %H-%M-%S"|tee -a "$logfile"
 echo "Current dir: ${PWD}"|tee -a "$logfile"
 echo "Command line: $scriptname ${args[@]}"|tee -a "$logfile"
@@ -83,19 +85,16 @@ echo "IDs TO EXCLUDE: $exfile" | tee -a "$logfile"
 echo "OUTPUT DIR: $outdir" | tee -a "$logfile"
 echo "OUTPUT FILE: $outfile" | tee -a "$logfile"
 echo "TEMP DIR: $tmpdir" | tee -a "$logfile"
+echo "KEEP TEMP FILES: $keep" | tee -a "$logfile"
 echo "" | tee -a "$logfile"
+
+#-----------------------------------------------------------------------------------------------------
 
 datestr=$(date +%d-%b-%Y)
 echo $release > "$tmpdir"/RELEASE
 echo $datestr > "$tmpdir"/CREATED
 
-# replace empty fields with NAs
-# echo "REPLACING EMPTY FIELDS WITH NAs IN MAIN" | tee -a "$logfile"
-# cat "$main_fname" | parallel --block 100M --pipe -N100000 "$replace_script" > "$tmpdir"/hesin.txt
-# echo "REPLACING EMPTY FIELDS WITH NAs IN DIAG" | tee -a "$logfile"
-# cat "$diag_fname" | parallel --block 100M --pipe -N100000 "$replace_script" > "$tmpdir"/hesin_diag.txt
-# echo "REPLACING EMPTY FIELDS WITH NAs IN OPER" | tee -a "$logfile"
-# cat "$oper_fname" | parallel --block 100M --pipe -N100000 "$replace_script" > "$tmpdir"/hesin_oper.txt
+#-----------------------------------------------------------------------------------------------------
 
 declare -a ar
 ar=("hesin.txt" "hesin_diag.txt" "hesin_oper.txt")
@@ -108,6 +107,8 @@ for fname in "$main_fname" "$diag_fname" "$oper_fname";do
     ar=("${ar[@]:1}")
 done
 
+#-----------------------------------------------------------------------------------------------------
+
 for fname in hesin.txt hesin_diag.txt hesin_oper.txt;do
     echo "EXCLUDING SAMPLES FROM $fname" | tee -a "$logfile"
     f="$tmpdir"/"$fname"
@@ -115,53 +116,13 @@ for fname in hesin.txt hesin_diag.txt hesin_oper.txt;do
     cat "$f" | perl -slne 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[$c-1]})){print $_;}}' -- -c="$eid_col" -f="$exfile" | sponge "$f"
 done
 
-# if [[ ! -z "$exfile" ]];then
-#     echo "" | tee -a "$logfile"
-#     echo "EXCLUDING SAMPLES FROM MAIN" | tee -a "$logfile"
-#     tmp_fname="$tmpdir"/hesin.txt
-#     eid_col=$(getColNum "$tmp_fname" "eid" "cat")
-#     ncols=$(head -n 1 "$tmp_fname"| tr '\t' '\n'| wc -l)
-#     fmtstr="2.1"
-#     for i in $(seq 1 $ncols);do
-# 	fmtstr="${fmtstr}"",1.$i"
-#     done
-#     echo "EID COLUMN: $eid_col" | tee -a "$logfile"
-#     echo "TOTAL COLUMNS: $ncols" | tee -a "$logfile"
-#     echo "FORMAT STRING: $fmtstr" | tee -a "$logfile"
-#     cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2 "$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
-    
-#     echo "" | tee -a "$logfile"
-#     echo "EXCLUDING SAMPLES FROM DIAG" | tee -a "$logfile"
-#     tmp_fname="$tmpdir"/hesin_diag.txt
-#     eid_col=$(getColNum "$tmp_fname" "eid" "cat")
-#     ncols=$(head -n 1 "$tmp_fname"| tr '\t' '\n'| wc -l)
-#     fmtstr="2.1"
-#     for i in $(seq 1 $ncols);do
-# 	fmtstr="${fmtstr}"",1.$i"
-#     done
-#     echo "EID COLUMN: $eid_col" | tee -a "$logfile"
-#     echo "TOTAL COLUMNS: $ncols" | tee -a "$logfile"
-#     echo "FORMAT STRING: $fmtstr" | tee -a "$logfile"
-#     cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2 "$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
-    
-#     echo "" | tee -a "$logfile"
-#     echo "EXCLUDING SAMPLES FROM OPER" | tee -a "$logfile"
-#     tmp_fname="$tmpdir"/hesin_oper.txt
-#     eid_col=$(getColNum "$tmp_fname" "eid" "cat")
-#     ncols=$(head -n 1 "$tmp_fname"| tr '\t' '\n'| wc -l)
-#     fmtstr="2.1"
-#     for i in $(seq 1 $ncols);do
-# 	fmtstr="${fmtstr}"",1.$i"
-#     done
-#     echo "EID COLUMN: $eid_col" | tee -a "$logfile"
-#     echo "TOTAL COLUMNS: $ncols" | tee -a "$logfile"
-#     echo "FORMAT STRING: $fmtstr" | tee -a "$logfile"
-#     cat <(head -n 1 "$tmp_fname") <(join -1 "$eid_col" -2 1 -e NULL -a 1 -o "$fmtstr" -t$'\t' <(tail -n +2 "$tmp_fname"| sort -k"$eid_col","$eid_col") <(sort "$exfile")| grep NULL| cut --complement -f 1) | sponge "$tmp_fname"
-# fi
+#-----------------------------------------------------------------------------------------------------
 
 echo "" | tee -a "$logfile"
 echo "CREATING OUTPUT FILE" | tee -a "$logfile"
 cd "$tmpdir" && tar -zcf "$outfile" hesin.txt hesin_diag.txt hesin_oper.txt RELEASE CREATED && cd -
+
+#-----------------------------------------------------------------------------------------------------
 
 if [[ "$keep" == "NO" ]];then
     rm -rf "$tmpdir"
