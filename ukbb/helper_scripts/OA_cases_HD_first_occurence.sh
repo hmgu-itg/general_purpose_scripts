@@ -13,7 +13,7 @@ function usage () {
     echo ""
     echo "Script for selecting first date of hospital diagnosed OA cases from a HESIN release"
     echo ""
-    echo "Usage: OA_select_HD.sh -e | --hesin <release of the HESIN dataset>"
+    echo "Usage: OA_select_HD.sh -r | --release <release of the HESIN dataset>"
     echo "                       -k | --key <one of: OA, FingerOA, HandOA, HipKneeOA, HipOA, KneeOA, SpineOA, ThumbOA>"
     echo "                       -o | --output <output prefix>"
     echo "                       -c | --config <optional: config file; default: config.txt in script directory>"
@@ -27,7 +27,7 @@ if [[ $# -eq 0 ]];then
     usage
 fi
 
-OPTS=$(getopt -o hpe:c:r:o:k: -l help,keep,hesin:,release:,config:,output:,key: -n 'OA_select_HD_first_occurence' -- "$@")
+OPTS=$(getopt -o hpc:r:o:k: -l help,keep,config:,release:,output:,key: -n 'OA_select_HD_first_occurence' -- "$@")
 
 if [ $? != 0 ] ; then echo "ERROR: failed parsing options" >&2 ; usage ; exit 1 ; fi
 
@@ -46,7 +46,7 @@ while true; do
   case "$1" in
     -h|--help ) usage; shift ;;
     -p|--keep ) keep="YES"; shift ;;
-    -e|--hesin ) hesin_release=$2; shift 2 ;;
+    -r|--release ) hesin_release=$2; shift 2 ;;
     -k|--key ) key=$2; shift 2 ;;
     -c|--config ) config=$2; shift 2 ;;
     -o|--output ) outprefix=$2; shift 2 ;;
