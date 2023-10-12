@@ -97,6 +97,9 @@ def main():
         df=pd.read_table(tar.extractfile("hesin_diag.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid",icd_col])
     if not(id_list is None) and len(id_list)!=0:
         df=df[df["eid"].isin(id_list)]
+    if len(df)==0:
+        LOGGER.info("no records left after selecting sample IDs from the input list")
+        sys.exit(0)
     df=df.groupby(["eid"],as_index=False).agg({icd_col:lambda x:list(x)})
     df["status"]=df.apply(lambda x: 0 if set(icd).isdisjoint(set(x[icd_col])) else 1,axis=1)
     if args.output:
