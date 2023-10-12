@@ -121,7 +121,7 @@ tail -n +2 "$tmpdir"/exclusion_merged | perl -lne 'BEGIN{$,="\t";}{@a=split(/\t/
 
 #------------------------------------------------------------------------------------------------------------------
 
-join -t $'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o 1.1,2.1,1.2,2.2 <(sort -k1,1 "$tmpdir"/inclusion_final) <(sort -k1,1 "$tmpdir"/exclusion_final) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}if ($4=="0"){print $2,$3;}}' > "$outfile"
+join -t $'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o 1.1,2.1,1.2,2.2 <(sort -k1,1 "$tmpdir"/inclusion_final) <(sort -k1,1 "$tmpdir"/exclusion_final) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}if ($4=="0" && $3!="NA"){print $2,$3;}}' > "$outfile"
 
 #------------------------------------------------------------------------------------------------------------------
 
