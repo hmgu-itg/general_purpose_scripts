@@ -118,7 +118,7 @@ def main():
                 
         # print(JT.to_csv(sep="\t",index=False),end='',file=sys.stderr)
         if (len(JT)==0):
-            LOGGER.info("Could not find any records for provided ICD codes")
+            LOGGER.info("could not find any records for provided ICD codes / sample IDs")
         else:
             JT["diagnosis_date"]=JT.apply(calc_diagnosis_date,axis=1)
             JT["diagnosis_date_fmt"]=pd.to_datetime(JT["diagnosis_date"],dayfirst=True,errors="coerce")
