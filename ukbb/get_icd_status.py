@@ -8,31 +8,20 @@ import tarfile
 import logging
 import os
 import re
-import stat
 from itgukbb import utils
 
 # given patient ID(s) and ICD code, get Y/N if a patient was ever deagnosed with this ICD
 
-# string can be either ID, or filename, or name of a pipe
-def readIDList(string):
-    if string is None:
-        return None
-    if os.path.isfile(string) or stat.S_ISFIFO(os.stat(string).st_mode):
-        df=pd.read_csv(string,header=None,usecols=[0])
-        return list(set(df[0].astype(str).tolist())) # keep unique IDs
-    else:
-        return [string]
-
 def main():
     verbosity=logging.INFO
 
-    parser=argparse.ArgumentParser(description="Given patient IDs and ICD code, get patient's 0/1 status",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser=argparse.ArgumentParser(description="Given patient IDs and ICD code(s), get patient's 0/1 status. Status 1 means a patient was at some time point diagnosed with at least one of provided ICD codes, otherwise status is 0",formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     rgroup=parser.add_argument_group("required arguments")
     rgroup.add_argument('--project','-p',required=True,action='store',help="Project name")
     rgroup.add_argument('--release','-r',required=True,action='store',help="Project release")
     group=rgroup.add_mutually_exclusive_group(required=True)
-    group.add_argument('--icd10','-icd10',required=False,action='store',help="ICD10 code")
-    group.add_argument('--icd9','-icd9',required=False,action='store',help="ICD9 code")
+    group.add_argument('--icd10','-icd10',required=False,action='store',help="ICD10 code or a file with ICD10 code(s)")
+    group.add_argument('--icd9','-icd9',required=False,action='store',help="ICD9 code or a file with ICD9 code(s)")
     parser.add_argument('--id','-id',required=False,action='store',help="Patient ID or a file with patient IDs")
     parser.add_argument('--config','-c',required=False,action='store',help="Config file")
     parser.add_argument('--output','-o',required=False,action='store',help="Output file")
@@ -49,9 +38,9 @@ def main():
 
     project=args.project
     release=args.release
-    id_list=readIDList(args.id)
-    icd10=args.icd10
-    icd9=args.icd9
+    id_list=utils.readIDList(args.id)
+    icd10=utils.readIDList(args.icd10)
+    icd9=utils.readIDList(args.icd9)
 
     if args.verbose is not None:
         if args.verbose=="debug":
@@ -109,11 +98,11 @@ def main():
     if not(id_list is None) and len(id_list)!=0:
         df=df[df["eid"].isin(id_list)]
     df=df.groupby(["eid"],as_index=False).agg({icd_col:lambda x:list(x)})
-    df[icd]=df.apply(lambda x: 1 if icd in x[icd_col] else 0,axis=1)
+    df["status"]=df.apply(lambda x: 0 if set(icd).isdisjoint(set(x[icd_col])) else 1,axis=1)
     if args.output:
-        df[["eid",icd]].rename(columns={"eid":"ID"}).to_csv(args.output,sep="\t",index=False)
+        df[["eid","status"]].rename(columns={"eid":"ID"}).to_csv(args.output,sep="\t",index=False)
     else:
-        print(df[["eid",icd]].rename(columns={"eid":"ID"}).to_csv(sep="\t",index=False),end='')        
+        print(df[["eid","status"]].rename(columns={"eid":"ID"}).to_csv(sep="\t",index=False),end='')        
     if not(id_list is None) and len(id_list)!=0:
         # IDs in input list but not in the previous output
         not_found_ids=set(id_list)-set(df["eid"])
