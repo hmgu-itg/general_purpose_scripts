@@ -22,7 +22,7 @@ def readIDList(string,unique_only=True):
                 df=pd.read_csv(string,header=None,usecols=[0])
         except Exception:
             pass
-    if df:
+    if not df is None:
         if unique_only:
             return list(set(df[0].astype(str).tolist()))
         else:
