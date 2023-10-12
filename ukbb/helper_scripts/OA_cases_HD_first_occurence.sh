@@ -35,7 +35,7 @@ eval set -- "$OPTS"
 
 declare -A keys=( [FingerOA]=1 [HandOA]=1 [HipKneeOA]=1 [HipOA]=1 [KneeOA]=1 [OA]=1 [SpineOA]=1 [ThumbOA]=1 )
 
-declare -a tempfiles
+# declare -a tempfiles
 config=""
 hesin_release=""
 outprefix=""
@@ -105,95 +105,19 @@ echo ""|tee -a "$logfile"
 
 #----------------------------------------------------------------------------------------------------------------
 
-# inclusion ICD9 codes
-
-while read code;do
-    "$date_script" --icd9 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/inclusion_icd9_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-    if [[ -f "$tmpdir"/inclusion_icd9_"$code" ]];then
-	tempfiles+=("$tmpdir"/inclusion_icd9_"$code")
-    else
-	echo "DEBUG: no such file" "$tmpdir"/inclusion_icd9_"$code"
-    fi    
-done < <(grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}')
-
-# grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}'|while read code;do
-#     "$date_script" --icd9 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/inclusion_icd9_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-#     if [[ -f "$tmpdir"/inclusion_icd9_"$code" ]];then
-# 	tempfiles+=("$tmpdir"/inclusion_icd9_"$code")
-#     else
-# 	echo "DEBUG: no such file" "$tmpdir"/inclusion_icd9_"$code"
-#     fi
-# done
-
-# inclusion ICD10 codes
-while read code;do
-    "$date_script" --icd10 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/inclusion_icd10_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-    if [[ -f "$tmpdir"/inclusion_icd10_"$code" ]];then
-	tempfiles+=("$tmpdir"/inclusion_icd10_"$code")
-    else
-	echo "DEBUG: no such file" "$tmpdir"/inclusion_icd10_"$code"
-    fi
-done < <(grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}')
-
-# grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}'|while read code;do
-#     "$date_script" --icd10 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/inclusion_icd10_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-#     if [[ -f "$tmpdir"/inclusion_icd10_"$code" ]];then
-# 	tempfiles+=("$tmpdir"/inclusion_icd10_"$code")
-#     else
-# 	echo "DEBUG: no such file" "$tmpdir"/inclusion_icd10_"$code"
-#     fi
-# done
-
-echo "DEBUG: # tempfiles: ${#tempfiles[@]}"
-merged_incl_fname="$tmpdir"/inclusion_merged
-: > "$merged_incl_fname"
-for f in "${tempfiles[@]}";do
-    join_two_files "$merged_incl_fname" 1 "$f" 1 "$merged_incl_fname"
-done	
-
-tail -n +2 "$merged_incl_fname" | perl -lne 'BEGIN{$,="\t";sub compare{return -1 if $b!~/\d{2}\/\d{2}\/\d{4}/;return 1 if $a!~/\d{2}\/\d{2}\/\d{4}/;@m1=$a=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$b=~m/(\d{2})\/(\d{2})\/(\d{4})/;return -1 if ($m1[2]<$m2[2]);return 1 if ($m1[2]>$m2[2]);return -1 if ($m1[1]<$m2[1]);return 1 if ($m1[1]>$m2[1]);return -1 if ($m1[0]<$m2[0]);return 1 if ($m1[0]>$m2[0]);return 0;}}{@a=split(/\t/);$id=shift(@a);@b=sort compare @a;print $id,$b[0];}' > "$tmpdir"/inclusion_final
+# inclusion ICD codes
+"$date_script" --icd9 <(grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}') -p "OA" -r "$hesin_release" -o "$tmpdir"/inclusion_icd9 > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+"$date_script" --icd10 <(grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}') -p "OA" -r "$hesin_release" -o "$tmpdir"/inclusion_icd10 > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+join_two_files "$tmpdir"/inclusion_icd10 1 "$tmpdir"/inclusion_icd9 1 "$tmpdir"/inclusion_merged
+tail -n +2 "$tmpdir"/inclusion_merged | perl -lne 'BEGIN{$,="\t";sub compare{return -1 if $b!~/\d{2}\/\d{2}\/\d{4}/;return 1 if $a!~/\d{2}\/\d{2}\/\d{4}/;@m1=$a=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$b=~m/(\d{2})\/(\d{2})\/(\d{4})/;return -1 if ($m1[2]<$m2[2]);return 1 if ($m1[2]>$m2[2]);return -1 if ($m1[1]<$m2[1]);return 1 if ($m1[1]>$m2[1]);return -1 if ($m1[0]<$m2[0]);return 1 if ($m1[0]>$m2[0]);return 0;}}{@a=split(/\t/);$id=shift(@a);@b=sort compare @a;print $id,$b[0];}' > "$tmpdir"/inclusion_final
 
 #------------------------------------------------------------------------------------------------------------------
 
-tempfiles=()
-# exclusion ICD9 codes
-while read code;do
-    "$status_script" --icd9 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd9_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-    if [[ -f "$tmpdir"/exclusion_icd9_"$code" ]];then    
-	tempfiles+=("$tmpdir"/exclusion_icd9_"$code")
-    fi
-done < <(grep ^icd9 "$icd_exclusion_file"| cut -f 2)
-
-# grep ^icd9 "$icd_exclusion_file"| cut -f 2| while read code;do
-#     "$status_script" --icd9 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd9_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-#     if [[ -f "$tmpdir"/exclusion_icd9_"$code" ]];then    
-# 	tempfiles+=("$tmpdir"/exclusion_icd9_"$code")
-#     fi
-# done
-
-# exclusion ICD10 codes
-while read code;do
-    "$status_script" --icd10 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd10_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-    if [[ -f "$tmpdir"/exclusion_icd10_"$code" ]];then    
-	tempfiles+=("$tmpdir"/exclusion_icd10_"$code")
-    fi
-done < <(grep ^icd10 "$icd_exclusion_file"| cut -f 2)
-
-# grep ^icd10 "$icd_exclusion_file"| cut -f 2| while read code;do
-#     "$status_script" --icd10 "$code" -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd10_"$code" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-#     if [[ -f "$tmpdir"/exclusion_icd10_"$code" ]];then    
-# 	tempfiles+=("$tmpdir"/exclusion_icd10_"$code")
-#     fi
-# done
-
-echo "DEBUG: # tempfiles: ${#tempfiles[@]}"
-merged_excl_fname="$tmpdir"/exclusion_merged
-: > "$merged_excl_fname"
-for f in "${tempfiles[@]}";do
-    join_two_files "$merged_excl_fname" 1 "$f" 1 "$merged_excl_fname"
-done	
-
-tail -n +2 "$merged_excl_fname" | perl -lne 'BEGIN{$,="\t";}{@a=split(/\t/);$id=shift(@a);$s=0;foreach (@a){$s=1 if $_ == 1;}print $id,$s;}' > "$tmpdir"/exclusion_final
+# exclusion ICD codes
+"$status_script" --icd9 <(grep ^icd9 "$icd_exclusion_file"| cut -f 2) -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd9 > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+"$status_script" --icd10 <(grep ^icd10 "$icd_exclusion_file"| cut -f 2) -p "OA" -r "$hesin_release" -o "$tmpdir"/exclusion_icd10 > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+join_two_files "$tmpdir"/exclusion_icd10 1 "$tmpdir"/exclusion_icd9 1 "$tmpdir"/exclusion_merged
+tail -n +2 "$tmpdir"/exclusion_merged | perl -lne 'BEGIN{$,="\t";}{@a=split(/\t/);$id=shift(@a);$s=0;foreach (@a){$s=1 if $_ == 1;}print $id,$s;}' > "$tmpdir"/exclusion_final
 
 #------------------------------------------------------------------------------------------------------------------
 
