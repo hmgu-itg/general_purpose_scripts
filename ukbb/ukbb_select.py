@@ -7,6 +7,7 @@ import sys
 import os
 import re
 import logging
+import gzip
 
 from itgukbb import utils
 
