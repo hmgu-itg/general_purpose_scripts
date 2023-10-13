@@ -200,7 +200,7 @@ def main():
                 if s in DICT:
                     s=DICT[s]["Field"]
                 else:
-                    LOGGER.warn("Field %s is not in data dictionary" % s)
+                    LOGGER.warn("field %s is not in data dictionary" % s)
                 rename_mapper[c]=re.sub(r"^f\.(\d+)(\.\d+\.\d+)$",s+"\\2",c) # f.1234.0.1 --> field_name.0.1
                 continue
         to_keep2=list(rename_mapper.values())
@@ -209,7 +209,7 @@ def main():
     total_chunks=nrows//chunksize
     if nrows%chunksize:
         total_chunks+=1
-    LOGGER.info("Total rows: %d; total chunks: %d" %(nrows,total_chunks))
+    LOGGER.info("total rows: %d; total chunks: %d" %(nrows,total_chunks))
         
     current_chunk=1
     with_header=True
@@ -219,7 +219,7 @@ def main():
         chunk.rename(columns=rename_mapper,inplace=True)
         chunk.to_csv(outfname,mode="w" if with_header else "a",sep="\t",columns=to_keep2,index=False,quotechar='"',quoting=csv.QUOTE_NONE,header=with_header)
         with_header=False
-    LOGGER.info("Done")
+    LOGGER.info("done")
     sys.exit(0)
 
 if __name__=="__main__":
