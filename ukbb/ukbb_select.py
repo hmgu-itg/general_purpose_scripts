@@ -91,7 +91,7 @@ def main():
     for arg in vars(args):
         LOGGER.info("INPUT OPTIONS: %s : %s" % (arg, getattr(args, arg)))
     LOGGER.info("")
-    LOGGER.info("config file: %s" % config)
+    LOGGER.debug("config file: %s" % config)
     C=utils.readConfig(config)
     if C is None:
         sys.exit(1)
@@ -100,7 +100,7 @@ def main():
     if infile is None:
         sys.exit(1)
     
-    # LOGGER.info("input file: %s" % infile)
+    LOGGER.debug("input file: %s" % infile)
     # key: field, value: dict with keys "Field", "ValueType"
     DICT=utils.readDataDictionary(C["DATA_DICT"])
     olink_fields=list()
