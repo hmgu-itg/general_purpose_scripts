@@ -151,7 +151,10 @@ def main():
     if to_list:
         f=sys.stdout
         if outfname:
-            f=open(outfname,"w")
+            if outfname.endswith(".gz"):
+                f=gzip.open(outfname,"w") 
+            else:
+                f=open(outfname,"w")
             print("{}\t{}\t{}\t{}".format("Field","Instances","Description","Type"),file=f)
         for x in HEADER:
             if x in DICT:
