@@ -153,15 +153,15 @@ def main():
         f=sys.stdout
         if outfname:
             if outfname.endswith(".gz"):
-                f=gzip.open(outfname,"w") 
+                f=gzip.open(outfname,"wt")
             else:
                 f=open(outfname,"w")
-            print("{}\t{}\t{}\t{}".format("Field","Instances","Description","Type").encode(),file=f)
+            print("{}\t{}\t{}\t{}".format("Field","Instances","Description","Type"),file=f)
         for x in HEADER:
             if x in DICT:
-                print("{}\t{}\t{}\t{}".format(x,len(HEADER[x]),DICT[x]["Field"],DICT[x]["ValueType"]).encode(),file=f)
+                print("{}\t{}\t{}\t{}".format(x,len(HEADER[x]),DICT[x]["Field"],DICT[x]["ValueType"]),file=f)
             else:
-                print("{}\t{}\t{}\t{}".format(x,len(HEADER[x]),"NA","NA").encode(),file=f)
+                print("{}\t{}\t{}\t{}".format(x,len(HEADER[x]),"NA","NA"),file=f)
                 LOGGER.warning("%s is not in data dictionary" % x)
         sys.exit(0)
 
