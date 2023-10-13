@@ -30,8 +30,8 @@ def main():
     parser.add_argument('--config','-c',required=False,action='store',help="Config file")
     parser.add_argument('--describe','-d',default=None,metavar="FIELD",required=False,action='store',help="Describe the input data field")
     parser.add_argument('--olink','-olink',required=False,action='store_true',help="Also export OLINK data",default=False)
-    parser.add_argument('--list','-l',default=False,required=False,action='store_true',help="Output information about every field in the input project")
-    parser.add_argument('--field','-f',metavar="FIELD",required=False,default=[],action='append',help="For a given field, output all its instances. This option can be specified multiple times")
+    parser.add_argument('--list','-l',default=False,required=False,action='store_true',help="Output information about every field in the input project and exit")
+    parser.add_argument('--field','-f',metavar="FIELD",required=False,default=[],action='append',help="For a given field, output all its instances; this option can be specified multiple times. Can be a value, or a file containing list of values, or a shell redirection")
     parser.add_argument("--names", "-n",required=False,action='store_true',help="Use field names instead of IDs in output",default=False)
     parser.add_argument("--verbose", "-v", help="Verbosity level",required=False,choices=("debug","info","warning","error"),default="info")
 
@@ -167,8 +167,9 @@ def main():
     LOGGER.info("selecting fields")
     allfields=set()
     for x in args.field:
-        allfields.add(x)
+        allfields.update(utils.readIDList(x))
     allfields.update(olink_fields) # contains short field names
+    LOGGER.info("total input fields: %d" %len(allfields))
 
     # remove fields that are not in header
     tmp=set()
