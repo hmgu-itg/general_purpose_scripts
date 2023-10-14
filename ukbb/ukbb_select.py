@@ -130,6 +130,7 @@ def main():
 
     # just output all sample IDs and exit
     if output_IDs:
+        LOGGER.info("output all sample IDs")
         df=pd.read_table(infile,skiprows=[1] if legacy_input else None,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["f.eid"])
         if outfname:
             df.to_csv(outfname,sep="\t",index=False)
