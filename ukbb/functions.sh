@@ -791,3 +791,19 @@ function join_two_files {
     # echo "DEBUG: joining, $infile1, $infile2, $outfile, $fmt"
     join --header -t$'\t' -1 "$col1" -2 "$col2" -a 1 -a 2 -e "NA" -o "$fmt" <(cat <(head -n 1 "$infile1") <(tail -n +2 "$infile1" | sort -t$'\t' -k"$col1","$col1")) <(cat <(head -n 1 "$infile2") <(tail -n +2 "$infile2" | sort -t$'\t' -k"$col2","$col2")) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' | cut -f 2- | sponge "$outfile"
 }
+
+# tab separated input
+# check if a value occurs in a column
+function find_value_in_column {
+    local fname=$1
+    local col=$2
+    local val=$3
+
+    while read x;do
+	if [[ "$x" == "$val" ]];then
+	    return 0
+	fi
+    done < <(cut -f "$col" "$fname")
+
+    return 1
+}
