@@ -761,18 +761,20 @@ function join_two_files {
     local outfile=$5
     local i
 
-    if [[ ! -s "$infile1" ]];then
-	# echo "DEBUG: copy $infile2 to $outfile"
-	cp "$infile2" "$outfile"
-	return
+    if [[ ! -e "$infile1" ]];then
+	if [[ -e "$infile2" ]];then
+	    cp "$infile2" "$outfile"
+	    return
+	else
+	    return
+	fi
+    else
+	if [[ ! -e "$infile2" ]];then
+	    cp "$infile1" "$outfile"
+	    return
+	fi
     fi
     
-    if [[ ! -s "$infile2" ]];then
-	# echo "DEBUG: copy $infile1 to $outfile"
-	cp "$infile1" "$outfile"
-	return
-    fi
-
     local nc1=$(head -n 1 "$infile1" | tr '\t' '\n' | wc -l)
     local nc2=$(head -n 1 "$infile2" | tr '\t' '\n' | wc -l)
 
