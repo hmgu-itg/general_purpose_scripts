@@ -53,6 +53,7 @@ def main():
     use_names=args.names
     use_olink=args.olink
     chunksize=args.chunk
+    output_IDs=False
 
     if args.verbose is not None:
         if args.verbose=="debug":
@@ -74,8 +75,9 @@ def main():
     logging.getLogger("itgukbb.utils").setLevel(verbosity)
 
     if len(args.field)==0 and use_olink==False and d_field is None and to_list==False:
-        LOGGER.error("at least one of the options --olink / --list / --field / --describe must be specified")
-        sys.exit(1)
+        output_IDs=True
+        # LOGGER.error("at least one of the options --olink / --list / --field / --describe must be specified")
+        # sys.exit(1)
 
     if (len(args.field)!=0 or use_olink) and outfname is None:
         LOGGER.error(" --output is not specified")
@@ -126,6 +128,17 @@ def main():
     legacy_input=is_legacy(infile)
     LOGGER.info("legacy input: %s" %(str(legacy_input)))
 
+    # just output all sample IDs and exit
+    if output_IDs:
+        df=pd.read_table(infile,skiprows=[1] if legacy_input else None,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["f.eid"])
+        if outfname:
+            df.to_csv(outfname,sep="\t",index=False)
+        else:
+            print(df.to_csv(sep="\t",index=False),end='')
+        sys.exit(0)
+        
+    #---------------------------------------------------------------------------------------------------------------------------
+    
     # describe a field and exit
     if d_field:
         if not d_field in HEADER:
@@ -148,6 +161,8 @@ def main():
             print(txt.center(os.get_terminal_size().columns))
         sys.exit(0)
 
+    #---------------------------------------------------------------------------------------------------------------------------
+    
     # just output info about available fields and exit
     if to_list:
         f=sys.stdout
