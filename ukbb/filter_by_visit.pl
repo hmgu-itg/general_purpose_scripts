@@ -19,9 +19,9 @@ sub compare_dates{
     return 0;
 }
 
-my $infile=$ARGV[0]
-my $visits=$ARGV[1]
-my $instance=$ARGV[2]
+my $infile=$ARGV[0];
+my $visits=$ARGV[1];
+my $instance=$ARGV[2];
 
 $\="\n";
 my $fh;

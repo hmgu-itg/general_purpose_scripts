@@ -70,6 +70,7 @@ if [[ "$instance" -lt 0 || "$instance" -gt 3 ]];then
 fi
 
 exitIfEmpty "$outprefix" "ERROR: output prefix not specified"
+exitIfDir "$outprefix" "ERROR: output prefix is a directory"
 if [[ -z "$config" ]];then
     config="${upperdir}"/config.txt
 fi
@@ -147,9 +148,9 @@ cut -f $(join_by "," "${tmp_ar[@]}") "$tmpout" | tail -n +2 | perl -slne '@a=spl
 
 visit_date="$tmpdir"/02.visits.txt
 "$main_select_script" -p "OA" -r "$main_release" -f "53" -o "$visit_date"  > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-instcol=$(head -n 1 "$visit_date" | perl -slne '@a=split(/\t/);for ($i=0;$i<scalar(@a);$i++){if ($a[$i]=~m/^f\.\d+\.(\d)\.\d+/){print $i+1 if ($1==$x);}}' -- -x="$instance")
-echo "DEBUG: column for instance $instance: $instcol"
-cut -f 1,"$instcol" "$visit_date" | tail -n +2 | grep -v "NA" | perl -lne '@a=split(/\t/);if ($a[1]=~m/(\d{4})-(\d{2})-(\d{2})/){$a[1]=$3."/".$2."/".$1;} print join("\t",@a);' | sponge "$visit_date" # ID and given instance column, re-formatted date, no header, skip NAs
+# instcol=$(head -n 1 "$visit_date" | perl -slne '@a=split(/\t/);for ($i=0;$i<scalar(@a);$i++){if ($a[$i]=~m/^f\.\d+\.(\d)\.\d+/){print $i+1 if ($1==$x);}}' -- -x="$instance")
+# echo "DEBUG: column for instance $instance: $instcol"
+# cut -f 1,"$instcol" "$visit_date" | tail -n +2 | grep -v "NA" | perl -lne '@a=split(/\t/);if ($a[1]=~m/(\d{4})-(\d{2})-(\d{2})/){$a[1]=$3."/".$2."/".$1;} print join("\t",@a);' | sponge "$visit_date" # ID and given instance column, re-formatted date, no header, skip NAs
 
 #----------------------------------------------------------------------------------------------------------------
 # 03
