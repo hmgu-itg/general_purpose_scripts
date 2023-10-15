@@ -36,7 +36,7 @@ def main():
     rgroup.add_argument('--project','-p',required=True,action='store',help="Project name")
     rgroup.add_argument('--release','-r',required=True,action='store',help="Project HESIN release")
     group=rgroup.add_mutually_exclusive_group(required=True)
-    group.add_argument('--opcs4','-opcs4',required=False,action='store',help="OPCS4 code or a file/list with OPCS4 codes")
+    group.add_argument('--opcs4','-opcs4',required=True,action='store',help="OPCS4 code or a file/list with OPCS4 codes")
     # opgroup=parser.add_argument_group("optional arguments")
     parser.add_argument('--id','-id',required=False,action='store',help="Patient ID or a file/list with patient IDs")
     parser.add_argument('--output','-o',required=False,action='store',help="Output file")
