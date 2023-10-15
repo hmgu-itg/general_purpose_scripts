@@ -86,7 +86,7 @@ def main():
         LOGGER.info("INPUT OPTIONS: %s : %s" % (arg, getattr(args, arg)))
 
     LOGGER.info("")
-    LOGGER.info("config file: %s" % config)
+    LOGGER.debug("config file: %s" % config)
     CONFIG=utils.readConfig(config)
     if CONFIG is None:
         sys.exit(1)
@@ -94,7 +94,7 @@ def main():
     if infile is None:
         sys.exit(1)
 
-    LOGGER.info("input file: %s" % infile)
+    LOGGER.debug("input file: %s" % infile)
     if id_list is None or len(id_list)==0:
         LOGGER.info("using all samples in input file")
     LOGGER.info("")
@@ -104,7 +104,10 @@ def main():
     if icd9 is None:
         icd=icd10
         icd_col="diag_icd10"
-        
+
+    LOGGER.debug("total ICD9 codes: %d" %(len(icd9) if icd9 else 0))
+    LOGGER.debug("total ICD10 codes: %d" %(len(icd10) if icd10 else 0))
+
 #-----------------------------------------------------------------------------------------------------------------------------
 
     with tarfile.open(infile,"r:*") as tar:
