@@ -133,13 +133,14 @@ echo ""|tee -a "$logfile"
 # SR cases, MAIN dataset
 # defining case as someone having 1465 in field 20002 at the specified instance or earlier
 
-tmpout="$tmpdir"/01.1.main_20002.txt
+tmpout="$tmpdir"/01.1.main_20002.txt # with header
 "$main_select_script" -p "OA" -r "$main_release" -f "20002" -o "$tmpout"  > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 tmp_ar=(1) # ID and columns for instances <= given instance
 while read c;do
     tmp_ar+=($c)
 done < <(head -n 1 "$tmpout" | perl -slne '@a=split(/\t/);for ($i=0;$i<scalar(@a);$i++){$z=$a[$i];if ($z=~m/^f\.\d+\.(\d+)\.\d+/){print $i+1 if ($1<=$x);}}' -- -x="$instance")
-oa_main_out="$tmpdir"/01.2.oa_main_cases.txt
+
+oa_main_out="$tmpdir"/01.2.oa_main_cases.txt # no header
 cut -f $(join_by "," "${tmp_ar[@]}") "$tmpout" | tail -n +2 | perl -slne '@a=split(/\t/);for ($i=1;$i<scalar(@a);$i++){if ($a[$i] eq $v){print $a[0];next;}}' -- -v="$OA_case_value" > "$oa_main_out"
 
 #----------------------------------------------------------------------------------------------------------------
@@ -175,7 +176,7 @@ for key in "${!oa_keys[@]}";do
 done
 
 if [[ "${#inclusion_final_files[@]}" -ne 0 ]];then
-    inclusion_final="$tmpdir"/03.5.case_inclusion_allkeys_final
+    inclusion_final="$tmpdir"/03.5.case_inclusion_allkeys_final # no header
     # join with visit dates, compare two dates, output sample ID if the first date <= second date
     for f in "${inclusion_final_files[@]}";do
 	join -1 1 -2 1 -t$'\t' -o 1.1,1.2,2.2 <(sort -k1,1 "$f") <(sort -k1,1 "$visit_date") | perl -lne '@a=split(/\t/);$id=shift(@a);@m1=$a[0]=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$a[1]=~m/(\d{2})\/(\d{2})\/(\d{4})/;next if ($m1[2]>$m2[2]);if ($m1[2]<$m2[2]){print $id;next;}next if ($m1[1]>$m2[1]);if ($m1[1]<$m2[1]){print $id;next;}next if ($m1[0]>$m2[0]);if ($m1[0]<=$m2[0]){print $id;}'
@@ -188,7 +189,7 @@ fi
 # 04
 # union of all cases based on inclusion criteria
 
-union_cases="$tmpdir"/04.union_cases
+union_cases="$tmpdir"/04.union_cases # no header
 cat "$inclusion_final" "$oa_main_out" | sort | uniq > "$union_cases"
 
 #------------------------------------------------------------------------------------------------------------------
@@ -216,10 +217,10 @@ fi
 # 06
 # final cases
 
-final_cases="$tmpdir"/06.final_cases
+final_cases="$tmpdir"/06.final_cases # no header
 
 if [[ -e "$temp_excl_final" ]];then
-    cat "$union_cases" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$temp_excl_final"
+    cat "$union_cases" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$temp_excl_final" > "$final_cases"
     # join -t $'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o 1.1,2.1 <(sort "$union_cases") <(sort "$temp_excl_final") | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){print $1;}}' > "$final_cases"
 else
     cp "$union_cases" "$final_cases"
@@ -229,18 +230,18 @@ fi
 # 07
 # total samples
 
-total_samples="$tmpdir"/07.total_samples
+total_samples="$tmpdir"/07.total_samples # with header
 "$main_select_script" -p "OA" -r "$main_release" -o "$total_samples"  > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
 #------------------------------------------------------------------------------------------------------------------
 # 08
 # control exclusion ICD codes
 
-ctl_excl_icd9="$tmpdir"/08.1.ctl_exclusion_icd9
-ctl_excl_icd10="$tmpdir"/08.2.ctl_exclusion_icd10
-ctl_excl_merged="$tmpdir"/08.3.ctl_exclusion_merged
-ctl_excl_min="$tmpdir"/08.4.ctl_exclusion_min
-ctl_excl_final_icd="$tmpdir"/08.5.ctl_exclusion_final_icd
+ctl_excl_icd9="$tmpdir"/08.1.ctl_exclusion_icd9 # with header
+ctl_excl_icd10="$tmpdir"/08.2.ctl_exclusion_icd10 # with header
+ctl_excl_merged="$tmpdir"/08.3.ctl_exclusion_merged # with header
+ctl_excl_min="$tmpdir"/08.4.ctl_exclusion_min # no header
+ctl_excl_final_icd="$tmpdir"/08.5.ctl_exclusion_final_icd # no header
 
 "$date_script" --icd9 <(grep ^icd9 "$icd_control_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$ctl_excl_icd9" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 "$date_script" --icd10 <(grep ^icd10 "$icd_control_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$ctl_excl_icd10" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
@@ -259,8 +260,8 @@ fi
 # 09
 # control exclusion OPCS4 codes
 
-ctl_excl_opcs4="$tmpdir"/09.1.ctl_exclusion_opcs4
-ctl_excl_final_opcs4="$tmpdir"/09.2.ctl_exclusion_final_opcs4
+ctl_excl_opcs4="$tmpdir"/09.1.ctl_exclusion_opcs4 # with header
+ctl_excl_final_opcs4="$tmpdir"/09.2.ctl_exclusion_final_opcs4 # no header
 
 "$date_op_script" --opcs4 "$op_control_exclusion_file" -p "OA" -r "$hesin_release" -o "$ctl_excl_opcs4" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
@@ -275,15 +276,16 @@ fi
 # 10
 # final controls
 
-ctl_excl_final="$tmpdir"/10.1.ctl_exclusion_final
-ctl_final="$tmpdir"/10.2.control_final
+ctl_excl_final="$tmpdir"/10.1.ctl_exclusion_final # no header
+ctl_final="$tmpdir"/10.2.control_final # no header
 
 cat "$oa_main_out" "$ctl_excl_final_icd" "$ctl_excl_final_opcs4" | sort | uniq > "$ctl_excl_final"
 n=$(cat "$ctl_excl_final" | wc -l)
 if [[ $n -ne 0 ]];then
-    join -t $'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o 1.1,2.1 <(sort "$total_samples") <(sort "$ctl_excl_final") | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){print $1;}}' > "$ctl_final"
+    tail -n +2 "$total_samples" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$ctl_excl_final" > "$ctl_final"
+    # join -t $'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o 1.1,2.1 <(tail -n +2 "$total_samples" < sort) <(sort "$ctl_excl_final") | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){print $1;}}' > "$ctl_final"
 else
-    cp "$total_samples" "$ctl_final"
+    tail -n +2 "$total_samples" > "$ctl_final"
 fi
 
 #------------------------------------------------------------------------------------------------------------------
