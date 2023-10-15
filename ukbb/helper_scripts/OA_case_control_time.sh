@@ -136,13 +136,16 @@ echo ""|tee -a "$logfile"
 # defining case as someone having 1465 in field 20002 at the specified instance or earlier
 
 tmpout="$tmpdir"/01.1.main_20002.txt # with header
-"$main_select_script" -p "OA" -r "$main_release" -f "20002" -o "$tmpout"  > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+oa_main_out="$tmpdir"/01.2.oa_main_cases.txt # no header
+
+echo "INFO: 01 selecting SR cases; saving results in $oa_main_out"
+
+"$main_select_script" -p "OA" -r "$main_release" -f "20002" -o "$tmpout" >>"$logfile" 2>>"$logfile"
 tmp_ar=(1) # ID and columns for instances <= given instance
 while read c;do
     tmp_ar+=($c)
 done < <(head -n 1 "$tmpout" | perl -slne '@a=split(/\t/);for ($i=0;$i<scalar(@a);$i++){$z=$a[$i];if ($z=~m/^f\.\d+\.(\d+)\.\d+/){print $i+1 if ($1<=$x);}}' -- -x="$instance")
 
-oa_main_out="$tmpdir"/01.2.oa_main_cases.txt # no header
 cut -f $(join_by "," "${tmp_ar[@]}") "$tmpout" | tail -n +2 | perl -slne '@a=split(/\t/);for ($i=1;$i<scalar(@a);$i++){if ($a[$i] eq $v){print $a[0];next;}}' -- -v="$OA_case_value" > "$oa_main_out"
 
 #----------------------------------------------------------------------------------------------------------------
@@ -150,7 +153,10 @@ cut -f $(join_by "," "${tmp_ar[@]}") "$tmpout" | tail -n +2 | perl -slne '@a=spl
 # visit dates
 
 visit_date="$tmpdir"/02.visits.txt # with header
-"$main_select_script" -p "OA" -r "$main_release" -f "53" -o "$visit_date"  > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+
+echo "INFO: 02 selecting visit dates; saving results in $visit_date"
+
+"$main_select_script" -p "OA" -r "$main_release" -f "53" -o "$visit_date" >>"$logfile" 2>>"$logfile"
 
 # instcol=$(head -n 1 "$visit_date" | perl -slne '@a=split(/\t/);for ($i=0;$i<scalar(@a);$i++){if ($a[$i]=~m/^f\.\d+\.(\d)\.\d+/){print $i+1 if ($1==$x);}}' -- -x="$instance")
 # echo "DEBUG: column for instance $instance: $instcol"
@@ -160,6 +166,10 @@ visit_date="$tmpdir"/02.visits.txt # with header
 # 03
 # cases, inclusion ICD codes
 
+
+inclusion_final="$tmpdir"/03.5.case_inclusion_allkeys_final # no header
+echo "INFO: 03 selecting cases based on ICD codes; saving results in $inclusion_final"
+
 declare -a inclusion_final_files
 for key in "${!oa_keys[@]}";do
     tmp_incl_icd9="$tmpdir"/03.1.case_inclusion_"${key}"_icd9
@@ -167,8 +177,8 @@ for key in "${!oa_keys[@]}";do
     tmp_incl_merged="$tmpdir"/03.3.case_inclusion_merged_"${key}"
     tmp_incl_min="$tmpdir"/03.4.case_inclusion_"${key}"_min
     
-    "$date_script" --icd9 <(grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}') -p "OA" -r "$hesin_release" -o "$tmp_incl_icd9" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-    "$date_script" --icd10 <(grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}') -p "OA" -r "$hesin_release" -o "$tmp_incl_icd10" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+    "$date_script" --icd9 <(grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd9"{print $3;}') -p "OA" -r "$hesin_release" -o "$tmp_incl_icd9" >>"$logfile" 2>>"$logfile"
+    "$date_script" --icd10 <(grep -v "^#" "$icd_inclusion_file" | awk -v k=$key 'BEGIN{FS="\t";}$1==k && $2=="icd10"{print $3;}') -p "OA" -r "$hesin_release" -o "$tmp_incl_icd10" >>"$logfile" 2>>"$logfile"
     
     join_two_files "$tmp_incl_icd9" 1 "$tmp_incl_icd10" 1 "$tmp_incl_merged" # output with header
     
@@ -179,8 +189,6 @@ for key in "${!oa_keys[@]}";do
 done
 
 if [[ "${#inclusion_final_files[@]}" -ne 0 ]];then
-    inclusion_final="$tmpdir"/03.5.case_inclusion_allkeys_final # no header
-    # join with visit dates, compare two dates, output sample ID if the first date <= second date
     for f in "${inclusion_final_files[@]}";do
 	"$filter_script" "$f" "$visit_date" "$instance"
 	# join -1 1 -2 1 -t$'\t' -o 1.1,1.2,2.2 <(sort -k1,1 "$f") <(sort -k1,1 "$visit_date") | perl -lne '@a=split(/\t/);$id=shift(@a);@m1=$a[0]=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$a[1]=~m/(\d{2})\/(\d{2})\/(\d{4})/;next if ($m1[2]>$m2[2]);if ($m1[2]<$m2[2]){print $id;next;}next if ($m1[1]>$m2[1]);if ($m1[1]<$m2[1]){print $id;next;}next if ($m1[0]>$m2[0]);if ($m1[0]<=$m2[0]){print $id;}'
@@ -194,6 +202,7 @@ fi
 # union of all cases based on inclusion criteria
 
 union_cases="$tmpdir"/04.union_cases # no header
+echo "INFO: 04 combining SR cases and ICD based cases; saving results in $union_cases"
 cat "$inclusion_final" "$oa_main_out" | sort | uniq > "$union_cases"
 
 #------------------------------------------------------------------------------------------------------------------
@@ -206,8 +215,10 @@ temp_excl_merged="$tmpdir"/05.3.exclusion_merged
 temp_excl_min="$tmpdir"/05.4.exclusion_min
 temp_excl_final="$tmpdir"/05.5.exclusion_final
 
-"$date_script" --icd9 <(grep ^icd9 "$icd_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$temp_excl_icd9" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-"$date_script" --icd10 <(grep ^icd10 "$icd_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$temp_excl_icd10" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+echo "INFO: 05 excluding cases based on ICD codes; saving results in $temp_excl_final"
+
+"$date_script" --icd9 <(grep ^icd9 "$icd_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$temp_excl_icd9" >>"$logfile" 2>>"$logfile"
+"$date_script" --icd10 <(grep ^icd10 "$icd_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$temp_excl_icd10" >>"$logfile" 2>>"$logfile"
 
 join_two_files "$temp_excl_icd9" 1 "$temp_excl_icd10" 1 "$temp_excl_merged" # output with header
 
@@ -223,6 +234,7 @@ fi
 # final cases
 
 final_cases="$tmpdir"/06.final_cases # no header
+echo "INFO: 06 creating final set of cases; saving results in $final_cases"
 
 if [[ -e "$temp_excl_final" ]];then
     cat "$union_cases" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$temp_excl_final" > "$final_cases"
@@ -236,6 +248,8 @@ fi
 # total samples
 
 total_samples="$tmpdir"/07.total_samples # with header
+echo "INFO: 07 extracting all sample IDs; saving results in $total_samples"
+
 "$main_select_script" -p "OA" -r "$main_release" -o "$total_samples"  > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
 #------------------------------------------------------------------------------------------------------------------
@@ -248,8 +262,10 @@ ctl_excl_merged="$tmpdir"/08.3.ctl_exclusion_merged # with header
 ctl_excl_min="$tmpdir"/08.4.ctl_exclusion_min # no header
 ctl_excl_final_icd="$tmpdir"/08.5.ctl_exclusion_final_icd # no header
 
-"$date_script" --icd9 <(grep ^icd9 "$icd_control_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$ctl_excl_icd9" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-"$date_script" --icd10 <(grep ^icd10 "$icd_control_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$ctl_excl_icd10" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+echo "INFO: 08 excluding samples from controls based on ICD codes; saving results in $ctl_excl_final_icd"
+
+"$date_script" --icd9 <(grep ^icd9 "$icd_control_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$ctl_excl_icd9" >>"$logfile" 2>>"$logfile"
+"$date_script" --icd10 <(grep ^icd10 "$icd_control_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$ctl_excl_icd10" >>"$logfile" 2>>"$logfile"
     
 join_two_files "$ctl_excl_icd9" 1 "$ctl_excl_icd10" 1 "$ctl_excl_merged" # output with header
 
@@ -269,6 +285,8 @@ fi
 ctl_excl_opcs4="$tmpdir"/09.1.ctl_exclusion_opcs4 # with header
 ctl_excl_final_opcs4="$tmpdir"/09.2.ctl_exclusion_final_opcs4 # no header
 
+echo "INFO: 09 excluding samples from controls based on OPCS4 codes; saving results in $ctl_excl_final_opcs4"
+
 "$date_op_script" --opcs4 "$op_control_exclusion_file" -p "OA" -r "$hesin_release" -o "$ctl_excl_opcs4" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
 if [[ -e "$ctl_excl_opcs4" ]];then
@@ -287,6 +305,8 @@ fi
 ctl_excl_final="$tmpdir"/10.1.ctl_exclusion_final # no header
 ctl_final="$tmpdir"/10.2.control_final # no header
 
+echo "INFO: 10 creating final set of controls; saving results in $ctl_final"
+
 cat "$oa_main_out" "$ctl_excl_final_icd" "$ctl_excl_final_opcs4" | sort | uniq > "$ctl_excl_final"
 n=$(cat "$ctl_excl_final" | wc -l)
 if [[ $n -ne 0 ]];then
@@ -299,6 +319,8 @@ fi
 #------------------------------------------------------------------------------------------------------------------
 # 11
 # output
+
+echo "INFO: 11 creating output; saving results in $outfile"
 
 n=$(cat "$final_cases" | wc -l)
 m=$(cat "$ctl_final" | wc -l)
