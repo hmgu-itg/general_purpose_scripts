@@ -24,6 +24,7 @@ my $visits=$ARGV[1];
 my $instance=$ARGV[2];
 
 $\="\n";
+$,="\t";
 my $fh;
 my %VC; # instance --> column
 my %VCD; # ID --> [ visit_0, visit_1, ... ]
@@ -38,7 +39,6 @@ while(<$fh>){
     if ($.==1){
 	for (my $i=1;$i<scalar(@a);$i++){
 	    $a[$i]=~m/^f\.\d+\.(\d)\.\d+/;
-	    print $1;
 	    if (!defined($min_inst)){
 		$min_inst=$1;
 	    }
@@ -53,13 +53,10 @@ while(<$fh>){
 	    }	    
 	    $VC{$1}=$i;
 	}
-	print $min_inst;
-	print $max_inst;
-	exit(1);
 	next;
     }
 
-    $VCD{$a[0]}=();
+    # $VCD{$a[0]}=();
     my @b=();
     # recode date
     for (my $i=1;$i<scalar(@a);$i++){
@@ -70,9 +67,13 @@ while(<$fh>){
 	    push @b,$a[$i];
 	}
     }
+    # print "array b=".join(",",@b);
     for (my $i=$min_inst;$i<=$max_inst;$i++){
-	push @{$VCD{$a[0]}},$b[$VC{$i}];
+	# print "instance=".$i." column=".$VC{$i}." b=".$b[$VC{$i}-1];
+	push @{$VCD{$a[0]}},$b[$VC{$i}-1];
     }
+    # print $a[0],join(",",@{$VCD{$a[0]}});
+    
 }
 close($fh);
 
@@ -88,7 +89,7 @@ while(<$fh>){
 	    my $d2=$$r[$i-$min_inst];
 	    next if ($d2 eq "NA");
 	    if (compare_dates($d1,$d2)!=1){
-		print $id;
+		print $id,$d1."<=".$d2;
 		last;
 	    }
 	}
