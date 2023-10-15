@@ -185,6 +185,16 @@ function exitIfNotDir {
     fi
 }
 
+# print error message and exit if the first argument is not a directory
+function exitIfDir {
+    local name=$1
+    local msg=$2
+    if [[ -d "$name" ]];then
+	echo $msg
+	exit 1
+    fi
+}
+
 # check if necessary commands are present
 function checkInstalledCommands {
     local cmds=("$@")
