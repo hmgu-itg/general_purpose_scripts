@@ -219,7 +219,8 @@ fi
 final_cases="$tmpdir"/06.final_cases
 
 if [[ -e "$temp_excl_final" ]];then
-    join -t $'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o 1.1,2.1 <(sort "$union_cases") <(sort "$temp_excl_final") | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){print $1;}}' > "$final_cases"
+    cat "$union_cases" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$temp_excl_final"
+    # join -t $'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o 1.1,2.1 <(sort "$union_cases") <(sort "$temp_excl_final") | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){print $1;}}' > "$final_cases"
 else
     cp "$union_cases" "$final_cases"
 fi
