@@ -250,7 +250,7 @@ fi
 total_samples="$tmpdir"/07.total_samples # with header
 echo $(date "+%d-%b-%Y:%H-%M-%S") "07 extracting all sample IDs; saving results in $total_samples"
 
-"$main_select_script" -p "OA" -r "$main_release" -o "$total_samples"  > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+"$main_select_script" -p "OA" -r "$main_release" -o "$total_samples" >>"$logfile" 2>>"$logfile"
 
 #------------------------------------------------------------------------------------------------------------------
 # 08
@@ -287,7 +287,7 @@ ctl_excl_final_opcs4="$tmpdir"/09.2.ctl_exclusion_final_opcs4 # no header
 
 echo $(date "+%d-%b-%Y:%H-%M-%S") "09 excluding samples from controls based on OPCS4 codes; saving results in $ctl_excl_final_opcs4"
 
-"$date_op_script" --opcs4 "$op_control_exclusion_file" -p "OA" -r "$hesin_release" -o "$ctl_excl_opcs4" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
+"$date_op_script" --opcs4 "$op_control_exclusion_file" -p "OA" -r "$hesin_release" -o "$ctl_excl_opcs4" >>"$logfile" 2>>"$logfile"
 
 if [[ -e "$ctl_excl_opcs4" ]];then
     tail -n +2  "$ctl_excl_opcs4" | sponge  "$ctl_excl_opcs4"
