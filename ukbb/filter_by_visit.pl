@@ -38,6 +38,7 @@ while(<$fh>){
     if ($.==1){
 	for (my $i=1;$i<scalar(@a);$i++){
 	    $a[$i]=~m/^f\.\d+\.(\d)\.\d+/;
+	    print $1;
 	    if (!defined($min_inst)){
 		$min_inst=$1;
 	    }
@@ -52,6 +53,9 @@ while(<$fh>){
 	    }	    
 	    $VC{$1}=$i;
 	}
+	print $min_inst;
+	print $max_inst;
+	exit(1);
 	next;
     }
 
