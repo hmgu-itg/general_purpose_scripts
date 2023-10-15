@@ -148,9 +148,9 @@ cut -f $(join_by "," "${tmp_ar[@]}") "$tmpout" | tail -n +2 | perl -slne '@a=spl
 
 visit_date="$tmpdir"/02.visits.txt
 "$main_select_script" -p "OA" -r "$main_release" -f "53" -o "$visit_date"  > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
-# instcol=$(head -n 1 "$visit_date" | perl -slne '@a=split(/\t/);for ($i=0;$i<scalar(@a);$i++){if ($a[$i]=~m/^f\.\d+\.(\d)\.\d+/){print $i+1 if ($1==$x);}}' -- -x="$instance")
-# echo "DEBUG: column for instance $instance: $instcol"
-# cut -f 1,"$instcol" "$visit_date" | tail -n +2 | grep -v "NA" | perl -lne '@a=split(/\t/);if ($a[1]=~m/(\d{4})-(\d{2})-(\d{2})/){$a[1]=$3."/".$2."/".$1;} print join("\t",@a);' | sponge "$visit_date" # ID and given instance column, re-formatted date, no header, skip NAs
+instcol=$(head -n 1 "$visit_date" | perl -slne '@a=split(/\t/);for ($i=0;$i<scalar(@a);$i++){if ($a[$i]=~m/^f\.\d+\.(\d)\.\d+/){print $i+1 if ($1==$x);}}' -- -x="$instance")
+echo "DEBUG: column for instance $instance: $instcol"
+cut -f 1,"$instcol" "$visit_date" | tail -n +2 | grep -v "NA" | perl -lne '@a=split(/\t/);if ($a[1]=~m/(\d{4})-(\d{2})-(\d{2})/){$a[1]=$3."/".$2."/".$1;} print join("\t",@a);' | sponge "$visit_date" # ID and given instance column, re-formatted date, no header, skip NAs
 
 #----------------------------------------------------------------------------------------------------------------
 # 03
@@ -178,7 +178,7 @@ if [[ "${#inclusion_final_files[@]}" -ne 0 ]];then
     inclusion_final="$tmpdir"/03.5.case_inclusion_allkeys_final
     # join with visit dates, compare two dates, output sample ID if the first date <= second date
     for f in "${inclusion_final_files[@]}";do
-	join -1 1 -2 1 -t$'\t' -o 1.1,1.2,2.2 <(sort -k1,1 "$f") <(sort -k1,1 "$visit_date") | perl -lne '@a=split(/\t/);$id=shift(@a);@m1=$a[0]=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$a[1]=~m/(\d{2})\/(\d{2})\/(\d{4})/;next if ($m1[2]>$m2[2]);if ($m1[2]<$m2[2]){print $id;next;}next if ($m1[1]>$m2[1]);if ($m1[1]<$m2[1]){print $id;next;}next if ($m1[2]>$m2[2]);if ($m1[2]<=$m2[2]){print $id;}'
+	join -1 1 -2 1 -t$'\t' -o 1.1,1.2,2.2 <(sort -k1,1 "$f") <(sort -k1,1 "$visit_date") | perl -lne '@a=split(/\t/);$id=shift(@a);@m1=$a[0]=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$a[1]=~m/(\d{2})\/(\d{2})\/(\d{4})/;next if ($m1[2]>$m2[2]);if ($m1[2]<$m2[2]){print $id;next;}next if ($m1[1]>$m2[1]);if ($m1[1]<$m2[1]){print $id;next;}next if ($m1[0]>$m2[0]);if ($m1[0]<=$m2[0]){print $id;}'
     done | sort | uniq > "$inclusion_final"
 else
     : > "$inclusion_final"
@@ -209,7 +209,7 @@ join_two_files "$temp_excl_icd9" 1 "$temp_excl_icd10" 1 "$temp_excl_merged" # ou
 if [[ -e "$temp_excl_merged" ]];then
     tail -n +2 "$temp_excl_merged" | perl -lne 'BEGIN{$,="\t";sub compare{return -1 if $b!~/\d{2}\/\d{2}\/\d{4}/;return 1 if $a!~/\d{2}\/\d{2}\/\d{4}/;@m1=$a=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$b=~m/(\d{2})\/(\d{2})\/(\d{4})/;return -1 if ($m1[2]<$m2[2]);return 1 if ($m1[2]>$m2[2]);return -1 if ($m1[1]<$m2[1]);return 1 if ($m1[1]>$m2[1]);return -1 if ($m1[0]<$m2[0]);return 1 if ($m1[0]>$m2[0]);return 0;}}{@a=split(/\t/);$id=shift(@a);@b=sort compare @a;print $id,$b[0];}' > "$temp_excl_min" # no header
     # join with visit dates, compare two dates, output sample ID if the first date <= second date
-    join -1 1 -2 1 -t$'\t' -o 1.1,1.2,2.2 <(sort -k1,1 "$temp_excl_min") <(sort -k1,1 "$visit_date") | perl -lne '@a=split(/\t/);$id=shift(@a);@m1=$a[0]=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$a[1]=~m/(\d{2})\/(\d{2})\/(\d{4})/;next if ($m1[2]>$m2[2]);if ($m1[2]<$m2[2]){print $id;next;}next if ($m1[1]>$m2[1]);if ($m1[1]<$m2[1]){print $id;next;}next if ($m1[2]>$m2[2]);if ($m1[2]<=$m2[2]){print $id;}' > "$temp_excl_final"
+    join -1 1 -2 1 -t$'\t' -o 1.1,1.2,2.2 <(sort -k1,1 "$temp_excl_min") <(sort -k1,1 "$visit_date") | perl -lne '@a=split(/\t/);$id=shift(@a);@m1=$a[0]=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$a[1]=~m/(\d{2})\/(\d{2})\/(\d{4})/;next if ($m1[2]>$m2[2]);if ($m1[2]<$m2[2]){print $id;next;}next if ($m1[1]>$m2[1]);if ($m1[1]<$m2[1]){print $id;next;}next if ($m1[0]>$m2[0]);if ($m1[0]<=$m2[0]){print $id;}' > "$temp_excl_final"
 fi
 
 #------------------------------------------------------------------------------------------------------------------
@@ -249,7 +249,7 @@ join_two_files "$ctl_excl_icd9" 1 "$ctl_excl_icd10" 1 "$ctl_excl_merged" # outpu
 if [[ -e "$ctl_excl_merged" ]];then
     tail -n +2 "$ctl_excl_merged" | perl -lne 'BEGIN{$,="\t";sub compare{return -1 if $b!~/\d{2}\/\d{2}\/\d{4}/;return 1 if $a!~/\d{2}\/\d{2}\/\d{4}/;@m1=$a=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$b=~m/(\d{2})\/(\d{2})\/(\d{4})/;return -1 if ($m1[2]<$m2[2]);return 1 if ($m1[2]>$m2[2]);return -1 if ($m1[1]<$m2[1]);return 1 if ($m1[1]>$m2[1]);return -1 if ($m1[0]<$m2[0]);return 1 if ($m1[0]>$m2[0]);return 0;}}{@a=split(/\t/);$id=shift(@a);@b=sort compare @a;print $id,$b[0];}' > "$ctl_excl_min" # no header
     # join with visit dates, compare two dates, output sample ID if the first date <= second date
-    join -1 1 -2 1 -t$'\t' -o 1.1,1.2,2.2 <(sort -k1,1 "$ctl_excl_min") <(sort -k1,1 "$visit_date") | perl -lne '@a=split(/\t/);$id=shift(@a);@m1=$a[0]=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$a[1]=~m/(\d{2})\/(\d{2})\/(\d{4})/;next if ($m1[2]>$m2[2]);if ($m1[2]<$m2[2]){print $id;next;}next if ($m1[1]>$m2[1]);if ($m1[1]<$m2[1]){print $id;next;}next if ($m1[2]>$m2[2]);if ($m1[2]<=$m2[2]){print $id;}' > "$ctl_excl_final_icd"
+    join -1 1 -2 1 -t$'\t' -o 1.1,1.2,2.2 <(sort -k1,1 "$ctl_excl_min") <(sort -k1,1 "$visit_date") | perl -lne '@a=split(/\t/);$id=shift(@a);@m1=$a[0]=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$a[1]=~m/(\d{2})\/(\d{2})\/(\d{4})/;next if ($m1[2]>$m2[2]);if ($m1[2]<$m2[2]){print $id;next;}next if ($m1[1]>$m2[1]);if ($m1[1]<$m2[1]){print $id;next;}next if ($m1[0]>$m2[0]);if ($m1[0]<=$m2[0]){print $id;}' > "$ctl_excl_final_icd"
 else
     : > "$ctl_excl_final_icd"
 fi
@@ -265,7 +265,7 @@ ctl_excl_final_opcs4="$tmpdir"/09.2.ctl_exclusion_final_opcs4
 
 if [[ -e "$ctl_excl_opcs4" ]];then
     # join with visit dates, compare two dates, output sample ID if the first date <= second date
-    join -1 1 -2 1 -t$'\t' -o 1.1,1.2,2.2 <(tail -n +2 "$ctl_excl_opcs4" | sort -k1,1) <(sort -k1,1 "$visit_date") | perl -lne '@a=split(/\t/);$id=shift(@a);@m1=$a[0]=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$a[1]=~m/(\d{2})\/(\d{2})\/(\d{4})/;next if ($m1[2]>$m2[2]);if ($m1[2]<$m2[2]){print $id;next;}next if ($m1[1]>$m2[1]);if ($m1[1]<$m2[1]){print $id;next;}next if ($m1[2]>$m2[2]);if ($m1[2]<=$m2[2]){print $id;}' > "$ctl_excl_final_opcs4"
+    join -1 1 -2 1 -t$'\t' -o 1.1,1.2,2.2 <(tail -n +2 "$ctl_excl_opcs4" | sort -k1,1) <(sort -k1,1 "$visit_date") | perl -lne '@a=split(/\t/);$id=shift(@a);@m1=$a[0]=~m/(\d{2})\/(\d{2})\/(\d{4})/;@m2=$a[1]=~m/(\d{2})\/(\d{2})\/(\d{4})/;next if ($m1[2]>$m2[2]);if ($m1[2]<$m2[2]){print $id;next;}next if ($m1[1]>$m2[1]);if ($m1[1]<$m2[1]){print $id;next;}next if ($m1[0]>$m2[0]);if ($m1[0]<=$m2[0]){print $id;}' > "$ctl_excl_final_opcs4"
 else
     : > "$ctl_excl_final_opcs4"
 fi
