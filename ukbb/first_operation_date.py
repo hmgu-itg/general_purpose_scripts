@@ -65,7 +65,7 @@ def main():
         elif args.verbose=="error":
             verbosity=logging.ERROR
 
-    LOGGER=logging.getLogger("first_diagnosis_date")
+    LOGGER=logging.getLogger("first_operation_date")
     LOGGER.setLevel(verbosity)
     ch=logging.StreamHandler(sys.stderr)
     ch.setLevel(verbosity)
@@ -105,7 +105,7 @@ def main():
     with tarfile.open(infile,"r:*") as tar:
         df_main=pd.read_table(tar.extractfile("hesin.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","epistart","epiend","admidate"])
         df_oper=pd.read_table(tar.extractfile("hesin_oper.txt"),sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=["eid","ins_index","opdate","oper4"])
-        JT=pd.merge(df_main,df_diag,on=["eid","ins_index"],how="inner")
+        JT=pd.merge(df_main,df_oper,on=["eid","ins_index"],how="inner")
         if id_list is None or len(id_list)==0:
             JT=JT[JT["oper4"].isin(opcs4)]
         else:
