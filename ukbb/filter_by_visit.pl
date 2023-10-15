@@ -89,7 +89,8 @@ while(<$fh>){
 	    my $d2=$$r[$i-$min_inst];
 	    next if ($d2 eq "NA");
 	    if (compare_dates($d1,$d2)!=1){
-		print $id,$d1."<=".$d2;
+		# print $id,$d1."<=".$d2;
+		print $id;
 		last;
 	    }
 	}
