@@ -138,7 +138,7 @@ echo ""|tee -a "$logfile"
 tmpout="$tmpdir"/01.1.main_20002.txt # with header
 oa_main_out="$tmpdir"/01.2.oa_main_cases.txt # no header
 
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 01 selecting SR cases; saving results in $oa_main_out"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "01 selecting SR cases; saving results in $oa_main_out"
 
 "$main_select_script" -p "OA" -r "$main_release" -f "20002" -o "$tmpout" >>"$logfile" 2>>"$logfile"
 tmp_ar=(1) # ID and columns for instances <= given instance
@@ -154,7 +154,7 @@ cut -f $(join_by "," "${tmp_ar[@]}") "$tmpout" | tail -n +2 | perl -slne '@a=spl
 
 visit_date="$tmpdir"/02.visits.txt # with header
 
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 02 selecting visit dates; saving results in $visit_date"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "02 selecting visit dates; saving results in $visit_date"
 
 "$main_select_script" -p "OA" -r "$main_release" -f "53" -o "$visit_date" >>"$logfile" 2>>"$logfile"
 
@@ -168,7 +168,7 @@ echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 02 selecting visit dates; saving result
 
 
 inclusion_final="$tmpdir"/03.5.case_inclusion_allkeys_final # no header
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 03 selecting cases based on ICD codes; saving results in $inclusion_final"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "03 selecting cases based on ICD codes; saving results in $inclusion_final"
 
 declare -a inclusion_final_files
 for key in "${!oa_keys[@]}";do
@@ -202,7 +202,7 @@ fi
 # union of all cases based on inclusion criteria
 
 union_cases="$tmpdir"/04.union_cases # no header
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 04 combining SR cases and ICD based cases; saving results in $union_cases"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "04 combining SR cases and ICD based cases; saving results in $union_cases"
 cat "$inclusion_final" "$oa_main_out" | sort | uniq > "$union_cases"
 
 #------------------------------------------------------------------------------------------------------------------
@@ -215,7 +215,7 @@ temp_excl_merged="$tmpdir"/05.3.exclusion_merged
 temp_excl_min="$tmpdir"/05.4.exclusion_min
 temp_excl_final="$tmpdir"/05.5.exclusion_final
 
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 05 excluding cases based on ICD codes; saving results in $temp_excl_final"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "05 excluding cases based on ICD codes; saving results in $temp_excl_final"
 
 "$date_script" --icd9 <(grep ^icd9 "$icd_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$temp_excl_icd9" >>"$logfile" 2>>"$logfile"
 "$date_script" --icd10 <(grep ^icd10 "$icd_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$temp_excl_icd10" >>"$logfile" 2>>"$logfile"
@@ -234,7 +234,7 @@ fi
 # final cases
 
 final_cases="$tmpdir"/06.final_cases # no header
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 06 creating final set of cases; saving results in $final_cases"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "06 creating final set of cases; saving results in $final_cases"
 
 if [[ -e "$temp_excl_final" ]];then
     cat "$union_cases" | perl -snle 'BEGIN{%h=();if (length($f)!=0){open(fh,"<",$f);while(<fh>){chomp;$h{$_}=1;}close(fh);}}{@a=split(/\t/);if (!defined($h{$a[0]})){print $_;}}' -- -f="$temp_excl_final" > "$final_cases"
@@ -248,7 +248,7 @@ fi
 # total samples
 
 total_samples="$tmpdir"/07.total_samples # with header
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 07 extracting all sample IDs; saving results in $total_samples"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "07 extracting all sample IDs; saving results in $total_samples"
 
 "$main_select_script" -p "OA" -r "$main_release" -o "$total_samples"  > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
@@ -262,7 +262,7 @@ ctl_excl_merged="$tmpdir"/08.3.ctl_exclusion_merged # with header
 ctl_excl_min="$tmpdir"/08.4.ctl_exclusion_min # no header
 ctl_excl_final_icd="$tmpdir"/08.5.ctl_exclusion_final_icd # no header
 
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 08 excluding samples from controls based on ICD codes; saving results in $ctl_excl_final_icd"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "08 excluding samples from controls based on ICD codes; saving results in $ctl_excl_final_icd"
 
 "$date_script" --icd9 <(grep ^icd9 "$icd_control_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$ctl_excl_icd9" >>"$logfile" 2>>"$logfile"
 "$date_script" --icd10 <(grep ^icd10 "$icd_control_exclusion_file" | cut -f 2) -p "OA" -r "$hesin_release" -o "$ctl_excl_icd10" >>"$logfile" 2>>"$logfile"
@@ -285,7 +285,7 @@ fi
 ctl_excl_opcs4="$tmpdir"/09.1.ctl_exclusion_opcs4 # with header
 ctl_excl_final_opcs4="$tmpdir"/09.2.ctl_exclusion_final_opcs4 # no header
 
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 09 excluding samples from controls based on OPCS4 codes; saving results in $ctl_excl_final_opcs4"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "09 excluding samples from controls based on OPCS4 codes; saving results in $ctl_excl_final_opcs4"
 
 "$date_op_script" --opcs4 "$op_control_exclusion_file" -p "OA" -r "$hesin_release" -o "$ctl_excl_opcs4" > >(tee -a "$logfile") 2> >(tee -a "$logfile" >&2)
 
@@ -305,7 +305,7 @@ fi
 ctl_excl_final="$tmpdir"/10.1.ctl_exclusion_final # no header
 ctl_final="$tmpdir"/10.2.control_final # no header
 
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 10 creating final set of controls; saving results in $ctl_final"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "10 creating final set of controls; saving results in $ctl_final"
 
 cat "$oa_main_out" "$ctl_excl_final_icd" "$ctl_excl_final_opcs4" | sort | uniq > "$ctl_excl_final"
 n=$(cat "$ctl_excl_final" | wc -l)
@@ -320,7 +320,7 @@ fi
 # 11
 # output
 
-echo $(date "+%d-%b-%Y:%H-%M-%S") "INFO: 11 creating output; saving results in $outfile"
+echo $(date "+%d-%b-%Y:%H-%M-%S") "11 creating output; saving results in $outfile"
 
 n=$(cat "$final_cases" | wc -l)
 m=$(cat "$ctl_final" | wc -l)
@@ -329,7 +329,7 @@ cat <(paste "$final_cases" <(yes "1" | head -n "$n")) <(paste "$ctl_final" <(yes
 #------------------------------------------------------------------------------------------------------------------
 
 if [[ "$keep" == "NO" ]];then
-    echo "INFO: deleting temp dir $tmpdir"
+    echo $(date "+%d-%b-%Y:%H-%M-%S") "deleting temp dir $tmpdir"
     rm -rf "$tmpdir"
 fi
 
