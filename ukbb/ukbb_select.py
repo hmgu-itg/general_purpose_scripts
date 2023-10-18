@@ -205,6 +205,7 @@ def main():
     for c in allfields:
         for f in HEADER[c]:
             to_keep.append(f)
+    to_keep=sorted(to_keep)
     rename_mapper=dict()
     to_keep2=to_keep # long field names with proper name
     if use_names:
@@ -224,6 +225,7 @@ def main():
                 rename_mapper[c]=re.sub(r"^f\.(\d+)(\.\d+\.\d+)$",s+"\\2",c) # f.1234.0.1 --> field_name.0.1
                 continue
         to_keep2=list(rename_mapper.values())
+        to_keep2=sorted(to_keep2)
         
     nrows=get_nrows(infile,legacy_input)
     total_chunks=nrows//chunksize
