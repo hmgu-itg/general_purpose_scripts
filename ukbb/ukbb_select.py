@@ -193,7 +193,7 @@ def main():
             
         for x in HEADER:
             if x in DICT:
-                print("{0}\t{1}\t{2}\t{3}\t{4:.5f}".format(x,len(HEADER[x]),DICT[x]["Field"],DICT[x]["ValueType"]),NAcount[x]/(nrows*len(HEADER[x])),file=f)
+                print("{0}\t{1}\t{2}\t{3}\t{4:.5f}".format(x,len(HEADER[x]),DICT[x]["Field"],DICT[x]["ValueType"],NAcount[x]/(nrows*len(HEADER[x]))),file=f)
             else:
                 print("{}\t{}\t{}\t{}\t{}".format(x,len(HEADER[x]),"NA","NA","NA"),file=f)
                 LOGGER.warning("%s is not in data dictionary" % x)
