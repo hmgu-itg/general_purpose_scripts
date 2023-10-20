@@ -183,7 +183,7 @@ def main():
             total_chunks+=1
         LOGGER.info("total rows: %d; total chunks: %d" %(nrows,total_chunks))
         current_chunk=1
-        for chunk in pd.read_table(infile,skiprows=[1] if legacy_input else None,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=to_keep,chunksize=chunksize):
+        for chunk in pd.read_table(infile,skiprows=[1] if legacy_input else None,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,chunksize=chunksize):
             LOGGER.info("chunk %d / %d" %(current_chunk,total_chunks))
             for x in HEADER:
                 df=chunk[HEADER[x]]
