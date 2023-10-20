@@ -173,6 +173,24 @@ def main():
             else:
                 f=open(outfname,"w")
             print("{}\t{}\t{}\t{}".format("Field","Instances","Description","Type"),file=f)
+
+        NAcount=dict() # short field name --> # NAs
+        for x in HEADER:
+            NAcount[x]=0;
+        nrows=get_nrows(infile,legacy_input)
+        total_chunks=nrows//chunksize
+        if nrows%chunksize:
+            total_chunks+=1
+        LOGGER.info("total rows: %d; total chunks: %d" %(nrows,total_chunks))
+        current_chunk=1
+        for chunk in pd.read_table(infile,skiprows=[1] if legacy_input else None,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,usecols=to_keep,chunksize=chunksize):
+            LOGGER.info("chunk %d / %d" %(current_chunk,total_chunks))
+            for x in HEADER:
+                df=chunk[HEADER[x]]
+                NAcount[x]+=df[df=="NA"].count().sum()
+            current_chunk+=1
+        LOGGER.info("done")
+            
         for x in HEADER:
             if x in DICT:
                 print("{}\t{}\t{}\t{}".format(x,len(HEADER[x]),DICT[x]["Field"],DICT[x]["ValueType"]),file=f)
