@@ -11,6 +11,16 @@ import gzip
 
 from itgukbb import utils
 
+def get_log_fname(fname):
+    if fname.endswith(".txt"):
+        return fname[:-len(".txt")]+".log"
+    elif fname.endswith(".txt.gz"):
+        return fname[:-len(".txt.gz")]+".log"
+    elif fname.endswith(".gz"):
+        return fname[:-len(".gz")]+".log"
+    else:
+        return fname+".log"
+
 # test if second row contains column classes (legacy)
 def is_legacy(fname):
     df=pd.read_table(fname,nrows=1,sep="\t",header=0,dtype=str,usecols=["f.eid"],keep_default_na=False)
@@ -55,6 +65,10 @@ def main():
     chunksize=args.chunk
     output_IDs=False
 
+    logfile=None
+    if outfname:
+        logfile=get_log_fname(outfname)
+    
     if args.verbose is not None:
         if args.verbose=="debug":
             verbosity=logging.DEBUG
@@ -65,14 +79,24 @@ def main():
 
     LOGGER=logging.getLogger("ukbb_select")
     LOGGER.setLevel(verbosity)
-    ch=logging.StreamHandler(sys.stderr)
-    ch.setLevel(verbosity)
+    ch1=logging.StreamHandler(sys.stderr)
+    ch1.setLevel(verbosity)
+    ch2=None
+    if logfile:
+        ch2=logging.FileHandler(logfile,'w')
+    if ch2:
+        ch2.setLevel(verbosity)
     formatter=logging.Formatter('%(levelname)s - %(name)s - %(funcName)s -%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
-    ch.setFormatter(formatter)
-    LOGGER.addHandler(ch)
+    ch1.setFormatter(formatter)
+    if ch2:
+        ch2.setFormatter(formatter)
+    LOGGER.addHandler(ch1)
+    if ch2:
+        LOGGER.addHandler(ch2)
 
-    logging.getLogger("itgukbb.utils").addHandler(ch)
-    logging.getLogger("itgukbb.utils").setLevel(verbosity)
+    logging.getLogger("itgukbb.utils").addHandler(ch1)
+    if ch2:
+        logging.getLogger("itgukbb.utils").addHandler(ch2)
 
     if len(args.field)==0 and use_olink==False and d_field is None and to_list==False:
         output_IDs=True
