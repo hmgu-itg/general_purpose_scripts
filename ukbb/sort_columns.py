@@ -1,4 +1,4 @@
-#!/usr/bin/python3.8
+#!/usr/bin/python3.6
 
 import argparse
 import pandas as pd
@@ -27,8 +27,12 @@ def main():
     if "f.eid" in df.columns:
         scols.append("f.eid")
     for c in sorted(df.columns):
-        if c!="f.eid":
+        if c!="f.eid" and c!="CREATED" and c!="RELEASE":
             scols.append(c)
+    if "CREATED" in df.columns:
+        scols.append("CREATED")
+    if "RELEASE" in df.columns:
+        scols.append("RELEASE")
     df.to_csv(outfile,sep="\t",columns=scols,index=False,quotechar='"',quoting=csv.QUOTE_NONE,header=True)
 
 if __name__=="__main__":
