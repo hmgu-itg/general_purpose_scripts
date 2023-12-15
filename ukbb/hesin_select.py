@@ -15,6 +15,16 @@ import dask.dataframe as dd
 
 # given ICD and OPCS input lists, each ID in the output list satisfies at least one criterion (i.e. union)
 
+def get_log_fname(fname):
+    if fname.endswith(".txt"):
+        return fname[:-len(".txt")]+".log"
+    elif fname.endswith(".txt.gz"):
+        return fname[:-len(".txt.gz")]+".log"
+    elif fname.endswith(".gz"):
+        return fname[:-len(".gz")]+".log"
+    else:
+        return fname+".log"
+
 # helper function, example: converts string "(A and B)" to string "((A in L) and (B in L))"
 def transformExpr(string):
     return re.sub(r"(\w+)",lambda x:"(\""+x.group(1)+"\" in L)" if (x.group(1).lower()!="and" and x.group(1).lower()!="or") else x.group(1).lower(),string)
@@ -54,6 +64,8 @@ def main():
     outfname=args.output
     npart=args.n
 
+    logfile=get_log_fname(outfname)
+    
     if args.verbose is not None:
         if args.verbose=="debug":
             verbosity=logging.DEBUG
@@ -65,12 +77,17 @@ def main():
     LOGGER=logging.getLogger("hesin_select")
     LOGGER.setLevel(verbosity)
     ch=logging.StreamHandler(sys.stderr)
+    ch2=logging.FileHandler(logfile,'w')
     ch.setLevel(verbosity)
+    ch2.setLevel(verbosity)
     formatter=logging.Formatter('%(levelname)s - %(name)s - %(funcName)s -%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
     ch.setFormatter(formatter)
     LOGGER.addHandler(ch)
+    ch2.setFormatter(formatter)
+    LOGGER.addHandler(ch2)
 
     logging.getLogger("itgukbb.utils").addHandler(ch)
+    logging.getLogger("itgukbb.utils").addHandler(ch2)
     logging.getLogger("itgukbb.utils").setLevel(verbosity)
 
 #----------------------------------------------------------------------------------------------------------------------------------
