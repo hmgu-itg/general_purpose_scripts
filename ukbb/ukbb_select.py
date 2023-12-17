@@ -44,6 +44,7 @@ def main():
     parser.add_argument('--list','-l',default=False,required=False,action='store_true',help="Output information about every field in the input project and exit")
     parser.add_argument('--field','-f',metavar="FIELD",required=False,default=[],action='append',help="For a given field, output all its instances; this option can be specified multiple times. Can be a value, or a file containing list of values, or a shell redirection")
     parser.add_argument("--names", "-n",required=False,action='store_true',help="Use field names instead of IDs in output",default=False)
+    parser.add_argument("--count-na", "-count-na",required=False,dest="count_na",action='store_true',help="Output NA stats",default=False)
     parser.add_argument("--verbose", "-v", help="Verbosity level",required=False,choices=("debug","info","warning","error"),default="info")
 
     if len(sys.argv[1:])==0:
@@ -57,6 +58,7 @@ def main():
 
     project=args.project
     release=args.release
+    count_na=args.count_na
     to_list=args.list
     d_field=args.describe
     outfname=args.output
@@ -198,29 +200,36 @@ def main():
                 f=open(outfname,"w")
             print("{}\t{}\t{}\t{}\t{}".format("Field","Instances","Description","Type","Missing"),file=f)
 
-        NAcount=dict() # short field name --> # NAs
-        for x in HEADER:
-            NAcount[x]=0;
-        nrows=get_nrows(infile,legacy_input)
-        total_chunks=nrows//chunksize
-        if nrows%chunksize:
-            total_chunks+=1
-        LOGGER.info("total rows: %d; total chunks: %d" %(nrows,total_chunks))
-        current_chunk=1
-        for chunk in pd.read_table(infile,skiprows=[1] if legacy_input else None,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,chunksize=chunksize):
-            LOGGER.info("chunk %d / %d" %(current_chunk,total_chunks))
+        if count_na:
+            NAcount=dict() # short field name --> # NAs
             for x in HEADER:
-                df=chunk[HEADER[x]]
-                NAcount[x]+=df[df=="NA"].count().sum()
-            current_chunk+=1
-        LOGGER.info("done")
-            
-        for x in HEADER:
-            if x in DICT:
-                print("{0}\t{1}\t{2}\t{3}\t{4:.5f}".format(x,len(HEADER[x]),DICT[x]["Field"],DICT[x]["ValueType"],NAcount[x]/(nrows*len(HEADER[x]))),file=f)
-            else:
-                print("{}\t{}\t{}\t{}\t{}".format(x,len(HEADER[x]),"NA","NA","NA"),file=f)
-                LOGGER.warning("%s is not in data dictionary" % x)
+                NAcount[x]=0;
+            nrows=get_nrows(infile,legacy_input)
+            total_chunks=nrows//chunksize
+            if nrows%chunksize:
+                total_chunks+=1
+            LOGGER.info("total rows: %d; total chunks: %d" %(nrows,total_chunks))
+            current_chunk=1
+            for chunk in pd.read_table(infile,skiprows=[1] if legacy_input else None,sep="\t",header=0,dtype=str,quotechar='"',quoting=csv.QUOTE_NONE,keep_default_na=False,chunksize=chunksize):
+                LOGGER.info("chunk %d / %d" %(current_chunk,total_chunks))
+                for x in HEADER:
+                    df=chunk[HEADER[x]]
+                    NAcount[x]+=df[df=="NA"].count().sum()
+                current_chunk+=1
+            LOGGER.info("done")
+            for x in HEADER:
+                if x in DICT:
+                    print("{0}\t{1}\t{2}\t{3}\t{4:.5f}".format(x,len(HEADER[x]),DICT[x]["Field"],DICT[x]["ValueType"],NAcount[x]/(nrows*len(HEADER[x]))),file=f)
+                else:
+                    print("{}\t{}\t{}\t{}\t{}".format(x,len(HEADER[x]),"NA","NA","NA"),file=f)
+                    LOGGER.warning("%s is not in data dictionary" % x)
+        else: # not counting NAs
+            for x in HEADER:
+                if x in DICT:
+                    print("{0}\t{1}\t{2}\t{3}".format(x,len(HEADER[x]),DICT[x]["Field"],DICT[x]["ValueType"]),file=f)
+                else:
+                    print("{}\t{}\t{}\t{}".format(x,len(HEADER[x]),"NA","NA"),file=f)
+                    LOGGER.warning("%s is not in data dictionary" % x)            
         sys.exit(0)
 
     #---------------------------------------------------------------------------------------------------------------------------    
