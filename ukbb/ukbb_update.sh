@@ -174,7 +174,7 @@ echo -e "\n---------------------------------------------------------\n" | tee -a
 
 #-------------------------------------- CREATING OUTPUT -------------------------------------------------
 
-# OUTER JOIN INPUT FILES ON IDs, THEN EXCLUDE IDS FROM -x LIST 
+# FULL OUTER JOIN INPUT FILES ON IDs, THEN EXCLUDE IDS FROM -x LIST 
 
 update_file "$infile" "$ufile" "$sorttemp" "$logfile" tmpf "$xname"
 if [[ ! -z "$tmpf" ]];then
