@@ -15,12 +15,13 @@ function getFreeCPUs {
 }
 
 # create temp files
+# input: dirname
+# input: associative array name with filenames templates
 # upon success the input associative array contains names of the created files as values
 function createTempFiles {
     local dirname=$1
     # associative array, values: templates for mktemp
     local -n local_fnames=$2
-
     declare -a temp
     g=0
     for k in "${!local_fnames[@]}";do
@@ -31,7 +32,7 @@ function createTempFiles {
 	    g=1
 	    break
 	else
-	    #echo "INFO: created temporary file $f" >&2
+	    # echo "INFO: created temporary file $f" >&2
 	    local_fnames[$k]="$f"
 	    temp+=("$f")
 	fi
@@ -46,6 +47,20 @@ function createTempFiles {
     else
 	return 0
     fi
+}
+
+function createTempFilesN {
+    local dirname=$1
+    local n=$2
+    local -n fnames=$3
+    local i
+
+    fnames=()
+    for (( i=0; i<$n; i++ ));do
+	fnames[$i]="temp_XXXXXXX"
+    done
+
+    createTempFiles $dirname $3
 }
 
 # return an associative array with column names as keys and 1-based column numbers as values, input is tab separated
@@ -813,7 +828,9 @@ function join_two_files {
     local i
     local f1 # split this file
     local f2
-
+    local tdir
+    declare -a temp
+    
     echo "DEBUG: join_two_files: FILE 1: $infile1"
     echo "DEBUG: join_two_files: FILE 2: $infile2"
     echo "DEBUG: join_two_files: OUTPUT: $outfile"
@@ -839,12 +856,16 @@ function join_two_files {
     local nc1=$(head -n 1 "$infile1" | tr '\t' '\n' | wc -l)
     local nc2=$(head -n 1 "$infile2" | tr '\t' '\n' | wc -l)
 
-    if [[ $n1 -gt $n2 ]];then
+    tdir=$(dirname $outfile)
+    
+    if [[ $nc1 -gt $nc2 ]];then
 	f1="$infile1"
 	f2="$infile2"
+	split_int $(( nc1 -1 )) $parts temp
     else
 	f2="$infile1"
 	f1="$infile2"
+	split_int $(( nc2 -1 )) $parts temp
     fi
     
     local fmt="1.${col1},2.${col2}"
