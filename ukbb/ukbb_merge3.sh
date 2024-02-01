@@ -15,7 +15,7 @@ function usage () {
     echo ""
     echo "Usage: ukbb_merge3.sh -f <optional: ID field name; default: \"f.eid\">"
     echo "                      -i input1.tab"
-    echo "                     - i input2.tab"
+    echo "                      -i input2.tab"
     echo "           ...                    "
     echo "                      -i inputN.tab"
     echo ""
