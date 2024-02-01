@@ -709,6 +709,7 @@ function update_file {
     echo ""  | tee -a "$logfile"
     
     local join_cmd="join --header -t$'\t' -1 ${idCol1} -2 ${idCol2} -a 1 -a 2 -e NA -o $fmt <(cat <(${cat1} ${fname1} | head -n 1) <(${cat1} ${fname1} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol1},${idCol1})) <(cat <(${cat2} ${fname2} | head -n 1) <(${cat2} ${fname2} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol2},${idCol2}))"
+    echo "DEBUG: join command line: $join_cmd"
     eval "$join_cmd > $tmpfile"
     if [[ $? -eq 0 ]];then
 	echo "INFO: join OK"  | tee -a "$logfile"
@@ -755,7 +756,7 @@ function update_file {
 	exclude_cols=()
 	exclude_cols+=($(getColNum "$tmpfile" "RELEASE"))
 	exclude_cols+=($(getColNum "$tmpfile" "CREATED"))
-	# remove common columns from the first file
+	# remove common columns coming from the first input file
 	for c in "${common_cols[@]}";do
 	    getColNums "$tmpfile" "$c" "cat" tmp_ar
 	    exclude_cols+=("${tmp_ar[0]}")
