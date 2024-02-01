@@ -235,8 +235,7 @@ function getArrayIndex {
     local ar=("$@")
 
     local x="0"
-    for (( i=0; i<${#ar[@]}; i++ ));
-    do
+    for (( i=0; i<${#ar[@]}; i++ ));do
 	if [[ "${ar[$i]}" -eq $k ]];then
 	    x=$((i+1))
 	    break
@@ -767,25 +766,71 @@ function update_file {
     fi
 }
 
-# all files are tab separated, with header
-# performing outer join on col1,col2
+# split n into m parts
+function split_int {
+    local n=$1
+    local m=$2
+    local -n local_arname=$3
+    local i
+    local x
+    local z
+
+    local_arname=()
+
+    if [[ $m -le 0 ]];then
+	echo "ERROR: split_int: first argument must be positive"
+	return -1
+    fi
+    
+    if [[ $m -le 0 ]];then
+	echo "ERROR: split_int: second argument must be positive"
+	return -1
+    fi
+    
+    x=$(( n / m ))
+    z=$(( n - x * m))
+
+    for (( i=0; i<${m}; i++ ));do
+	if [[ $i -lt $z ]];then
+	    local_arname+=($(( x + 1 )))
+	else
+	    local_arname+=($x)
+	fi
+    done
+}
+
+# input files are tab separated, with header
+# performs outer join on the first column of both files
+# the columns of the bigger of the two files is split in <parts> parts (default: no splitting)
 function join_two_files {
     local infile1=$1
-    local col1=$2
-    local infile2=$3
-    local col2=$4
-    local outfile=$5
+    local infile2=$2
+    local outfile=$3
+    local parts=1
+    if [[ $# -ge 4 ]];then
+	parts=$4
+    fi
     local i
+    local f1 # split this file
+    local f2
+
+    echo "DEBUG: join_two_files: FILE 1: $infile1"
+    echo "DEBUG: join_two_files: FILE 2: $infile2"
+    echo "DEBUG: join_two_files: OUTPUT: $outfile"
+    echo "DEBUG: join_two_files: parts: $parts"
 
     if [[ ! -e "$infile1" ]];then
 	if [[ -e "$infile2" ]];then
+	    echo "DEBUG: join_two_files: FILE 1 doesn't exist, copying FILE 2 to $outfile"
 	    cp "$infile2" "$outfile"
 	    return
 	else
+	    echo "DEBUG: join_two_files: input files don't exist; exit"
 	    return
 	fi
     else
 	if [[ ! -e "$infile2" ]];then
+	    echo "DEBUG: join_two_files: FILE 2 doesn't exist, copying FILE 1 to $outfile"
 	    cp "$infile1" "$outfile"
 	    return
 	fi
@@ -794,6 +839,14 @@ function join_two_files {
     local nc1=$(head -n 1 "$infile1" | tr '\t' '\n' | wc -l)
     local nc2=$(head -n 1 "$infile2" | tr '\t' '\n' | wc -l)
 
+    if [[ $n1 -gt $n2 ]];then
+	f1="$infile1"
+	f2="$infile2"
+    else
+	f2="$infile1"
+	f1="$infile2"
+    fi
+    
     local fmt="1.${col1},2.${col2}"
     for i in $(seq 1 ${nc1});do
 	if [[ "$i" -ne "${col1}" ]];then
