@@ -705,6 +705,13 @@ function join_two_files {
     if [[ $# -ge 6 ]];then
 	parts=$6
     fi
+
+    echo "DEBUG: join_two_files: infile1: $infile1"  | tee -a "$logfile"
+    echo "DEBUG: join_two_files: infile2: $infile2"  | tee -a "$logfile"
+    echo "DEBUG: join_two_files: outfile: $outfile"  | tee -a "$logfile"
+    echo "DEBUG: join_two_files: tmpdir: $tmpdir"  | tee -a "$logfile"
+    echo "DEBUG: join_two_files: logfile: $logfile"  | tee -a "$logfile"
+    echo "DEBUG: join_two_files: parts: $parts"  | tee -a "$logfile"
     
     local cat1=$(getCatCmd "$infile1")
     local cat2=$(getCatCmd "$infile2")
@@ -876,6 +883,9 @@ function update_file {
     echo "INFO: updating"  | tee -a "$logfile"
     echo "INFO: file1: $fname1"  | tee -a "$logfile"
     echo "INFO: file2: $fname2"  | tee -a "$logfile"
+    echo "INFO: logfile: $logfile"  | tee -a "$logfile"
+    echo "INFO: tmpdir: $tmpdir"  | tee -a "$logfile"
+    echo "INFO: exclude: $xn"  | tee -a "$logfile"
     echo "INFO: parts: $parts"  | tee -a "$logfile"
     echo ""  | tee -a "$logfile"
     
