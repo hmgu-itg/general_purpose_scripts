@@ -32,7 +32,7 @@ for k in "${fn[@]}";do
     fi
 done
 
-createTempFilesN "$scriptdir" 5 fn
+createTempFilesN "$scriptdir" 5 fn "abc_XXX.gz"
 
 echo "in test.sh"
 declare -p fn

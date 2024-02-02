@@ -1,46 +1,19 @@
 #!/usr/bin/env bash
 
-scriptname=$0
 args=("$@")
-
 scriptdir=$(dirname $(readlink -f $0))
 source "${scriptdir}/functions.sh"
 
-totalcpus=$(totalCPUs)
-echo "Total CPUs: $totalcpus"
-#frac=0.5
-#echo "Fraction: $frac"
-#echo $(getFreeCPUs $frac)
-#exit 0
+f1=${args[0]}
+f2=${args[1]}
+outfile=${args[2]}
+chunks=${args[3]}
 
-declare -A fn
-fn["key1"]="temp_test_XXXXXX"
-fn["key2"]="temp_test_XXXXXX"
-fn["key3"]="temp_test_XXXXXX"
+echo "f1: $f1"
+echo "f2: $f2"
+echo "output: $outfile"
+echo "chunks: $chunks"
 
-if createTempFiles "$scriptdir" fn;then
-    echo "SUCCESS"
-else
-    echo "FAILURE"
-fi
-
-declare -p fn
-
-for k in "${fn[@]}";do
-    if [[ -f "$k" ]];then
-	rm -v "$k"
-    fi
-done
-
-createTempFilesN "$scriptdir" 5 fn
-
-echo "in test.sh"
-declare -p fn
-
-for k in "${fn[@]}";do
-    if [[ -f "$k" ]];then
-	rm -v "$k"
-    fi
-done
+join_two_files $f1 $f2 $outfile $chunks
 
 exit 0
