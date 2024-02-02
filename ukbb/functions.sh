@@ -696,39 +696,45 @@ function split_int {
 # performs outer join on the first column of both files
 # the columns of the bigger of the two files is split in <parts> parts (default: no splitting)
 function join_two_files {
-    local infile1=$1
-    local infile2=$2
-    local outfile=$3
+    local logfile=$1
+    local tmpdir=$2
+    local infile1=$3
+    local infile2=$4
+    local outfile=$5
     local parts=1
-    if [[ $# -ge 4 ]];then
-	parts=$4
+    if [[ $# -ge 6 ]];then
+	parts=$6
     fi
     
     local cat1=$(getCatCmd "$infile1")
     local cat2=$(getCatCmd "$infile2")
     local cat3=$(getCatCmd "$outfile")
+
+    echo "DEBUG: join_two_files: $cat1 $infile1"  | tee -a "$logfile"
+    echo "DEBUG: join_two_files: $cat2 $infile2"  | tee -a "$logfile"
+    echo "DEBUG: join_two_files: $cat3 $outfile"  | tee -a "$logfile"
     
     local i j k tdir tf c1 c2
     declare -a temp
     declare -A tempf
     
-    echo "DEBUG: join_two_files: FILE 1: $infile1"
-    echo "DEBUG: join_two_files: FILE 2: $infile2"
-    echo "DEBUG: join_two_files: OUTPUT: $outfile"
-    echo "DEBUG: join_two_files: parts: $parts"
+    echo "DEBUG: join_two_files: FILE 1: $infile1" | tee -a "$logfile"
+    echo "DEBUG: join_two_files: FILE 2: $infile2" | tee -a "$logfile"
+    echo "DEBUG: join_two_files: OUTPUT: $outfile" | tee -a "$logfile"
+    echo "DEBUG: join_two_files: parts: $parts" | tee -a "$logfile"
 
     if [[ ! -e "$infile1" ]];then
 	if [[ -e "$infile2" ]];then
-	    echo "DEBUG: join_two_files: FILE 1 doesn't exist, copying FILE 2 to $outfile"
+	    echo "DEBUG: join_two_files: FILE 1 doesn't exist, copying FILE 2 to $outfile" | tee -a "$logfile"
 	    cp "$infile2" "$outfile"
 	    return
 	else
-	    echo "DEBUG: join_two_files: input files don't exist; exit"
+	    echo "DEBUG: join_two_files: input files don't exist; exit" | tee -a "$logfile"
 	    return
 	fi
     else
 	if [[ ! -e "$infile2" ]];then
-	    echo "DEBUG: join_two_files: FILE 2 doesn't exist, copying FILE 1 to $outfile"
+	    echo "DEBUG: join_two_files: FILE 2 doesn't exist, copying FILE 1 to $outfile" | tee -a "$logfile"
 	    cp "$infile1" "$outfile"
 	    return
 	fi
@@ -751,9 +757,9 @@ function join_two_files {
 	# echo "DEBUG: joining, $infile1, $infile2, $outfile, $fmt"
 	# keeping both ID columns in output
 	if [[ "$cat3" == "cat" ]];then
-	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -t$'\t' -k2,2)) > "$outfile"
+	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k2,2)) > "$outfile"
 	else
-	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -t$'\t' -k2,2)) | gzip - > "$outfile"
+	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k2,2)) | gzip - > "$outfile"
 	fi
     else
 	tdir=$(dirname $outfile)
@@ -762,10 +768,10 @@ function join_two_files {
 
 	if [[ $nc1 -gt $nc2 ]];then
 	    split_int $(( nc1 -1 )) $parts temp
-	    echo "DEBUG: join_two_files: FILE 1: split "$(( nc1 -1 ))" columns into $parts chunks"	    
-	    echo "DEBUG: join_two_files: columns split into chunks:"
+	    echo "DEBUG: join_two_files: FILE 1: split "$(( nc1 -1 ))" columns into $parts chunks" | tee -a "$logfile"
+	    echo "DEBUG: join_two_files: columns split into chunks:" | tee -a "$logfile"
 	    for i in "${temp[@]}";do
-		echo "DEBUG: $i"
+		echo "DEBUG: $i" | tee -a "$logfile"
 	    done
 	    c1=2 # start column
 	    k=1 # current temp output filename
@@ -793,10 +799,10 @@ function join_two_files {
 	    done	
 	else
 	    split_int $(( nc2 -1 )) $parts temp
-	    echo "DEBUG: FILE 2: split "$(( nc2 -1 ))" columns into $parts chunks"
-	    echo "DEBUG: join_two_files: columns split into chunks:"
+	    echo "DEBUG: FILE 2: split "$(( nc2 -1 ))" columns into $parts chunks" | tee -a "$logfile"
+	    echo "DEBUG: join_two_files: columns split into chunks:" | tee -a "$logfile"
 	    for i in "${temp[@]}";do
-		echo "DEBUG: $i"
+		echo "DEBUG: $i" | tee -a "$logfile"
 	    done
 	    c1=2 # start column
 	    k=1 # current temp output filename
@@ -917,7 +923,7 @@ function update_file {
 	    echo "ERROR: join failed"  | tee -a "$logfile"
 	fi
     else
-	join_two_files "$fname1" "$fname2" "$tmpfile" "$parts"	
+	join_two_files "$logfile" "$tmpdir" "$fname1" "$fname2" "$tmpfile" "$parts"	
     fi
     
     x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2=="NA"){c=c+1;}}END{print c;}')
