@@ -53,11 +53,15 @@ function createTempFilesN {
     local dirname=$1
     local n=$2
     local -n fnames=$3
+    local pattern="temp_XXXXXXXX"
+    if [[ $# -ge 4 ]];then
+	pattern=$4
+    fi
     local i
 
     fnames=()
     for (( i=0; i<$n; i++ ));do
-	fnames[$i]="temp_XXXXXXX"
+	fnames[$i]=$pattern
     done
 
     createTempFiles $dirname $3
@@ -519,7 +523,7 @@ function getTGZColNum () {
 # get cat/zcat, based on file name
 function getCatCmd () {
     local fname=$1
-    if [[ "$fname" =~ gz$ ]];then
+    if [[ "$fname" =~ \.gz$ ]];then
 	echo "zcat"
     else
 	echo "cat"
@@ -830,17 +834,9 @@ function join_two_files {
     local cat2=$(getCatCmd "$infile2")
     local cat3=$(getCatCmd "$outfile")
     
-    local i
-    local j
-    local k
-    local f1 # split this file
-    local f2
-    local tdir
-    local tf
+    local i j k f1 f2 tdir tf c1 c2 cat4
     declare -a temp
     declare -A tempf
-    local c1
-    local c2
     
     echo "DEBUG: join_two_files: FILE 1: $infile1"
     echo "DEBUG: join_two_files: FILE 2: $infile2"
@@ -864,8 +860,8 @@ function join_two_files {
 	fi
     fi
     
-    local nc1=$(head -n 1 "$infile1" | tr '\t' '\n' | wc -l)
-    local nc2=$(head -n 1 "$infile2" | tr '\t' '\n' | wc -l)
+    local nc1=$("$cat1" "$infile1" | head -n 1 | tr '\t' '\n' | wc -l)
+    local nc2=$("$cat2" "$infile2" | head -n 1 | tr '\t' '\n' | wc -l)
 
     if [[ $parts -eq 1 ]];then
 	local fmt="1.1,2.1"
@@ -875,6 +871,9 @@ function join_two_files {
 	for i in $(seq 2 ${nc2});do
 	    fmt=$fmt",2.$i"
 	done
+	# echo "DEBUG: fmt: $fmt"
+	# "$cat1" "$infile1"
+	# "$cat2" "$infile2"
 	# echo "DEBUG: joining, $infile1, $infile2, $outfile, $fmt"
 	if [[ "$cat3" == "cat" ]];then
 	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -t$'\t' -k2,2)) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' | cut -f 2- > "$outfile"
@@ -893,24 +892,26 @@ function join_two_files {
 	    split_int $(( nc2 -1 )) $parts temp
 	    echo "DEBUG: FILE 2: split "$(( nc2 -1 ))" columns into $parts chunks"
 	fi
-
+	cat4=$(getCatCmd "$f1")
+	
 	echo "DEBUG: join_two_files: columns split into chunks:"
 	for i in "${temp[@]}";do
 	    echo "DEBUG: $i"
 	done
 	
 	tdir=$(dirname $outfile)
-	createTempFilesN "$tdir" $(( parts + 1 )) tempf
+	createTempFilesN "$tdir" $(( parts + 1 )) tempf "temp_XXXXXXXX.gz"
 	tf="${tempf[0]}"
 
 	c1=2 # start column
 	k=1 # current temp output filename
 	for i in ${temp[@]};do
 	    c2=$(( c1 + i -1 ))
-	    cut -f 1,"${c1}"-"${c2}" "$f1" > "$tf"
+	    $cat4 "$f1" | cut -f 1,"${c1}"-"${c2}" | gzip - > "$tf"
 	    # join_two_files
 	    join_two_files "$tf" "$f2" "${tempf[$k]}"
-	    # cat "${tempf[$k]}"
+	    # echo "DEBUG: i=$i"
+	    # zcat "${tempf[$k]}"
 	    c1=$(( c2 + 1 ))
 	    k=$(( k + 1 ))
 	done
@@ -922,13 +923,14 @@ function join_two_files {
 	    k="${temp[$k]}"
 	    j=$(( j + k ))
 	    # echo "DEBUG: k=$k j=$j"
-	    paste <(cut -f 1-"$j" "$tf") <(cut --complement -f 1 "${tempf[$i]}") | sponge "$tf"
+	    paste <(zcat "$tf" | cut -f 1-"$j") <(zcat  "${tempf[$i]}" | cut --complement -f 1) | gzip - > "${tempf[1]}"
+	    cp "${tempf[1]}" "$tf"
 	done
 
 	if [[ "$cat3" == "cat" ]];then
-	    mv "$tf" "$outfile"
+	    gunzip -c "$tf" > "$outfile"
 	else
-	    cat "$tf" | gzip - > "$outfile"
+	    cp "$tf" "$outfile"
 	fi
 
 	# delete temp files
