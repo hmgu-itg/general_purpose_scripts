@@ -659,132 +659,6 @@ function merge_two_files {
     ret="$tmpfile"
 }
 
-function update_file {
-    local fname1=$1
-    local fname2=$2
-    local tmpdir=$3
-    local logfile=$4
-    local -n ret=$5
-    local xn=$6
-    local c
-    local i
-    local x
-
-    declare -A colnames1
-    declare -A colnames2
-    declare -a common_cols
-    declare -a tmp_ar
-    declare -a exclude_cols
-    declare -a common_colnum
-
-    local cat1=$(getCatCmd "$fname1")
-    local cat2=$(getCatCmd "$fname2")
-    local idCol1=$(getColNum "$fname1" "f.eid" "$cat1")
-    local idCol2=$(getColNum "$fname2" "f.eid" "$cat2")
-    local ncols1=$("$cat1" "$fname1" | head -n 1 | tr '\t' '\n' | wc -l)
-    local ncols2=$("$cat2" "$fname2" | head -n 1 | tr '\t' '\n' | wc -l)
-
-    getColNumbers "$fname1" "$cat1" colnames1
-    getColNumbers "$fname2" "$cat2" colnames2
-
-    echo "INFO: updating"  | tee -a "$logfile"
-    echo "INFO: file1: $fname1"  | tee -a "$logfile"
-    echo "INFO: file2: $fname2"  | tee -a "$logfile"
-    echo ""  | tee -a "$logfile"
-    
-    for c in "${!colnames1[@]}";do
-	if [[ -v "colnames2[$c]" && "$c" != "f.eid" ]];then
-	    common_cols+=($c)
-	fi
-    done
-
-    echo "INFO: common fields: ${#common_cols[@]}"  | tee -a "$logfile"
-    echo ""  | tee -a "$logfile"
-    
-    local tmpfile=$(mktemp -p "$tmpdir" merge_XXXXXXXX)
-    if [[ $? -ne 0 ]];then
-	echo "ERROR: could not create tmpfile" | tee -a "$logfile"
-	ret=""
-	return
-    fi
-
-    echo "INFO: output: $tmpfile"  | tee -a "$logfile"
-    echo ""  | tee -a "$logfile"
-    
-    local fmt="1.${idCol1},2.${idCol2}"
-    for i in $(seq 1 ${ncols1});do
-	if [[ "$i" -ne "${idCol1}" ]];then
-	   fmt=$fmt",1.$i"
-	fi
-    done
-    for i in $(seq 1 ${ncols2});do
-	if [[ "$i" -ne "${idCol2}" ]];then
-	    fmt=$fmt",2.$i"
-	fi
-    done
-
-    echo "INFO: joining input files"  | tee -a "$logfile"
-    echo ""  | tee -a "$logfile"
-    
-    local join_cmd="join --header -t$'\t' -1 ${idCol1} -2 ${idCol2} -a 1 -a 2 -e NA -o $fmt <(cat <(${cat1} ${fname1} | head -n 1) <(${cat1} ${fname1} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol1},${idCol1})) <(cat <(${cat2} ${fname2} | head -n 1) <(${cat2} ${fname2} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol2},${idCol2}))"
-    echo "DEBUG: join command line: $join_cmd"
-    eval "$join_cmd > $tmpfile"
-    if [[ $? -eq 0 ]];then
-	echo "INFO: join OK"  | tee -a "$logfile"
-    else
-	echo "ERROR: join failed"  | tee -a "$logfile"
-    fi
-
-    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2=="NA"){c=c+1;}}END{print c;}')
-    echo "INFO: samples in file1 only: $x"  | tee -a "$logfile"
-    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1=="NA" && $2!="NA"){c=c+1;}}END{print c;}')
-    echo "INFO: samples in file2 only: $x"  | tee -a "$logfile"
-    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2!="NA"){c=c+1;}}END{print c;}')
-    echo "INFO: samples in both file1 and file2: $x"  | tee -a "$logfile"
-    x=$(head -n 1 "$tmpfile" | tr '\t' '\n' | wc -l )
-    echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
-    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
-    echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
-    # tmpfile contains one ID column (1st), all columns from file1 (including CREATED, RELEASE), all columns from file2
-    
-    if [[ "${#common_cols[@]}" -eq 0 ]];then # no common colnames, remove RELEASE, CREATED columns
-	cut --complement -f $(getColNum "$tmpfile" "RELEASE"),$(getColNum "$tmpfile" "CREATED") "$tmpfile" | TMPDIR="${tmpdir}" sponge "$tmpfile"
-	if [[ ! -z "$xn" ]];then
-	    echo "INFO: no common columns, nothing to save"  | tee -a "$logfile"
-	fi
-	ret="$tmpfile"
-    else # there are common colnames
-	common_colnum=(1)
-	for c in "${common_cols[@]}";do
-	    getColNums "$tmpfile" "$c" "cat" tmp_ar
-	    common_colnum+=("${tmp_ar[0]}")
-	    common_colnum+=("${tmp_ar[1]}")
-	done	
-	echo "INFO: samples with x -> NA" >> "$logfile"
-	while read line;do # for fields with x -> NA, report "Y", otherwise "N"
-	    echo "x2NA" "$line" | tr ' ' '\t' >> "$logfile"
-	done < <(cut -f $(join_by "," "${common_colnum[@]}") "$tmpfile" | "${scriptdir}/sort_columns.pl" | perl -lne '@a=split(/\t/,$_,-1);$f=0;@b=($a[0]);if ($_=~/^f/){$f=1;for ($i=1;$i<scalar(@a);$i+=2){push @b,$a[$i];}}else{for ($i=1;$i<scalar(@a);$i+=2){if ($a[$i] ne "NA" && $a[$i+1] eq "NA"){$f=1;push @b,"Y";}else{push @b,"N";};}}print join(" ",@b) if ($f==1);')
-	if [[ ! -z "$xn" ]];then
-	    echo "INFO: saving common columns to $xn" | tee -a "$logfile"
-	    cut -f $(join_by "," "${common_colnum[@]}") "$tmpfile" | "${scriptdir}/sort_columns.pl" | gzip - -c > "$xn"
-	fi
-	# report some stats comparing shared columns in both files
-	"${scriptdir}/get_stats.pl" "$tmpfile" >> "$logfile"
-	# remove RELEASE, CREATED columns
-	exclude_cols=()
-	exclude_cols+=($(getColNum "$tmpfile" "RELEASE"))
-	exclude_cols+=($(getColNum "$tmpfile" "CREATED"))
-	# remove common columns coming from the first input file
-	for c in "${common_cols[@]}";do
-	    getColNums "$tmpfile" "$c" "cat" tmp_ar
-	    exclude_cols+=("${tmp_ar[0]}")
-	done
-	cut --complement -f $(join_by "," "${exclude_cols[@]}") "$tmpfile" | TMPDIR="${tmpdir}" sponge "$tmpfile"
-
-	ret="$tmpfile"
-    fi
-}
-
 # split n into m parts
 function split_int {
     local n=$1
@@ -834,7 +708,7 @@ function join_two_files {
     local cat2=$(getCatCmd "$infile2")
     local cat3=$(getCatCmd "$outfile")
     
-    local i j k f1 f2 tdir tf c1 c2 cat4
+    local i j k tdir tf c1 c2
     declare -a temp
     declare -A tempf
     
@@ -875,58 +749,78 @@ function join_two_files {
 	# "$cat1" "$infile1"
 	# "$cat2" "$infile2"
 	# echo "DEBUG: joining, $infile1, $infile2, $outfile, $fmt"
+	# keeping both ID columns in output
 	if [[ "$cat3" == "cat" ]];then
-	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -t$'\t' -k2,2)) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' | cut -f 2- > "$outfile"
+	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -t$'\t' -k2,2)) > "$outfile"
 	else
-	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -t$'\t' -k2,2)) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' | cut -f 2- | gzip - > "$outfile"
+	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -t$'\t' -k2,2)) | gzip - > "$outfile"
 	fi
     else
-	if [[ $nc1 -gt $nc2 ]];then
-	    f1="$infile1"
-	    f2="$infile2"
-	    split_int $(( nc1 -1 )) $parts temp
-	    echo "DEBUG: FILE 1: split "$(( nc1 -1 ))" columns into $parts chunks"
-	else
-	    f2="$infile1"
-	    f1="$infile2"
-	    split_int $(( nc2 -1 )) $parts temp
-	    echo "DEBUG: FILE 2: split "$(( nc2 -1 ))" columns into $parts chunks"
-	fi
-	cat4=$(getCatCmd "$f1")
-	
-	echo "DEBUG: join_two_files: columns split into chunks:"
-	for i in "${temp[@]}";do
-	    echo "DEBUG: $i"
-	done
-	
 	tdir=$(dirname $outfile)
 	createTempFilesN "$tdir" $(( parts + 1 )) tempf "temp_XXXXXXXX.gz"
 	tf="${tempf[0]}"
 
-	c1=2 # start column
-	k=1 # current temp output filename
-	for i in ${temp[@]};do
-	    c2=$(( c1 + i -1 ))
-	    $cat4 "$f1" | cut -f 1,"${c1}"-"${c2}" | gzip - > "$tf"
-	    # join_two_files
-	    join_two_files "$tf" "$f2" "${tempf[$k]}"
-	    # echo "DEBUG: i=$i"
-	    # zcat "${tempf[$k]}"
-	    c1=$(( c2 + 1 ))
-	    k=$(( k + 1 ))
-	done
-	# paste all temp files
-	cp "${tempf[1]}" "$tf"
-	j=1
-	for (( i=2; i<=${parts}; i++ ));do
-	    k=$(( i - 2 ))
-	    k="${temp[$k]}"
-	    j=$(( j + k ))
-	    # echo "DEBUG: k=$k j=$j"
-	    paste <(zcat "$tf" | cut -f 1-"$j") <(zcat  "${tempf[$i]}" | cut --complement -f 1) | gzip - > "${tempf[1]}"
+	if [[ $nc1 -gt $nc2 ]];then
+	    split_int $(( nc1 -1 )) $parts temp
+	    echo "DEBUG: join_two_files: FILE 1: split "$(( nc1 -1 ))" columns into $parts chunks"	    
+	    echo "DEBUG: join_two_files: columns split into chunks:"
+	    for i in "${temp[@]}";do
+		echo "DEBUG: $i"
+	    done
+	    c1=2 # start column
+	    k=1 # current temp output filename
+	    for i in ${temp[@]};do
+		c2=$(( c1 + i -1 ))
+		$cat1 "$infile1" | cut -f 1,"${c1}"-"${c2}" | gzip - > "$tf"
+		# join_two_files
+		join_two_files "$tf" "$infile2" "${tempf[$k]}"
+		# echo "DEBUG: i=$i"
+		# zcat "${tempf[$k]}"
+		c1=$(( c2 + 1 ))
+		k=$(( k + 1 ))
+	    done
+	    # paste all temp files
+	    # temp files have two ID columns
 	    cp "${tempf[1]}" "$tf"
-	done
-
+	    j=1
+	    for (( i=2; i<=${parts}; i++ ));do
+		k=$(( i - 2 ))
+		k="${temp[$k]}"
+		j=$(( j + k + 1 ))
+		# echo "DEBUG: k=$k j=$j"
+		paste <(zcat "$tf" | cut -f 1-"$j") <(zcat "${tempf[$i]}" | cut --complement -f 1,2) | gzip - > "${tempf[1]}"
+		cp "${tempf[1]}" "$tf"
+	    done	
+	else
+	    split_int $(( nc2 -1 )) $parts temp
+	    echo "DEBUG: FILE 2: split "$(( nc2 -1 ))" columns into $parts chunks"
+	    echo "DEBUG: join_two_files: columns split into chunks:"
+	    for i in "${temp[@]}";do
+		echo "DEBUG: $i"
+	    done
+	    c1=2 # start column
+	    k=1 # current temp output filename
+	    for i in ${temp[@]};do
+		c2=$(( c1 + i -1 ))
+		$cat2 "$infile2" | cut -f 1,"${c1}"-"${c2}" | gzip - > "$tf"
+		# join_two_files
+		join_two_files "$infile1" "$tf" "${tempf[$k]}"
+		# echo "DEBUG: i=$i"
+		# zcat "${tempf[$k]}"
+		c1=$(( c2 + 1 ))
+		k=$(( k + 1 ))
+	    done
+	    # paste all temp files
+	    # temp files have two ID columns
+	    cp "${tempf[1]}" "$tf"
+	    for (( i=2; i<=${parts}; i++ ));do
+		k="${temp[$i]}"
+		k=$(( k + 2 ))
+		paste <(zcat "$tf") <(zcat "${tempf[$i]}" | cut --complement -f 1-"${k}") | gzip - > "${tempf[1]}"
+		cp "${tempf[1]}" "$tf"
+	    done	    
+	fi
+	
 	if [[ "$cat3" == "cat" ]];then
 	    gunzip -c "$tf" > "$outfile"
 	else
@@ -940,6 +834,140 @@ function join_two_files {
 	    fi
 	done	
     fi    
+}
+
+function update_file {
+    local fname1=$1
+    local fname2=$2
+    local tmpdir=$3
+    local logfile=$4
+    local -n ret=$5
+    local xn=$6
+    local parts=1
+    if [[ $# -ge 7 ]];then
+	parts=$7
+    fi
+    
+    local c i x
+
+    declare -A colnames1
+    declare -A colnames2
+    declare -a common_cols
+    declare -a tmp_ar
+    declare -a exclude_cols
+    declare -a common_colnum
+
+    local cat1=$(getCatCmd "$fname1")
+    local cat2=$(getCatCmd "$fname2")
+    local idCol1=$(getColNum "$fname1" "f.eid" "$cat1")
+    local idCol2=$(getColNum "$fname2" "f.eid" "$cat2")
+    local ncols1=$("$cat1" "$fname1" | head -n 1 | tr '\t' '\n' | wc -l)
+    local ncols2=$("$cat2" "$fname2" | head -n 1 | tr '\t' '\n' | wc -l)
+
+    getColNumbers "$fname1" "$cat1" colnames1
+    getColNumbers "$fname2" "$cat2" colnames2
+
+    echo "INFO: updating"  | tee -a "$logfile"
+    echo "INFO: file1: $fname1"  | tee -a "$logfile"
+    echo "INFO: file2: $fname2"  | tee -a "$logfile"
+    echo "INFO: parts: $parts"  | tee -a "$logfile"
+    echo ""  | tee -a "$logfile"
+    
+    for c in "${!colnames1[@]}";do
+	if [[ -v "colnames2[$c]" && "$c" != "f.eid" ]];then
+	    common_cols+=($c)
+	fi
+    done
+
+    echo "INFO: common fields: ${#common_cols[@]}"  | tee -a "$logfile"
+    echo ""  | tee -a "$logfile"
+    
+    local tmpfile=$(mktemp -p "$tmpdir" merge_XXXXXXXX)
+    if [[ $? -ne 0 ]];then
+	echo "ERROR: could not create tmpfile" | tee -a "$logfile"
+	ret=""
+	return
+    fi
+
+    echo "INFO: output: $tmpfile"  | tee -a "$logfile"
+    echo ""  | tee -a "$logfile"
+
+    if [[ $parts -eq 1 ]];then
+	local fmt="1.${idCol1},2.${idCol2}"
+	for i in $(seq 1 ${ncols1});do
+	    if [[ "$i" -ne "${idCol1}" ]];then
+		fmt=$fmt",1.$i"
+	    fi
+	done
+	for i in $(seq 1 ${ncols2});do
+	    if [[ "$i" -ne "${idCol2}" ]];then
+		fmt=$fmt",2.$i"
+	    fi
+	done
+
+	echo "INFO: joining input files"  | tee -a "$logfile"
+	echo ""  | tee -a "$logfile"
+	
+	local join_cmd="join --header -t$'\t' -1 ${idCol1} -2 ${idCol2} -a 1 -a 2 -e NA -o $fmt <(cat <(${cat1} ${fname1} | head -n 1) <(${cat1} ${fname1} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol1},${idCol1})) <(cat <(${cat2} ${fname2} | head -n 1) <(${cat2} ${fname2} | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k${idCol2},${idCol2}))"
+	echo "DEBUG: join command line: $join_cmd"
+	eval "$join_cmd > $tmpfile"
+	if [[ $? -eq 0 ]];then
+	    echo "INFO: join OK"  | tee -a "$logfile"
+	else
+	    echo "ERROR: join failed"  | tee -a "$logfile"
+	fi
+    else
+	join_two_files "$fname1" "$fname2" "$tmpfile" "$parts"	
+    fi
+    
+    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2=="NA"){c=c+1;}}END{print c;}')
+    echo "INFO: samples in file1 only: $x"  | tee -a "$logfile"
+    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1=="NA" && $2!="NA"){c=c+1;}}END{print c;}')
+    echo "INFO: samples in file2 only: $x"  | tee -a "$logfile"
+    x=$(tail -n +2  "$tmpfile" | awk 'BEGIN{FS="\t";c=0;}{if ($1!="NA" && $2!="NA"){c=c+1;}}END{print c;}')
+    echo "INFO: samples in both file1 and file2: $x"  | tee -a "$logfile"
+    x=$(head -n 1 "$tmpfile" | tr '\t' '\n' | wc -l )
+    echo "INFO: total columns in joined file: $x"  | tee -a "$logfile"
+    awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' "$tmpfile" | cut -f 2- | TMPDIR="${tmpdir}" sponge "$tmpfile"
+    echo -e "\n---------------------------------------------------------\n" | tee -a "$logfile"
+    # tmpfile contains one ID column (1st), all columns from file1 (including CREATED, RELEASE), all columns from file2
+    
+    if [[ "${#common_cols[@]}" -eq 0 ]];then # no common colnames, remove RELEASE, CREATED columns
+	cut --complement -f $(getColNum "$tmpfile" "RELEASE"),$(getColNum "$tmpfile" "CREATED") "$tmpfile" | TMPDIR="${tmpdir}" sponge "$tmpfile"
+	if [[ ! -z "$xn" ]];then
+	    echo "INFO: no common columns, nothing to save"  | tee -a "$logfile"
+	fi
+	ret="$tmpfile"
+    else # there are common colnames
+	common_colnum=(1)
+	for c in "${common_cols[@]}";do
+	    getColNums "$tmpfile" "$c" "cat" tmp_ar
+	    common_colnum+=("${tmp_ar[0]}")
+	    common_colnum+=("${tmp_ar[1]}")
+	done	
+	echo "INFO: samples with x -> NA" >> "$logfile"
+	while read line;do # for fields with x -> NA, report "Y", otherwise "N"
+	    echo "x2NA" "$line" | tr ' ' '\t' >> "$logfile"
+	done < <(cut -f $(join_by "," "${common_colnum[@]}") "$tmpfile" | "${scriptdir}/sort_columns.pl" | perl -lne '@a=split(/\t/,$_,-1);$f=0;@b=($a[0]);if ($_=~/^f/){$f=1;for ($i=1;$i<scalar(@a);$i+=2){push @b,$a[$i];}}else{for ($i=1;$i<scalar(@a);$i+=2){if ($a[$i] ne "NA" && $a[$i+1] eq "NA"){$f=1;push @b,"Y";}else{push @b,"N";};}}print join(" ",@b) if ($f==1);')
+	if [[ ! -z "$xn" ]];then
+	    echo "INFO: saving common columns to $xn" | tee -a "$logfile"
+	    cut -f $(join_by "," "${common_colnum[@]}") "$tmpfile" | "${scriptdir}/sort_columns.pl" | gzip - -c > "$xn"
+	fi
+	# report some stats comparing shared columns in both files
+	"${scriptdir}/get_stats.pl" "$tmpfile" >> "$logfile"
+	# remove RELEASE, CREATED columns
+	exclude_cols=()
+	exclude_cols+=($(getColNum "$tmpfile" "RELEASE"))
+	exclude_cols+=($(getColNum "$tmpfile" "CREATED"))
+	# remove common columns coming from the first input file
+	for c in "${common_cols[@]}";do
+	    getColNums "$tmpfile" "$c" "cat" tmp_ar
+	    exclude_cols+=("${tmp_ar[0]}")
+	done
+	cut --complement -f $(join_by "," "${exclude_cols[@]}") "$tmpfile" | TMPDIR="${tmpdir}" sponge "$tmpfile"
+
+	ret="$tmpfile"
+    fi
 }
 
 # tab separated input
