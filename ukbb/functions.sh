@@ -761,7 +761,7 @@ function join_two_files {
 	# echo "DEBUG: fmt: $fmt"
 	# "$cat1" "$infile1"
 	# "$cat2" "$infile2"
-	echo "DEBUG: joining, $infile1, $infile2, $outfile, $fmt"
+	# echo "DEBUG: joining, $infile1, $infile2, $outfile, $fmt"
 	# keeping both ID columns in output
 	if [[ "$cat3" == "cat" ]];then
 	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -T ${tmpdir} -t$'\t' -k1,1)) > "$outfile"
