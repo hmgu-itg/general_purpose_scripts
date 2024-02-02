@@ -786,7 +786,7 @@ function join_two_files {
 		c2=$(( c1 + i -1 ))
 		$cat1 "$infile1" | cut -f 1,"${c1}"-"${c2}" | gzip - > "$tf"
 		# join_two_files
-		join_two_files "$tf" "$infile2" "${tempf[$k]}"
+		join_two_files "$logfile" "$tmpdir" "$tf" "$infile2" "${tempf[$k]}"
 		# echo "DEBUG: i=$i"
 		# zcat "${tempf[$k]}"
 		c1=$(( c2 + 1 ))
@@ -817,7 +817,7 @@ function join_two_files {
 		c2=$(( c1 + i -1 ))
 		$cat2 "$infile2" | cut -f 1,"${c1}"-"${c2}" | gzip - > "$tf"
 		# join_two_files
-		join_two_files "$infile1" "$tf" "${tempf[$k]}"
+		join_two_files "$logfile" "$tmpdir" "$infile1" "$tf" "${tempf[$k]}"
 		# echo "DEBUG: i=$i"
 		# zcat "${tempf[$k]}"
 		c1=$(( c2 + 1 ))
