@@ -21,6 +21,7 @@ function usage () {
     echo "                      -d <optional: debug mode: do not remove temporary files>"
     echo "                      -t <optional: temp dir; default: /tmp>"
     echo "                      -s <optional: save intersecting columns; default: false>"
+    echo "                      -p <optional: split bigger file into smaller parts; default: 1>"
     echo ""
     echo "This script updates the input file, which must contain RELEASE/CREATED columns"
     echo "Output release equals input release+1"
@@ -49,7 +50,8 @@ bname="phenotypes"
 sorttemp="/tmp"
 savex="NO"
 xname=""
-while getopts "hi:u:f:o:x:db:t:s" opt; do
+parts=1
+while getopts "hi:u:f:o:x:db:t:sp:" opt; do
     case $opt in
         i)infile=($OPTARG);;
         u)ufile=($OPTARG);;
@@ -60,6 +62,7 @@ while getopts "hi:u:f:o:x:db:t:s" opt; do
         b)bname=($OPTARG);;
         t)sorttemp=($OPTARG);;
         s)savex="YES";;
+        p)parts=($OPTARG);;
         h)usage;;
         *)usage;;
     esac
@@ -176,7 +179,7 @@ echo -e "\n---------------------------------------------------------\n" | tee -a
 
 # FULL OUTER JOIN INPUT FILES ON IDs, THEN EXCLUDE IDS FROM -x LIST 
 
-update_file "$infile" "$ufile" "$sorttemp" "$logfile" tmpf "$xname"
+update_file "$infile" "$ufile" "$sorttemp" "$logfile" tmpf "$xname" "$parts"
 if [[ ! -z "$tmpf" ]];then
     # header line
     paste <(head -n 1 "$tmpf") <(echo RELEASE CREATED | tr ' ' '\t') | gzip - -c > "${outfile}"
