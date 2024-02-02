@@ -825,11 +825,22 @@ function join_two_files {
     if [[ $# -ge 4 ]];then
 	parts=$4
     fi
+    
+    local cat1=$(getCatCmd "$infile1")
+    local cat2=$(getCatCmd "$infile2")
+    local cat3=$(getCatCmd "$outfile")
+    
     local i
+    local j
+    local k
     local f1 # split this file
     local f2
     local tdir
+    local tf
     declare -a temp
+    declare -A tempf
+    local c1
+    local c2
     
     echo "DEBUG: join_two_files: FILE 1: $infile1"
     echo "DEBUG: join_two_files: FILE 2: $infile2"
@@ -856,32 +867,77 @@ function join_two_files {
     local nc1=$(head -n 1 "$infile1" | tr '\t' '\n' | wc -l)
     local nc2=$(head -n 1 "$infile2" | tr '\t' '\n' | wc -l)
 
-    tdir=$(dirname $outfile)
-    
-    if [[ $nc1 -gt $nc2 ]];then
-	f1="$infile1"
-	f2="$infile2"
-	split_int $(( nc1 -1 )) $parts temp
-    else
-	f2="$infile1"
-	f1="$infile2"
-	split_int $(( nc2 -1 )) $parts temp
-    fi
-    
-    local fmt="1.${col1},2.${col2}"
-    for i in $(seq 1 ${nc1});do
-	if [[ "$i" -ne "${col1}" ]];then
-	   fmt=$fmt",1.$i"
-	fi
-    done
-    for i in $(seq 1 ${nc2});do
-	if [[ "$i" -ne "${col2}" ]];then
+    if [[ $parts -eq 1 ]];then
+	local fmt="1.1,2.1"
+	for i in $(seq 2 ${nc1});do
+	    fmt=$fmt",1.$i"
+	done
+	for i in $(seq 2 ${nc2});do
 	    fmt=$fmt",2.$i"
+	done
+	# echo "DEBUG: joining, $infile1, $infile2, $outfile, $fmt"
+	if [[ "$cat3" == "cat" ]];then
+	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -t$'\t' -k2,2)) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' | cut -f 2- > "$outfile"
+	else
+	    join --header -t$'\t' -1 1 -2 1 -a 1 -a 2 -e "NA" -o "$fmt" <(cat <("$cat1" "$infile1" | head -n 1) <("$cat1" "$infile1" | tail -n +2 | sort -t$'\t' -k1,1)) <(cat <("$cat2" "$infile2" | head -n 1) <("$cat2" "$infile2" | tail -n +2 | sort -t$'\t' -k2,2)) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' | cut -f 2- | gzip - > "$outfile"
 	fi
-    done
+    else
+	if [[ $nc1 -gt $nc2 ]];then
+	    f1="$infile1"
+	    f2="$infile2"
+	    split_int $(( nc1 -1 )) $parts temp
+	    echo "DEBUG: FILE 1: split "$(( nc1 -1 ))" columns into $parts chunks"
+	else
+	    f2="$infile1"
+	    f1="$infile2"
+	    split_int $(( nc2 -1 )) $parts temp
+	    echo "DEBUG: FILE 2: split "$(( nc2 -1 ))" columns into $parts chunks"
+	fi
 
-    # echo "DEBUG: joining, $infile1, $infile2, $outfile, $fmt"
-    join --header -t$'\t' -1 "$col1" -2 "$col2" -a 1 -a 2 -e "NA" -o "$fmt" <(cat <(head -n 1 "$infile1") <(tail -n +2 "$infile1" | sort -t$'\t' -k"$col1","$col1")) <(cat <(head -n 1 "$infile2") <(tail -n +2 "$infile2" | sort -t$'\t' -k"$col2","$col2")) | awk 'BEGIN{FS=OFS="\t";}{if ($2=="NA"){$2=$1;}print $0;}' | cut -f 2- | sponge "$outfile"
+	echo "DEBUG: join_two_files: columns split into chunks:"
+	for i in "${temp[@]}";do
+	    echo "DEBUG: $i"
+	done
+	
+	tdir=$(dirname $outfile)
+	createTempFilesN "$tdir" $(( parts + 1 )) tempf
+	tf="${tempf[0]}"
+
+	c1=2 # start column
+	k=1 # current temp output filename
+	for i in ${temp[@]};do
+	    c2=$(( c1 + i -1 ))
+	    cut -f 1,"${c1}"-"${c2}" "$f1" > "$tf"
+	    # join_two_files
+	    join_two_files "$tf" "$f2" "${tempf[$k]}"
+	    # cat "${tempf[$k]}"
+	    c1=$(( c2 + 1 ))
+	    k=$(( k + 1 ))
+	done
+	# paste all temp files
+	cp "${tempf[1]}" "$tf"
+	j=1
+	for (( i=2; i<=${parts}; i++ ));do
+	    k=$(( i - 2 ))
+	    k="${temp[$k]}"
+	    j=$(( j + k ))
+	    # echo "DEBUG: k=$k j=$j"
+	    paste <(cut -f 1-"$j" "$tf") <(cut --complement -f 1 "${tempf[$i]}") | sponge "$tf"
+	done
+
+	if [[ "$cat3" == "cat" ]];then
+	    mv "$tf" "$outfile"
+	else
+	    cat "$tf" | gzip - > "$outfile"
+	fi
+
+	# delete temp files
+	for k in "${tempf[@]}";do
+	    if [[ -f "$k" ]];then
+		rm "$k"
+	    fi
+	done	
+    fi    
 }
 
 # tab separated input
