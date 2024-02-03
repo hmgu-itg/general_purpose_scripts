@@ -795,11 +795,11 @@ function join_two_files {
 	    # paste all temp files
 	    # temp files have two ID columns
 	    cp "${tempf[1]}" "$tf"
-	    j=1
+	    j=2
 	    for (( i=2; i<=${parts}; i++ ));do
 		k=$(( i - 2 ))
 		k="${temp[$k]}"
-		j=$(( j + k + 1 ))
+		j=$(( j + k ))
 		# echo "DEBUG: k=$k j=$j"
 		paste <(zcat "$tf" | cut -f 1-"$j") <(zcat "${tempf[$i]}" | cut --complement -f 1,2) | gzip - > "${tempf[1]}"
 		cp "${tempf[1]}" "$tf"
