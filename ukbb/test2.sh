@@ -14,6 +14,6 @@ echo "f2: $f2"
 echo "output: $outfile"
 echo "chunks: $chunks"
 
-join_two_files $f1 $f2 $outfile $chunks
+join_two_files "LOG" "/tmp" $f1 $f2 $outfile $chunks
 
 exit 0
