@@ -198,9 +198,9 @@ def main():
                 f=gzip.open(outfname,"wt")
             else:
                 f=open(outfname,"w")
-            print("{}\t{}\t{}\t{}\t{}".format("Field","Instances","Description","Type","Missing"),file=f)
 
         if count_na:
+            print("{}\t{}\t{}\t{}\t{}".format("Field","Instances","Description","Type","Missing"),file=f)
             NAcount=dict() # short field name --> # NAs
             for x in HEADER:
                 NAcount[x]=0;
@@ -224,6 +224,7 @@ def main():
                     print("{}\t{}\t{}\t{}\t{}".format(x,len(HEADER[x]),"NA","NA","NA"),file=f)
                     LOGGER.warning("%s is not in data dictionary" % x)
         else: # not counting NAs
+            print("{}\t{}\t{}\t{}".format("Field","Instances","Description","Type"),file=f)
             for x in HEADER:
                 if x in DICT:
                     print("{0}\t{1}\t{2}\t{3}".format(x,len(HEADER[x]),DICT[x]["Field"],DICT[x]["ValueType"]),file=f)
