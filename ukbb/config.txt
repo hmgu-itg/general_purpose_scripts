@@ -1,0 +1,21 @@
+DATA_PATH	/lustre/groups/itg/teams/data-informatics/projects/ukbb/phenotypes/masterFiles
+PROJECTS	CM:CM_10205,OA:OA_9979
+
+# UKBB utilities: conversion, decoding etc.
+EXEC_DIR	/lustre/groups/itg/teams/data-informatics/projects/ukbb/phenotypes/executables
+
+# UKBB data dictionary
+DATA_DICT	/lustre/groups/itg/teams/data-informatics/projects/ukbb/phenotypes/resources/Data_Dictionary_Showcase.tsv
+
+# ICD codes for hospital diagnosed OA case inclusion (OA, KneeOA, HipOA etc.)
+HD_OA_ICD	/lustre/groups/itg/teams/data-informatics/projects/ukbb/phenotypes/resources/OA_case_inclusion_HD_ICD.txt
+
+# OPCS4 codes used for case inclusion for hospital diagnosed THR, TKR 
+HD_OA_OPCS4	/lustre/groups/itg/teams/data-informatics/projects/ukbb/phenotypes/resources/OA_case_inclusion_knee_hip_OPCS4.txt
+
+# OA ICD codes for case exclusion
+OA_CASE_EXCLUSION	/lustre/groups/itg/teams/data-informatics/projects/ukbb/phenotypes/resources/OA_case_exclusion.txt
+
+# OA control exclusion
+OA_CONTROL_EXCLUSION_ICD	/lustre/groups/itg/teams/data-informatics/projects/ukbb/phenotypes/resources/OA_control_exclusion_HD_ICD.txt
+OA_CONTROL_EXCLUSION_OPCS4	/lustre/groups/itg/teams/data-informatics/projects/ukbb/phenotypes/resources/OA_control_exclusion_OPCS4.txt

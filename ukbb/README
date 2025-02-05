@@ -1,0 +1,46 @@
+# test
+
+OA case categories:
+------------------
+
+OA SR:
+from the MAIN dataset, include samples with 1465 in 20002 category
+
+SR THR due to OA:
+from the MAIN dataset, include samples having 1465 in 20002 category AND having 1318 in 20004 category
+
+SR TKR due to OA
+from the MAIN dataset, include samples having 1465 in 20002 category AND having 1319 in 20004 category
+
+SR TJR due to OA
+from the MAIN dataset, include samples having 1465 in 20002 category AND having either 1318 or 1319 in 20004 category
+
+HD OA
+HD KneeOA
+HD HipOA
+HD HandOA
+HD ThumbOA
+HD SpineOA
+HD FingerOA
+HD HipKneeOA
+from the HESIN dataset, include samples having at least one ICD code from "OA_case_inclusion_HD_ICD.txt", using appropriate value in the first column for filtering
+
+OPCS4 TKR cases:
+First get all HD KneeOA cases (see above); then keep only those samples having OPCS4 code combinations from "OA_case_inclusion_knee_hip_OPCS4.txt" (first column == "TKR")
+
+OPCS4 THR cases:
+First get all HD HipOA cases (see above); then keep only those samples having OPCS4 code combinations from "OA_case_inclusion_knee_hip_OPCS4.txt" (first column == "THR")
+
+OPCS4 TJR cases:
+Union of the OPCS4 TKR and OPCS4 THR samples (see above)
+
+== After that, for each category, exclude samples based on ICD codes in "OA_case_exclusion.txt" ==
+
+OA controls:
+-----------
+Starting with the full list of UKBB samples, exclude:
+- samples having ICD codes from "OA_control_exclusion_HD_ICD.txt"
+- samples having OPCS4 codes from "OA_control_exclusion_OPCS4.txt"
+- OPCS4 TKR cases (see above)
+- OPCS4 THR cases (see above)
+- OA SR cases (see above)
